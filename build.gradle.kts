@@ -5,6 +5,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     kotlin("plugin.jpa") version "1.9.25"
     id("org.asciidoctor.jvm.convert") version "3.3.2"
+    id("com.diffplug.spotless") version "7.2.1"
 }
 
 group = "com.didit"
@@ -30,6 +31,7 @@ val appDocsOutDir = layout.buildDirectory.dir("docs/app")
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
@@ -62,9 +64,29 @@ allOpen {
     annotation("jakarta.persistence.Embeddable")
 }
 
+spotless {
+    kotlin {
+        target("src/**/*.kt")
+        ktlint()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+
+    kotlinGradle {
+        target("*.gradle.kts", "gradle/**/*.gradle.kts")
+        ktlint()
+        trimTrailingWhitespace()
+        endWithNewline()
+    }
+}
+
 tasks.test {
     useJUnitPlatform()
     outputs.dir(snippetsDir)
+}
+
+tasks.named("check") {
+    dependsOn("spotlessCheck")
 }
 
 tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {

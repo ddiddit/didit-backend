@@ -1,5 +1,5 @@
 package com.didit.application.common.exception
 
 open class BusinessException(
-    val errorCode: ErrorCode
+    val errorCode: ErrorCode,
 ) : RuntimeException(errorCode.detail)

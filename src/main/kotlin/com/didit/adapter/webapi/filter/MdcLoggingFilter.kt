@@ -10,7 +10,6 @@ import java.util.UUID
 
 @Component
 class MdcLoggingFilter : OncePerRequestFilter() {
-
     companion object {
         private const val REQUEST_ID = "requestId"
     }
@@ -18,7 +17,7 @@ class MdcLoggingFilter : OncePerRequestFilter() {
     override fun doFilterInternal(
         request: HttpServletRequest,
         response: HttpServletResponse,
-        filterChain: FilterChain
+        filterChain: FilterChain,
     ) {
         val requestId = UUID.randomUUID().toString().substring(0, 8)
 

@@ -1,0 +1,29 @@
+#!/bin/sh
+
+echo "코드 스타일 검사 중"
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+case "$(uname -s)" in
+    Darwin*|Linux*)
+        ./gradlew spotlessCheck
+        ;;
+    MINGW*|MSYS*)
+        ./gradlew.bat spotlessCheck
+        ;;
+    *)
+        echo "알 수 없는 운영체제입니다."
+        exit 1
+        ;;
+esac
+
+RESULT=$?
+
+if [ $RESULT -ne 0 ]; then
+    echo "코드 스타일 검사 실패: 커밋이 중단되었습니다."
+    exit 1
+else
+    echo "코드 스타일 검사 통과"
+    exit 0
+fi

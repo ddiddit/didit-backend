@@ -12,24 +12,25 @@ import java.time.OffsetDateTime
 
 @RestControllerAdvice
 class ApiControllerAdvice {
-
     private val log = LoggerFactory.getLogger(javaClass)
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handleValidationException(exception: MethodArgumentNotValidException): ProblemDetail {
-        val detail = exception.bindingResult.fieldErrors
-            .joinToString(", ") { "${it.field}: ${it.defaultMessage}" }
+        val detail =
+            exception.bindingResult.fieldErrors
+                .joinToString(", ") { "${it.field}: ${it.defaultMessage}" }
 
         log.warn("[VALIDATION] 요청 값 검증 실패 message={}", detail)
 
-        return ProblemDetail.forStatusAndDetail(
-            HttpStatus.BAD_REQUEST,
-            detail
-        ).apply {
-            title = HttpStatus.BAD_REQUEST.reasonPhrase
-            setProperty("timestamp", OffsetDateTime.now().toString())
-            setProperty("code", ErrorCode.INVALID_REQUEST.name)
-        }
+        return ProblemDetail
+            .forStatusAndDetail(
+                HttpStatus.BAD_REQUEST,
+                detail,
+            ).apply {
+                title = HttpStatus.BAD_REQUEST.reasonPhrase
+                setProperty("timestamp", OffsetDateTime.now().toString())
+                setProperty("code", ErrorCode.INVALID_REQUEST.name)
+            }
     }
 
     @ExceptionHandler(BusinessException::class)
@@ -38,27 +39,29 @@ class ApiControllerAdvice {
 
         log.warn("[BUSINESS] 비즈니스 예외 발생 code={}, message={}", errorCode.name, exception.message)
 
-        return ProblemDetail.forStatusAndDetail(
-            errorCode.status,
-            errorCode.detail
-        ).apply {
-            title = errorCode.status.reasonPhrase
-            setProperty("timestamp", OffsetDateTime.now().toString())
-            setProperty("code", errorCode.name)
-        }
+        return ProblemDetail
+            .forStatusAndDetail(
+                errorCode.status,
+                errorCode.detail,
+            ).apply {
+                title = errorCode.status.reasonPhrase
+                setProperty("timestamp", OffsetDateTime.now().toString())
+                setProperty("code", errorCode.name)
+            }
     }
 
     @ExceptionHandler(Exception::class)
     fun handleException(exception: Exception): ProblemDetail {
         log.error("[SYSTEM] 처리되지 않은 예외 발생", exception)
 
-        return ProblemDetail.forStatusAndDetail(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            ErrorCode.INTERNAL_SERVER_ERROR.detail
-        ).apply {
-            title = HttpStatus.INTERNAL_SERVER_ERROR.reasonPhrase
-            setProperty("timestamp", OffsetDateTime.now().toString())
-            setProperty("code", ErrorCode.INTERNAL_SERVER_ERROR.name)
-        }
+        return ProblemDetail
+            .forStatusAndDetail(
+                HttpStatus.INTERNAL_SERVER_ERROR,
+                ErrorCode.INTERNAL_SERVER_ERROR.detail,
+            ).apply {
+                title = HttpStatus.INTERNAL_SERVER_ERROR.reasonPhrase
+                setProperty("timestamp", OffsetDateTime.now().toString())
+                setProperty("code", ErrorCode.INTERNAL_SERVER_ERROR.name)
+            }
     }
 }
