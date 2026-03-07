@@ -1,0 +1,12 @@
+spring:
+  application:
+    name: didit-api
+  profiles:
+      active: local
+  docker:
+    compose:
+      enabled: false
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{requestId}] %logger - %msg%n"
