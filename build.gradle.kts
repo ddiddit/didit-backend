@@ -101,6 +101,8 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {
     configurations("asciidoctorExt")
     baseDirFollowsSourceFile()
 
+    attributes(mapOf("snippets" to snippetsDir.absolutePath))
+
     setSourceDir(file("src/docs/asciidoc/app"))
 
     sources {
