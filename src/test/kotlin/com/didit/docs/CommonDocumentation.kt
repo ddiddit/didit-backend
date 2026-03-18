@@ -8,16 +8,10 @@ object CommonDocumentation {
     fun successResponseFields(vararg dataFields: FieldDescriptor): Array<FieldDescriptor> {
         val baseFields =
             arrayOf(
-                fieldWithPath("data").type(JsonFieldType.OBJECT).description("응답 데이터").optional(),
-                fieldWithPath("message").type(JsonFieldType.STRING).description("응답 메시지").optional(),
+                fieldWithPath("data").type(JsonFieldType.OBJECT).description("응답 데이터"),
             )
         return baseFields + dataFields
     }
-
-    fun successMessageResponseFields(): Array<FieldDescriptor> =
-        arrayOf(
-            fieldWithPath("message").type(JsonFieldType.STRING).description("응답 메시지"),
-        )
 
     fun errorResponseFields(): Array<FieldDescriptor> =
         arrayOf(

@@ -35,21 +35,6 @@ class ApiDocsTest : RestDocsSupport() {
     }
 
     @Test
-    fun `메시지 성공 응답 문서화`() {
-        mockMvc
-            .perform(get("/test/success-message"))
-            .andExpect(status().isOk)
-            .andDo(
-                document(
-                    "response/success-message",
-                    ApiDocumentUtils.getDocumentRequest(),
-                    ApiDocumentUtils.getDocumentResponse(),
-                    responseFields(*CommonDocumentation.successMessageResponseFields()),
-                ),
-            )
-    }
-
-    @Test
     fun `비즈니스 예외 응답 문서화`() {
         mockMvc
             .perform(get("/test/business-error"))

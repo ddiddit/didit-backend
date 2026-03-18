@@ -17,9 +17,6 @@ class TestController {
     @GetMapping("/success-data")
     fun successData(): SuccessResponse<Map<String, String>> = SuccessResponse.of(mapOf("id" to "1", "name" to "테스트"))
 
-    @GetMapping("/success-message")
-    fun successMessage(): SuccessResponse<Unit> = SuccessResponse.of("처리되었습니다.")
-
     @GetMapping("/business-error")
     fun businessError(): String = throw BusinessException(ErrorCode.INVALID_REQUEST)
 
