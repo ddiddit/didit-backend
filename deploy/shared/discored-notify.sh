@@ -29,7 +29,7 @@ notify_rollback_success() {
     [ -z "$DISCORD_WEBHOOK_URL" ] && return
 
     PAYLOAD=$(jq -n --arg ts "$timestamp" --arg env "$env" --argjson color "$COLOR_GREEN" \
-      '{username: "Didit Bot", embeds: [{title: ("↩️ 롤백 성공 [" + $env + "]"), description: "이전 버전으로 복구되었습니다.", color: $color, fields: [{name: "시간", value: $ts, inline: true}]}]}')
+      '{username: "Didit Bot", embeds: [{title: ("롤백 성공 [" + $env + "]"), description: "이전 버전으로 복구되었습니다.", color: $color, fields: [{name: "시간", value: $ts, inline: true}]}]}')
     curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL" > /dev/null
 }
 
@@ -39,7 +39,7 @@ notify_rollback_failed() {
     [ -z "$DISCORD_WEBHOOK_URL" ] && return
 
     PAYLOAD=$(jq -n --arg ts "$timestamp" --arg env "$env" --argjson color "$COLOR_RED" \
-      '{username: "Didit Bot", content: "@here 롤백 실패 - 수동 복구 필요", embeds: [{title: ("🚨 롤백 실패 [" + $env + "]"), color: $color, fields: [{name: "시간", value: $ts, inline: true}]}]}')
+      '{username: "Didit Bot", content: "@here 롤백 실패 - 수동 복구 필요", embeds: [{title: ("롤백 실패 [" + $env + "]"), color: $color, fields: [{name: "시간", value: $ts, inline: true}]}]}')
     curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL" > /dev/null
 }
 
@@ -49,7 +49,7 @@ notify_server_down() {
     [ -z "$DISCORD_WEBHOOK_URL" ] && return
 
     PAYLOAD=$(jq -n --arg ts "$timestamp" --arg env "$env" --argjson color "$COLOR_RED" \
-      '{username: "Didit Bot", content: "@here 서버 다운", embeds: [{title: ("🔴 서버 다운 [" + $env + "]"), color: $color, fields: [{name: "시간", value: $ts, inline: true}]}]}')
+      '{username: "Didit Bot", content: "@here 서버 다운", embeds: [{title: ("서버 다운 [" + $env + "]"), color: $color, fields: [{name: "시간", value: $ts, inline: true}]}]}')
     curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL" > /dev/null
 }
 
@@ -60,6 +60,6 @@ notify_server_up() {
     [ -z "$DISCORD_WEBHOOK_URL" ] && return
 
     PAYLOAD=$(jq -n --arg ts "$timestamp" --arg dt "$downtime" --arg env "$env" --argjson color "$COLOR_GREEN" \
-      '{username: "Didit Bot", embeds: [{title: ("🟢 서버 복구 [" + $env + "]"), color: $color, fields: [{name: "다운타임", value: $dt, inline: true}, {name: "복구 시간", value: $ts, inline: true}]}]}')
+      '{username: "Didit Bot", embeds: [{title: ("서버 복구 [" + $env + "]"), color: $color, fields: [{name: "다운타임", value: $dt, inline: true}, {name: "복구 시간", value: $ts, inline: true}]}]}')
     curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$DISCORD_WEBHOOK_URL" > /dev/null
 }
