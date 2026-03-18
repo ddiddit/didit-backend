@@ -7,9 +7,11 @@ cd "$REPO_ROOT"
 
 case "$(uname -s)" in
     Darwin*|Linux*)
+        ./gradlew spotlessApply
         ./gradlew spotlessCheck
         ;;
     MINGW*|MSYS*)
+        ./gradlew.bat spotlessApply
         ./gradlew.bat spotlessCheck
         ;;
     *)
