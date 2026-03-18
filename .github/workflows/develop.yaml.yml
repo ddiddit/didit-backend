@@ -37,7 +37,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build with Gradle
-        run: ./gradlew clean build -x test --no-build-cache
+        run: ./gradlew clean build --no-build-cache
 
       - name: Upload JAR
         if: github.event_name == 'push'
