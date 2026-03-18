@@ -59,6 +59,14 @@ else
   echo -e "${GREEN}[SUCCESS] DB 컨테이너 이미 실행 중${NC}"
 fi
 
+echo -e "${YELLOW}[4/9] Nginx 컨테이너 확인${NC}"
+if ! docker ps --format '{{.Names}}' | grep -q '^didit-nginx$'; then
+  docker compose -f "docker-compose.nginx.yaml" up -d
+  echo -e "${GREEN}[SUCCESS] Nginx 컨테이너 시작 완료${NC}"
+else
+  echo -e "${GREEN}[SUCCESS] Nginx 컨테이너 이미 실행 중${NC}"
+fi
+
 echo -e "${YELLOW}[5/9] 기존 APP 컨테이너 중지${NC}"
 docker compose -f "$APP_COMPOSE" down 2>/dev/null || docker rm -f didit-api 2>/dev/null || true
 
