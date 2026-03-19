@@ -17,3 +17,13 @@ logging:
   level:
     root: INFO
     org.springframework.test.context: DEBUG
+jwt:
+  secret: dummy-jwt-secret
+  access-token-expiration: 6000
+  refresh-token-expiration: 6000
+
+oauth:
+  apple:
+    client-id: dummy-apple-client-id
+  google:
+    client-id: dummy-google-client-id
