@@ -47,6 +47,7 @@ dependencies {
     implementation("com.google.http-client:google-http-client-jackson2:1.43.3")
 
     implementation("com.auth0:java-jwt:4.4.0")
+    implementation("com.auth0:jwks-rsa:0.22.0")
 
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
