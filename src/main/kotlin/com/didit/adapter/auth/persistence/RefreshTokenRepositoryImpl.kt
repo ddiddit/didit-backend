@@ -1,6 +1,6 @@
 package com.didit.adapter.auth.persistence
 
-import com.didit.application.auth.port.required.persistence.RefreshTokenRepository
+import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.domain.auth.entity.RefreshToken
 import org.springframework.stereotype.Repository
 import java.util.UUID

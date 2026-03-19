@@ -1,6 +1,6 @@
 package com.didit.adapter.auth.persistence
 
-import com.didit.application.auth.port.required.persistence.UserRepository
+import com.didit.application.auth.required.UserRepository
 import com.didit.domain.auth.entity.User
 import com.didit.domain.auth.enums.SocialProvider
 import org.springframework.stereotype.Repository

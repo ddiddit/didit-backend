@@ -1,4 +1,4 @@
-package com.didit.application.auth.port.required.persistence
+package com.didit.application.auth.required
 
 import com.didit.domain.auth.entity.User
 import com.didit.domain.auth.enums.SocialProvider

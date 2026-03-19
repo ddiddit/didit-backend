@@ -1,4 +1,4 @@
-package com.didit.application.auth.port.required.persistence
+package com.didit.application.auth.required
 
 import com.didit.domain.auth.entity.RefreshToken
 import java.util.UUID
