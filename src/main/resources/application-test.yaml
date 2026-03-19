@@ -1,2 +1,5 @@
-oauth.google.client-id=dummy-client-id
-oauth.apple.client-id=dummy-client-id
+oauth:
+  apple:
+    client-id: dummy-apple-client-id
+  google:
+    client-id: dummy-google-client-id
