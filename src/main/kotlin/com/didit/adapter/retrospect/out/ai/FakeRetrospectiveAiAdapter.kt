@@ -9,8 +9,6 @@ import com.didit.domain.retrospect.model.RetrospectiveSummary
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
 
-@Primary
-@Component
 class FakeRetrospectiveAiAdapter : RetrospectiveAiPort {
 
     override fun analyzeAnswer(messages: List<ChatMessage>): AiAnalyzeResult {

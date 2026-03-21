@@ -7,3 +7,10 @@ spring:
   jpa:
     show-sql: true
     open-in-view: false
+
+clova:
+  studio:
+    base-url: https://clovastudio.stream.ntruss.com
+    api-key: ${CLOVA_API_KEY:test-api-key}
+    request-id: ${CLOVA_REQUEST_ID:didit-retrospect-local}
+    model: HCX-005

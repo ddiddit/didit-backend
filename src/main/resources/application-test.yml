@@ -1,0 +1,6 @@
+clova:
+  studio:
+    base-url: http://localhost
+    api-key: nv-df08b4b285d645618721351cf4382c518NtP
+    request-id: test-request-id
+    model: HCX-005
