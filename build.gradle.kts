@@ -33,8 +33,10 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
 
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
@@ -46,6 +48,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
+    testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
@@ -97,6 +100,8 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {
     dependsOn(tasks.test)
     configurations("asciidoctorExt")
     baseDirFollowsSourceFile()
+
+    attributes(mapOf("snippets" to snippetsDir.absolutePath))
 
     setSourceDir(file("src/docs/asciidoc/app"))
 

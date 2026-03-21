@@ -8,3 +8,5 @@
 :sectanchors:
 
 :snippets: ../../../build/generated-snippets
+
+include::../shared/overview.adoc[]
