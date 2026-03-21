@@ -50,11 +50,10 @@ class SocialLoginUseCase(
         return issueToken(user)
     }
 
-
     @Transactional
     fun loginWithKakao(
         code: String,
-        redirectUri: String
+        redirectUri: String,
     ): TokenInfo {
         val idToken = kakaoAuthPort.getIdToken(code, redirectUri)
 

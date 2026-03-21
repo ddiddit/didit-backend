@@ -18,38 +18,42 @@ class KakaoAuthAdapter(
     @Value("\${oauth.kakao.client-secret}")
     private val clientSecret: String,
 ) : KakaoAuthPort {
-
     private val restTemplate = RestTemplate()
 
-    override fun getIdToken(code: String, redirectUri: String): String {
-
+    override fun getIdToken(
+        code: String,
+        redirectUri: String,
+    ): String {
         val url = "https://kauth.kakao.com/oauth/token"
 
-        val headers = HttpHeaders().apply {
-            contentType = MediaType.APPLICATION_FORM_URLENCODED
-        }
+        val headers =
+            HttpHeaders().apply {
+                contentType = MediaType.APPLICATION_FORM_URLENCODED
+            }
 
-        val body: MultiValueMap<String, String> = LinkedMultiValueMap<String, String>().apply {
-            add("grant_type", "authorization_code")
-            add("client_id", clientId)
-            add("client_secret", clientSecret)
-            add("redirect_uri", redirectUri)
-            add("code", code)
-        }
+        val body: MultiValueMap<String, String> =
+            LinkedMultiValueMap<String, String>().apply {
+                add("grant_type", "authorization_code")
+                add("client_id", clientId)
+                add("client_secret", clientSecret)
+                add("redirect_uri", redirectUri)
+                add("code", code)
+            }
 
         val request = HttpEntity(body, headers)
 
-        val response = restTemplate.postForEntity(
-            url,
-            request,
-            KakaoTokenResponse::class.java
-        )
+        val response =
+            restTemplate.postForEntity(
+                url,
+                request,
+                KakaoTokenResponse::class.java,
+            )
 
-        val responseBody = response.body
-            ?: throw IllegalArgumentException("Kakao token 요청 실패")
+        val responseBody =
+            response.body
+                ?: throw IllegalArgumentException("Kakao token 요청 실패")
 
         return responseBody.idToken
             ?: throw IllegalArgumentException("id_token 없음 (scope=openid 확인)")
     }
 }
-

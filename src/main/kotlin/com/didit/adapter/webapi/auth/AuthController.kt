@@ -45,11 +45,11 @@ class AuthController(
     fun kakaoCallback(
         @RequestParam code: String,
     ): SuccessResponse<TokenResponse> {
-
-        val useResult = socialLoginUseCase.loginWithKakao(
-            code = code,
-            redirectUri = "http://localhost:8080/auth/social/kakao"
-        )
+        val useResult =
+            socialLoginUseCase.loginWithKakao(
+                code = code,
+                redirectUri = "http://localhost:8080/auth/social/kakao",
+            )
 
         return SuccessResponse.of(
             data = TokenResponse(useResult.accessToken, useResult.refreshToken),
