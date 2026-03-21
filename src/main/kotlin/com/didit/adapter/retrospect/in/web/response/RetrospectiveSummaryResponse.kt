@@ -1,6 +1,6 @@
-package com.didit.application.retrospect.dto.result
+package com.didit.adapter.retrospect.`in`.web.response
 
-data class RetrospectiveSummaryResult(
+data class RetrospectiveSummaryResponse(
     val doneWork: String,
     val blockedPoint: String,
     val solutionProcess: String,
