@@ -4,6 +4,7 @@ import com.didit.application.auth.dto.TokenInfo
 import com.didit.application.auth.port.JwtPort
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
+import com.didit.application.auth.required.social.KakaoAuthPort
 import com.didit.application.auth.required.social.SocialAuthPort
 import com.didit.domain.auth.entity.RefreshToken
 import com.didit.domain.auth.entity.User
@@ -19,6 +20,7 @@ class SocialLoginUseCase(
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val jwtPort: JwtPort,
+    private val kakaoAuthPort: KakaoAuthPort,
     @Value("\${jwt.refresh-token-expiration}")
     private val refreshTokenExpiration: Long,
 ) {
@@ -46,6 +48,20 @@ class SocialLoginUseCase(
         }
 
         return issueToken(user)
+    }
+
+
+    @Transactional
+    fun loginWithKakao(
+        code: String,
+        redirectUri: String
+    ): TokenInfo {
+        val idToken = kakaoAuthPort.getIdToken(code, redirectUri)
+
+        return login(
+            provider = SocialProvider.KAKAO,
+            idToken = idToken,
+        )
     }
 
     private fun issueToken(user: User): TokenInfo {

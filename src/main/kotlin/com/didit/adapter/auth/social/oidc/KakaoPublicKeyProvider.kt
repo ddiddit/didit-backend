@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit
 @Component
 class KakaoPublicKeyProvider {
     private val jwkProvider =
-        JwkProviderBuilder("https://kauth.kakao.com/.well-known/jwks.json")
+        JwkProviderBuilder("https://kauth.kakao.com")
             .cached(10, 24, TimeUnit.HOURS)
             .rateLimited(10, 1, TimeUnit.MINUTES)
             .build()
