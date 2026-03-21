@@ -8,8 +8,6 @@ import org.springframework.stereotype.Component
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-@Primary
-@Component
 class InMemoryRetrospectivePersistenceAdapter : RetrospectiveCommandPort, RetrospectiveQueryPort {
 
     private val storage = ConcurrentHashMap<UUID, Retrospective>()
