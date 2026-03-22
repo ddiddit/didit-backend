@@ -1,5 +1,4 @@
-CREATE TABLE device_tokens
-(
+CREATE TABLE device_tokens (
     id          BINARY(16)   NOT NULL,
     user_id     BINARY(16)   NOT NULL,
     token       VARCHAR(255) NOT NULL,
@@ -10,8 +9,7 @@ CREATE TABLE device_tokens
     UNIQUE KEY uq_device_tokens_user_device (user_id, device_type)
 );
 
-CREATE TABLE notification_settings
-(
+CREATE TABLE notification_settings (
     user_id            BINARY(16)  NOT NULL,
     marketing_consent  TINYINT(1)  NOT NULL DEFAULT 0,
     night_push_consent TINYINT(1)  NOT NULL DEFAULT 0,
