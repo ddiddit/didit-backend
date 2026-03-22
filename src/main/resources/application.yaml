@@ -2,7 +2,7 @@ spring:
   application:
     name: didit-api
   profiles:
-      active: local
+    active: local
   docker:
     compose:
       enabled: false
