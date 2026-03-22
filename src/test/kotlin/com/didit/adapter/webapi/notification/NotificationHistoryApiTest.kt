@@ -17,6 +17,8 @@ import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
+import org.springframework.restdocs.request.RequestDocumentation.pathParameters
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
 
@@ -55,6 +57,31 @@ class NotificationHistoryApiTest : RestDocsSupport() {
                         fieldWithPath("data[].body").type(JsonFieldType.STRING).description("알림 내용"),
                         fieldWithPath("data[].isRead").type(JsonFieldType.BOOLEAN).description("읽음 여부"),
                         fieldWithPath("data[].createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `알림 개별 읽음 처리`() {
+        val userId = UUID.randomUUID()
+        val id = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                put("/api/v1/notification-histories/{id}/read", id)
+                    .header("X-User-Id", userId.toString()),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "notification-history/read",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    requestHeaders(
+                        headerWithName("X-User-Id").description("사용자 ID"),
+                    ),
+                    pathParameters(
+                        parameterWithName("id").description("알림 ID"),
                     ),
                 ),
             )
