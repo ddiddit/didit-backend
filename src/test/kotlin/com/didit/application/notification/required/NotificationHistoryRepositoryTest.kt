@@ -39,4 +39,25 @@ class NotificationHistoryRepositoryTest : RepositoryTestSupport() {
         assertThat(found).hasSize(1)
         assertThat(found[0].userId).isEqualTo(userId)
     }
+
+    @Test
+    fun `findByIdAndUserId`() {
+        val userId = UUID.randomUUID()
+        val history =
+            notificationHistoryRepository.save(
+                NotificationHistory.create(NotificationHistoryFixture.createRequest(userId)),
+            )
+
+        val found = notificationHistoryRepository.findByIdAndUserId(history.id, userId)
+
+        assertThat(found).isNotNull
+        assertThat(found?.userId).isEqualTo(userId)
+    }
+
+    @Test
+    fun `findByIdAndUserId - return null when not exists`() {
+        val found = notificationHistoryRepository.findByIdAndUserId(UUID.randomUUID(), UUID.randomUUID())
+
+        assertThat(found).isNull()
+    }
 }
