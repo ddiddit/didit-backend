@@ -79,6 +79,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Check user
+        uses: appleboy/ssh-action@v0.1.6
+        with:
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
+          script: |
+            whoami
+            echo $HOME
+
       - name: Copy deploy scripts to NCP dev server
         uses: appleboy/scp-action@v0.1.4
         with:
@@ -86,7 +96,7 @@ jobs:
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
           source: "deploy"
-          target: "/home/${{ secrets.DEV_USER }}/didit"
+          target: "/home/didit-dev/didit"
 
       - name: Deploy to dev server
         uses: appleboy/ssh-action@v0.1.6
@@ -98,7 +108,7 @@ jobs:
           key: ${{ secrets.DEV_SSH_KEY }}
           envs: COMMIT_MSG
           script: |
-            cd /home/${{ secrets.DEV_USER }}/didit
+            cd /home/didit-dev/didit
 
             chmod +x deploy/dev/scripts/*.sh
             chmod +x deploy/shared/*.sh
