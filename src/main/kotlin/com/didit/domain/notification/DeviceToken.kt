@@ -19,18 +19,14 @@ class DeviceToken(
     @Id
     @Column(columnDefinition = "BINARY(16)")
     val id: UUID = UUID.randomUUID(),
-
     @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
     val userId: UUID,
-
     @Column(nullable = false)
     var token: String,
-
     @Enumerated(EnumType.STRING)
     @Column(name = "device_type", nullable = false)
     val deviceType: DeviceType,
 ) : BaseEntity() {
-
     fun update(newToken: String) {
         require(newToken.isNotBlank()) { "토큰은 비어있을 수 없습니다." }
 
@@ -38,12 +34,11 @@ class DeviceToken(
     }
 
     companion object {
-        fun register(request: DeviceTokenRegisterRequest): DeviceToken {
-            return DeviceToken(
+        fun register(request: DeviceTokenRegisterRequest): DeviceToken =
+            DeviceToken(
                 userId = request.userId,
                 token = request.token,
                 deviceType = request.deviceType,
             )
-        }
     }
 }
