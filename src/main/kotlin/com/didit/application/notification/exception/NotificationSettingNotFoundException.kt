@@ -5,4 +5,7 @@ import java.util.UUID
 
 class NotificationSettingNotFoundException(
     userId: UUID,
-) : BusinessException(NotificationErrorCode.NOTIFICATION_SETTING_NOT_FOUND)
+) : BusinessException(
+        NotificationErrorCode.NOTIFICATION_SETTING_NOT_FOUND,
+        "userId: $userId",
+    )

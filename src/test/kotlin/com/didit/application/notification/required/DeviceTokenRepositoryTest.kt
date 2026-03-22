@@ -1,19 +1,15 @@
 package com.didit.application.notification.required
 
-import com.didit.adapter.config.JpaAuditingConfig
 import com.didit.domain.notification.DeviceToken
 import com.didit.domain.notification.DeviceTokenRegisterRequest
 import com.didit.domain.notification.DeviceType
+import com.didit.support.RepositoryTestSupport
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
-import org.springframework.context.annotation.Import
 import java.util.UUID
 
-@DataJpaTest
-@Import(JpaAuditingConfig::class)
-class DeviceTokenRepositoryTest {
+class DeviceTokenRepositoryTest : RepositoryTestSupport() {
     @Autowired
     lateinit var deviceTokenRepository: DeviceTokenRepository
 
