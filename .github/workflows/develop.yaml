@@ -12,6 +12,11 @@ env:
   IMAGE_NAME: ghcr.io/ddiddit/didit-backend:latest
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
+x-ssh-config: &ssh-config
+  host: ${{ secrets.DEV_HOST }}
+  username: ${{ secrets.DEV_USER }}
+  key: ${{ secrets.DEV_SSH_KEY }}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -58,6 +63,9 @@ jobs:
           name: app-jar
           path: build/libs/
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Login to GHCR
         uses: docker/login-action@v3
         with:
@@ -65,11 +73,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build Docker Image
-        run: docker build -t $IMAGE_NAME .
-
-      - name: Push Docker Image
-        run: docker push $IMAGE_NAME
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ env.IMAGE_NAME }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     needs: docker-build
@@ -86,9 +97,7 @@ jobs:
       - name: Copy deploy scripts to NCP dev server
         uses: appleboy/scp-action@v0.1.4
         with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USER }}
-          key: ${{ secrets.DEV_SSH_KEY }}
+          <<: *ssh-config
           source: "deploy"
           target: "/home/didit-dev/didit"
 
@@ -97,9 +106,7 @@ jobs:
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USER }}
-          key: ${{ secrets.DEV_SSH_KEY }}
+          <<: *ssh-config
           envs: COMMIT_MSG
           script: |
             cd /home/didit-dev/didit
@@ -124,7 +131,7 @@ jobs:
             cat > /home/didit-dev/didit/firebase/firebase-service-account.json << 'FBEOF'
             ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
             FBEOF
-            
+
             ./deploy/dev/scripts/deploy.sh
 
       - name: Create Deployment
