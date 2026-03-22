@@ -11,9 +11,8 @@ import java.io.FileInputStream
 @Configuration
 class FirebaseConfig(
     @param:Value("\${firebase.service-account-path}")
-    private val serviceAccountPath: String
+    private val serviceAccountPath: String,
 ) {
-
     @Bean
     fun firebaseApp(): FirebaseApp {
         if (FirebaseApp.getApps().isNotEmpty()) {
@@ -22,9 +21,11 @@ class FirebaseConfig(
 
         val serviceAccount = FileInputStream(serviceAccountPath)
 
-        val options = FirebaseOptions.builder()
-            .setCredentials(GoogleCredentials.fromStream(serviceAccount))
-            .build()
+        val options =
+            FirebaseOptions
+                .builder()
+                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .build()
 
         return FirebaseApp.initializeApp(options)
     }
