@@ -1,11 +1,14 @@
 package com.didit.adapter.webapi.auth
 
+import com.didit.adapter.auth.security.CustomUserDetails
 import com.didit.adapter.webapi.auth.dto.TokenResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.auth.dto.RefreshTokenRequest
 import com.didit.application.auth.dto.SocialLoginRequest
+import com.didit.application.auth.provided.LogoutUseCase
 import com.didit.application.auth.provided.RefreshTokenUseCase
 import com.didit.application.auth.provided.SocialLoginUseCase
+import org.springframework.security.core.annotation.AuthenticationPrincipal
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -18,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 class AuthController(
     private val socialLoginUseCase: SocialLoginUseCase,
     private val refreshTokenUseCase: RefreshTokenUseCase,
+    private val logoutUseCase: LogoutUseCase,
 ) {
     @PostMapping("/login")
     fun socialLogin(
@@ -73,5 +77,14 @@ class AuthController(
             data = result,
             message = "토큰 재발급에 성공했습니다.",
         )
+    }
+
+    @PostMapping("/logout")
+    fun logout(
+        @AuthenticationPrincipal user: CustomUserDetails,
+    ): SuccessResponse<Unit> {
+        logoutUseCase.logout(user.getUserId())
+
+        return SuccessResponse.of(message = "로그아웃에 성공했습니다.")
     }
 }
