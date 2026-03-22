@@ -37,6 +37,7 @@ dependencies {
 
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.google.firebase:firebase-admin:9.2.0")
 
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
