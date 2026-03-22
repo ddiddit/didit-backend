@@ -2,14 +2,14 @@
 
 === 성공 응답 구조
 
-==== 데이터 응답 (200, 201)
+==== 데이터 응답 (200)
 
 include::{snippets}/response/success-data/http-response.adoc[]
 include::{snippets}/response/success-data/response-fields.adoc[]
 
-==== 빈 응답 (204)
+==== 빈 응답 (201, 204)
 
-삭제 등 응답 바디가 없는 경우 `204 No Content` 를 반환합니다.
+생성(201) 및 삭제(204) 등 응답 바디가 없는 경우 빈 응답을 반환합니다.
 
 === 에러 응답 구조
 

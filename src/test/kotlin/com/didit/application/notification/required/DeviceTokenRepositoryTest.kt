@@ -14,19 +14,19 @@ import java.util.UUID
 @DataJpaTest
 @Import(JpaAuditingConfig::class)
 class DeviceTokenRepositoryTest {
-
     @Autowired
     lateinit var deviceTokenRepository: DeviceTokenRepository
 
     @Test
     fun `save`() {
-        val deviceToken = DeviceToken.register(
-            DeviceTokenRegisterRequest(
-                userId = UUID.randomUUID(),
-                token = "test-token",
-                deviceType = DeviceType.IOS,
+        val deviceToken =
+            DeviceToken.register(
+                DeviceTokenRegisterRequest(
+                    userId = UUID.randomUUID(),
+                    token = "test-token",
+                    deviceType = DeviceType.IOS,
+                ),
             )
-        )
 
         val saved = deviceTokenRepository.save(deviceToken)
 
@@ -42,8 +42,8 @@ class DeviceTokenRepositoryTest {
                     userId = userId,
                     token = "test-token",
                     deviceType = DeviceType.IOS,
-                )
-            )
+                ),
+            ),
         )
 
         val found = deviceTokenRepository.findByUserIdAndDeviceType(userId, DeviceType.IOS)
@@ -61,8 +61,8 @@ class DeviceTokenRepositoryTest {
                     userId = userId,
                     token = "test-token",
                     deviceType = DeviceType.IOS,
-                )
-            )
+                ),
+            ),
         )
 
         deviceTokenRepository.deleteByUserIdAndDeviceType(userId, DeviceType.IOS)
