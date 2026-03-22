@@ -6,7 +6,6 @@ import java.time.LocalTime
 import java.util.UUID
 
 class NotificationSettingTest {
-
     @Test
     fun `create`() {
         val userId = UUID.randomUUID()

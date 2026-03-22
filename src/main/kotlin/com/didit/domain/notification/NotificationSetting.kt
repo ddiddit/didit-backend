@@ -14,20 +14,15 @@ class NotificationSetting(
     @Id
     @Column(columnDefinition = "BINARY(16)")
     val userId: UUID,
-
     @Column(nullable = false)
     var marketingConsent: Boolean = false,
-
     @Column(nullable = false)
     var nightPushConsent: Boolean = false,
-
     @Column(nullable = false)
     var enabled: Boolean = false,
-
     @Column(nullable = false)
     var reminderTime: LocalTime = LocalTime.of(20, 0),
 ) : BaseEntity() {
-
     fun updateSetting(
         enabled: Boolean,
         reminderTime: LocalTime,
@@ -45,7 +40,6 @@ class NotificationSetting(
     }
 
     companion object {
-        fun create(userId: UUID): NotificationSetting =
-            NotificationSetting(userId = userId)
+        fun create(userId: UUID): NotificationSetting = NotificationSetting(userId = userId)
     }
 }
