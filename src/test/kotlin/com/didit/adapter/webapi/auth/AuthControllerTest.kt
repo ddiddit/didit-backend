@@ -1,13 +1,17 @@
 package com.didit.adapter.webapi.auth
 
+import com.didit.adapter.auth.security.CustomUserDetails
 import com.didit.application.auth.dto.RefreshTokenRequest
 import com.didit.application.auth.dto.SocialLoginRequest
 import com.didit.application.auth.dto.TokenInfo
+import com.didit.application.auth.provided.LogoutUseCase
 import com.didit.application.auth.provided.RefreshTokenUseCase
 import com.didit.application.auth.provided.SocialLoginUseCase
+import com.didit.domain.auth.enums.Role
 import com.didit.domain.auth.enums.SocialProvider
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
@@ -16,14 +20,18 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
+import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
+import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.util.UUID
 import kotlin.test.Test
 
 @WebMvcTest(AuthController::class)
@@ -34,6 +42,7 @@ class AuthControllerTest(
     @Autowired val objectMapper: ObjectMapper,
     @Autowired val socialLoginUseCase: SocialLoginUseCase,
     @Autowired val refreshTokenUseCase: RefreshTokenUseCase,
+    @Autowired val logoutUseCase: LogoutUseCase
 ) {
     @Test
     fun `소셜_로그인_성공`() {
@@ -137,6 +146,33 @@ class AuthControllerTest(
                         fieldWithPath("data.accessToken").description("액세스 토큰"),
                         fieldWithPath("data.refreshToken").description("리프레시 토큰"),
                         fieldWithPath("message").description("응답 메시지"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `로그아웃_성공`() {
+        val user = CustomUserDetails(
+            userId = UUID.randomUUID(),
+            role = Role.USER,
+        )
+
+        doNothing().`when`(logoutUseCase).logout(any())
+
+        mockMvc.perform(
+            post("/auth/logout")
+                .with(csrf())
+                .with(user(user))
+        )
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.message").value("로그아웃에 성공했습니다."))
+            .andDo(
+                document(
+                    "auth-logout",
+                    responseFields(
+                        fieldWithPath("message").type(JsonFieldType.STRING)
+                            .description("응답 메시지")
                     ),
                 ),
             )
