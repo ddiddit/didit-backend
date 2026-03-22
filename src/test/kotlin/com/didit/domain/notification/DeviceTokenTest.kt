@@ -6,14 +6,14 @@ import org.junit.jupiter.api.Test
 import java.util.UUID
 
 class DeviceTokenTest {
-
     @Test
     fun `register`() {
-        val request = DeviceTokenRegisterRequest(
-            userId = UUID.randomUUID(),
-            token = "test-token",
-            deviceType = DeviceType.IOS,
-        )
+        val request =
+            DeviceTokenRegisterRequest(
+                userId = UUID.randomUUID(),
+                token = "test-token",
+                deviceType = DeviceType.IOS,
+            )
         val deviceToken = DeviceToken.register(request)
 
         assertThat(deviceToken.token).isEqualTo("test-token")
@@ -34,13 +34,14 @@ class DeviceTokenTest {
 
     @Test
     fun `update`() {
-        val deviceToken = DeviceToken.register(
-            DeviceTokenRegisterRequest(
-                userId = UUID.randomUUID(),
-                token = "old-token",
-                deviceType = DeviceType.IOS,
+        val deviceToken =
+            DeviceToken.register(
+                DeviceTokenRegisterRequest(
+                    userId = UUID.randomUUID(),
+                    token = "old-token",
+                    deviceType = DeviceType.IOS,
+                ),
             )
-        )
 
         deviceToken.update("new-token")
 
@@ -49,13 +50,14 @@ class DeviceTokenTest {
 
     @Test
     fun `update with blank token`() {
-        val deviceToken = DeviceToken.register(
-            DeviceTokenRegisterRequest(
-                userId = UUID.randomUUID(),
-                token = "test-token",
-                deviceType = DeviceType.IOS,
+        val deviceToken =
+            DeviceToken.register(
+                DeviceTokenRegisterRequest(
+                    userId = UUID.randomUUID(),
+                    token = "test-token",
+                    deviceType = DeviceType.IOS,
+                ),
             )
-        )
 
         assertThatThrownBy {
             deviceToken.update("")
