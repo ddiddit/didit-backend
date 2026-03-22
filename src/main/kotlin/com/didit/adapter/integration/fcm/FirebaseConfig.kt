@@ -9,7 +9,6 @@ import org.springframework.core.io.ClassPathResource
 
 @Configuration
 class FirebaseConfig {
-
     @Bean
     fun firebaseApp(): FirebaseApp {
         if (FirebaseApp.getApps().isNotEmpty()) {
