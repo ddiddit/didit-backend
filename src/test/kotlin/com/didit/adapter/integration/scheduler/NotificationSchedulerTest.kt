@@ -2,6 +2,7 @@ package com.didit.adapter.integration.scheduler
 
 import com.didit.adapter.integration.fcm.FcmClient
 import com.didit.application.notification.provided.DeviceTokenFinder
+import com.didit.application.notification.provided.NotificationHistoryRegister
 import com.didit.application.notification.provided.NotificationSettingFinder
 import com.didit.domain.notification.DeviceToken
 import com.didit.domain.notification.DeviceTokenRegisterRequest
@@ -29,6 +30,9 @@ class NotificationSchedulerTest {
     @Mock
     lateinit var fcmClient: FcmClient
 
+    @Mock
+    lateinit var notificationHistoryRegister: NotificationHistoryRegister
+
     @InjectMocks
     lateinit var notificationScheduler: NotificationScheduler
 
@@ -49,7 +53,8 @@ class NotificationSchedulerTest {
 
         notificationScheduler.sendReminderNotifications()
 
-        verify(fcmClient).sendMessage("test-token", "회고 작성 알림", "하루를 마무리하며 오늘의 회고를 기록해 보세요.")
+        verify(fcmClient).sendMessage("test-token", NotificationScheduler.DAILY_REMINDER_TITLE, NotificationScheduler.DAILY_REMINDER_BODY)
+        verify(notificationHistoryRegister).save(any())
     }
 
     @Test
@@ -59,5 +64,19 @@ class NotificationSchedulerTest {
         notificationScheduler.sendReminderNotifications()
 
         verify(fcmClient, never()).sendMessage(any(), any(), any())
+        verify(notificationHistoryRegister, never()).save(any())
+    }
+
+    @Test
+    fun `no notifications when no device tokens`() {
+        val userId = UUID.randomUUID()
+        val setting = NotificationSetting.create(userId)
+        whenever(notificationSettingFinder.findAllByReminderTime(any())).thenReturn(listOf(setting))
+        whenever(deviceTokenFinder.findAllByUserId(userId)).thenReturn(emptyList())
+
+        notificationScheduler.sendReminderNotifications()
+
+        verify(fcmClient, never()).sendMessage(any(), any(), any())
+        verify(notificationHistoryRegister, never()).save(any())
     }
 }
