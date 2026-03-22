@@ -12,7 +12,7 @@ import java.util.UUID
 
 @Table(
     name = "device_tokens",
-    uniqueConstraints = [UniqueConstraint(columnNames = ["user_id", "device_type"])]
+    uniqueConstraints = [UniqueConstraint(columnNames = ["user_id", "device_type"])],
 )
 @Entity
 class DeviceToken(
@@ -29,4 +29,21 @@ class DeviceToken(
     @Enumerated(EnumType.STRING)
     @Column(name = "device_type", nullable = false)
     val deviceType: DeviceType,
-) : BaseEntity()
+) : BaseEntity() {
+
+    fun update(newToken: String) {
+        require(newToken.isNotBlank()) { "토큰은 비어있을 수 없습니다." }
+
+        this.token = newToken
+    }
+
+    companion object {
+        fun register(request: DeviceTokenRegisterRequest): DeviceToken {
+            return DeviceToken(
+                userId = request.userId,
+                token = request.token,
+                deviceType = request.deviceType,
+            )
+        }
+    }
+}
