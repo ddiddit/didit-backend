@@ -21,6 +21,7 @@ import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf
 import org.springframework.test.web.servlet.MockMvc
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import kotlin.test.Test
@@ -98,6 +99,40 @@ class AuthControllerTest(
                     requestFields(
                         fieldWithPath("refreshToken").description("리프레시 토큰"),
                     ),
+                    responseFields(
+                        fieldWithPath("data.accessToken").description("액세스 토큰"),
+                        fieldWithPath("data.refreshToken").description("리프레시 토큰"),
+                        fieldWithPath("message").description("응답 메시지"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `카카오_콜백_로그인_성공`() {
+        val code = "test-auth-code"
+
+        val tokenInfo =
+            TokenInfo(
+                accessToken = "access-token",
+                refreshToken = "refresh-token",
+            )
+
+        whenever(
+            socialLoginUseCase.loginWithKakao(
+                eq(code),
+                any(),
+            ),
+        ).thenReturn(tokenInfo)
+
+        mockMvc
+            .perform(
+                get("/auth/social/kakao")
+                    .param("code", code),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "auth-kakao-login",
                     responseFields(
                         fieldWithPath("data.accessToken").description("액세스 토큰"),
                         fieldWithPath("data.refreshToken").description("리프레시 토큰"),
