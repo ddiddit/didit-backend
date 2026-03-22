@@ -1,0 +1,24 @@
+= 알림 히스토리 API
+
+== 알림 히스토리 조회
+
+=== Request
+
+include::{snippets}/notification-history/find-all/http-request.adoc[]
+include::{snippets}/notification-history/find-all/request-headers.adoc[]
+
+=== Response
+
+include::{snippets}/notification-history/find-all/http-response.adoc[]
+include::{snippets}/notification-history/find-all/response-fields.adoc[]
+
+== 알림 전체 읽음 처리
+
+=== Request
+
+include::{snippets}/notification-history/read-all/http-request.adoc[]
+include::{snippets}/notification-history/read-all/request-headers.adoc[]
+
+=== Response
+
+include::{snippets}/notification-history/read-all/http-response.adoc[]
