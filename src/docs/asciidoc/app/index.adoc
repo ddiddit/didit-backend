@@ -11,3 +11,4 @@
 
 include::../shared/overview.adoc[]
 include::device-token.adoc[]
+include::notification-setting.adoc[]
