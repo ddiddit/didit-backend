@@ -11,7 +11,7 @@ import java.util.UUID
 
 @Transactional(readOnly = true)
 @Service
-class DeviceTokenService(
+class DeviceTokenRegisterService(
     private val deviceTokenRepository: DeviceTokenRepository,
 ) : DeviceTokenRegister {
     @Transactional

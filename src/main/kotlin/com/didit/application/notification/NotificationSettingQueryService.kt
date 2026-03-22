@@ -6,6 +6,7 @@ import com.didit.application.notification.required.NotificationSettingRepository
 import com.didit.domain.notification.NotificationSetting
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalTime
 import java.util.UUID
 
 @Transactional(readOnly = true)
@@ -16,4 +17,7 @@ class NotificationSettingQueryService(
     override fun findByUserId(userId: UUID): NotificationSetting =
         notificationSettingRepository.findByUserId(userId)
             ?: throw NotificationSettingNotFoundException(userId)
+
+    override fun findAllByReminderTime(reminderTime: LocalTime): List<NotificationSetting> =
+        notificationSettingRepository.findAllByEnabledTrueAndReminderTime(reminderTime)
 }
