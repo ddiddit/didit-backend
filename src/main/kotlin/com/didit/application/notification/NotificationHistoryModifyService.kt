@@ -1,5 +1,6 @@
 package com.didit.application.notification
 
+import com.didit.application.notification.exception.NotificationHistoryNotFoundException
 import com.didit.application.notification.provided.NotificationHistoryRegister
 import com.didit.application.notification.required.NotificationHistoryRepository
 import com.didit.domain.notification.NotificationHistory
@@ -17,6 +18,17 @@ class NotificationHistoryModifyService(
     @Transactional
     override fun save(request: NotificationHistoryCreateRequest): NotificationHistory =
         notificationHistoryRepository.save(NotificationHistory.create(request))
+
+    @Transactional
+    override fun read(
+        id: UUID,
+        userId: UUID,
+    ) {
+        notificationHistoryRepository
+            .findByIdAndUserId(id, userId)
+            ?.read()
+            ?: throw NotificationHistoryNotFoundException(id)
+    }
 
     @Transactional
     override fun readAll(userId: UUID) {
