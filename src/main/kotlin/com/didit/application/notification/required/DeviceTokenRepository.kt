@@ -8,7 +8,13 @@ import java.util.UUID
 interface DeviceTokenRepository : Repository<DeviceToken, UUID> {
     fun save(deviceToken: DeviceToken): DeviceToken
 
-    fun findByUserIdAndDeviceType(userId: UUID, deviceType: DeviceType): DeviceToken?
+    fun findByUserIdAndDeviceType(
+        userId: UUID,
+        deviceType: DeviceType,
+    ): DeviceToken?
 
-    fun deleteByUserIdAndDeviceType(userId: UUID, deviceType: DeviceType)
+    fun deleteByUserIdAndDeviceType(
+        userId: UUID,
+        deviceType: DeviceType,
+    )
 }

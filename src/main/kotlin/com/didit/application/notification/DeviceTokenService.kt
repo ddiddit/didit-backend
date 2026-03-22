@@ -14,16 +14,19 @@ import java.util.UUID
 class DeviceTokenService(
     private val deviceTokenRepository: DeviceTokenRepository,
 ) : DeviceTokenRegister {
-
     @Transactional
     override fun register(request: DeviceTokenRegisterRequest) {
-        deviceTokenRepository.findByUserIdAndDeviceType(request.userId, request.deviceType)
+        deviceTokenRepository
+            .findByUserIdAndDeviceType(request.userId, request.deviceType)
             ?.update(request.token)
             ?: deviceTokenRepository.save(DeviceToken.register(request))
     }
 
     @Transactional
-    override fun delete(userId: UUID, deviceType: DeviceType) {
+    override fun delete(
+        userId: UUID,
+        deviceType: DeviceType,
+    ) {
         deviceTokenRepository.deleteByUserIdAndDeviceType(userId, deviceType)
     }
 }

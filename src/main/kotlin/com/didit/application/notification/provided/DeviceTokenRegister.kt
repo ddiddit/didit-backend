@@ -7,5 +7,8 @@ import java.util.UUID
 interface DeviceTokenRegister {
     fun register(request: DeviceTokenRegisterRequest)
 
-    fun delete(userId: UUID, deviceType: DeviceType)
+    fun delete(
+        userId: UUID,
+        deviceType: DeviceType,
+    )
 }
