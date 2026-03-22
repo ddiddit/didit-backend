@@ -12,11 +12,6 @@ env:
   IMAGE_NAME: ghcr.io/ddiddit/didit-backend:latest
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-x-ssh-config: &ssh-config
-  host: ${{ secrets.DEV_HOST }}
-  username: ${{ secrets.DEV_USER }}
-  key: ${{ secrets.DEV_SSH_KEY }}
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -97,7 +92,9 @@ jobs:
       - name: Copy deploy scripts to NCP dev server
         uses: appleboy/scp-action@v0.1.4
         with:
-          <<: *ssh-config
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
           source: "deploy"
           target: "/home/didit-dev/didit"
 
@@ -106,7 +103,9 @@ jobs:
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
         with:
-          <<: *ssh-config
+          host: ${{ secrets.DEV_HOST }}
+          username: ${{ secrets.DEV_USER }}
+          key: ${{ secrets.DEV_SSH_KEY }}
           envs: COMMIT_MSG
           script: |
             cd /home/didit-dev/didit
