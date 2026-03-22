@@ -120,6 +120,11 @@ jobs:
 
             chmod 600 deploy/dev/.env
 
+            mkdir -p /home/didit-dev/didit/firebase
+            cat > /home/didit-dev/didit/firebase/firebase-service-account.json << 'FBEOF'
+            ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+            FBEOF
+            
             ./deploy/dev/scripts/deploy.sh
 
       - name: Create Deployment

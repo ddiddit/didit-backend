@@ -7,17 +7,22 @@ import org.springframework.stereotype.Component
 
 @Component
 class FcmClient {
-
-    fun sendMessage(token: String, title: String, body: String) {
-        val message = Message.builder()
-            .setToken(token)
-            .setNotification(
-                Notification.builder()
-                    .setTitle(title)
-                    .setBody(body)
-                    .build()
-            )
-            .build()
+    fun sendMessage(
+        token: String,
+        title: String,
+        body: String,
+    ) {
+        val message =
+            Message
+                .builder()
+                .setToken(token)
+                .setNotification(
+                    Notification
+                        .builder()
+                        .setTitle(title)
+                        .setBody(body)
+                        .build(),
+                ).build()
 
         FirebaseMessaging.getInstance().send(message)
     }
