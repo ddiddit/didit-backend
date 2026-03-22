@@ -14,23 +14,32 @@ class NotificationSettingModifyService(
     private val notificationSettingRepository: NotificationSettingRepository,
     private val notificationSettingFinder: NotificationSettingFinder,
 ) : NotificationSettingModifier {
-
     @Transactional
-    override fun updateSetting(userId: UUID, enabled: Boolean, reminderTime: LocalTime) {
+    override fun updateSetting(
+        userId: UUID,
+        enabled: Boolean,
+        reminderTime: LocalTime,
+    ) {
         val setting = notificationSettingFinder.findByUserId(userId)
 
         setting.updateSetting(enabled, reminderTime)
     }
 
     @Transactional
-    override fun updateMarketingConsent(userId: UUID, consent: Boolean) {
+    override fun updateMarketingConsent(
+        userId: UUID,
+        consent: Boolean,
+    ) {
         val setting = notificationSettingFinder.findByUserId(userId)
 
         setting.updateMarketingConsent(consent)
     }
 
     @Transactional
-    override fun updateNightPushConsent(userId: UUID, consent: Boolean) {
+    override fun updateNightPushConsent(
+        userId: UUID,
+        consent: Boolean,
+    ) {
         val setting = notificationSettingFinder.findByUserId(userId)
 
         setting.updateNightPushConsent(consent)

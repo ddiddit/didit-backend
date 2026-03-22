@@ -13,7 +13,6 @@ import java.util.UUID
 class NotificationSettingQueryService(
     private val notificationSettingRepository: NotificationSettingRepository,
 ) : NotificationSettingFinder {
-
     override fun findByUserId(userId: UUID): NotificationSetting =
         notificationSettingRepository.findByUserId(userId)
             ?: throw NotificationSettingNotFoundException(userId)
