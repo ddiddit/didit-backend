@@ -1,6 +1,7 @@
 package com.didit.domain.notification
 
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import java.time.LocalTime
 import java.util.UUID
@@ -24,28 +25,37 @@ class NotificationSettingTest {
 
         setting.updateSetting(
             enabled = true,
-            reminderTime = LocalTime.of(21, 0),
+            reminderTime = LocalTime.of(20, 0),
+            nightPushConsent = false,
         )
 
         assertThat(setting.enabled).isTrue()
-        assertThat(setting.reminderTime).isEqualTo(LocalTime.of(21, 0))
+        assertThat(setting.reminderTime).isEqualTo(LocalTime.of(20, 0))
     }
 
     @Test
-    fun `update marketing consent`() {
+    fun `update setting - night time without consent throws exception`() {
         val setting = NotificationSetting.create(UUID.randomUUID())
 
-        setting.updateMarketingConsent(true)
-
-        assertThat(setting.marketingConsent).isTrue()
+        assertThatThrownBy {
+            setting.updateSetting(
+                enabled = true,
+                reminderTime = LocalTime.of(22, 0),
+                nightPushConsent = false,
+            )
+        }.isInstanceOf(IllegalArgumentException::class.java)
     }
 
     @Test
-    fun `update night push consent`() {
+    fun `update setting - night time with consent success`() {
         val setting = NotificationSetting.create(UUID.randomUUID())
 
-        setting.updateNightPushConsent(true)
+        setting.updateSetting(
+            enabled = true,
+            reminderTime = LocalTime.of(22, 0),
+            nightPushConsent = true,
+        )
 
-        assertThat(setting.nightPushConsent).isTrue()
+        assertThat(setting.reminderTime).isEqualTo(LocalTime.of(22, 0))
     }
 }

@@ -26,7 +26,12 @@ class NotificationSetting(
     fun updateSetting(
         enabled: Boolean,
         reminderTime: LocalTime,
+        nightPushConsent: Boolean,
     ) {
+        val requiresNightConsent = isNightTime(reminderTime) && nightPushConsent.not()
+
+        require(!requiresNightConsent) { "야간 시간대 알림은 야간 푸시 동의가 필요합니다." }
+
         this.enabled = enabled
         this.reminderTime = reminderTime
     }
@@ -41,5 +46,11 @@ class NotificationSetting(
 
     companion object {
         fun create(userId: UUID): NotificationSetting = NotificationSetting(userId = userId)
+    }
+
+    private fun isNightTime(time: LocalTime): Boolean {
+        val nightStart = LocalTime.of(21, 0)
+        val nightEnd = LocalTime.of(8, 0)
+        return time >= nightStart || time < nightEnd
     }
 }

@@ -19,8 +19,7 @@ class NotificationSettingModifyService(
         reminderTime: LocalTime,
     ) {
         val setting = notificationSettingFinder.findByUserId(userId)
-
-        setting.updateSetting(enabled, reminderTime)
+        setting.updateSetting(enabled, reminderTime, setting.nightPushConsent)
     }
 
     @Transactional
