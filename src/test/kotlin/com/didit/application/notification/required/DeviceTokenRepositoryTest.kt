@@ -66,4 +66,31 @@ class DeviceTokenRepositoryTest : RepositoryTestSupport() {
         val found = deviceTokenRepository.findByUserIdAndDeviceType(userId, DeviceType.IOS)
         assertThat(found).isNull()
     }
+
+    @Test
+    fun `findAllByUserId`() {
+        val userId = UUID.randomUUID()
+        deviceTokenRepository.save(
+            DeviceToken.register(
+                DeviceTokenRegisterRequest(
+                    userId = userId,
+                    token = "test-token-ios",
+                    deviceType = DeviceType.IOS,
+                ),
+            ),
+        )
+        deviceTokenRepository.save(
+            DeviceToken.register(
+                DeviceTokenRegisterRequest(
+                    userId = userId,
+                    token = "test-token-android",
+                    deviceType = DeviceType.ANDROID,
+                ),
+            ),
+        )
+
+        val found = deviceTokenRepository.findAllByUserId(userId)
+
+        assertThat(found).hasSize(2)
+    }
 }

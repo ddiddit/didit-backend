@@ -5,6 +5,7 @@ import com.didit.support.RepositoryTestSupport
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.LocalTime
 import java.util.UUID
 
 class NotificationSettingRepositoryTest : RepositoryTestSupport() {
@@ -37,5 +38,18 @@ class NotificationSettingRepositoryTest : RepositoryTestSupport() {
         val found = notificationSettingRepository.findByUserId(UUID.randomUUID())
 
         assertThat(found).isNull()
+    }
+
+    @Test
+    fun `findAllByEnabledTrueAndReminderTime`() {
+        val userId = UUID.randomUUID()
+        val setting = NotificationSetting.create(userId)
+        setting.updateSetting(true, LocalTime.of(20, 0), false)
+        notificationSettingRepository.save(setting)
+
+        val found = notificationSettingRepository.findAllByEnabledTrueAndReminderTime(LocalTime.of(20, 0))
+
+        assertThat(found).hasSize(1)
+        assertThat(found[0].userId).isEqualTo(userId)
     }
 }

@@ -8,6 +8,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.time.LocalTime
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -25,5 +26,20 @@ class NotificationSettingFinderTest {
 
         verify(notificationSettingFinder).findByUserId(userId)
         assertThat(found.userId).isEqualTo(userId)
+    }
+
+    @Test
+    fun `findAllByReminderTime`() {
+        val settings =
+            listOf(
+                NotificationSetting.create(UUID.randomUUID()),
+                NotificationSetting.create(UUID.randomUUID()),
+            )
+        whenever(notificationSettingFinder.findAllByReminderTime(LocalTime.of(20, 0))).thenReturn(settings)
+
+        val found = notificationSettingFinder.findAllByReminderTime(LocalTime.of(20, 0))
+
+        verify(notificationSettingFinder).findAllByReminderTime(LocalTime.of(20, 0))
+        assertThat(found).hasSize(2)
     }
 }
