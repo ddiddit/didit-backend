@@ -1,12 +1,13 @@
 package com.didit.domain.notification
 
-import com.didit.domain.shared.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import org.springframework.data.annotation.CreatedDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Table(name = "notification_histories")
@@ -26,7 +27,10 @@ class NotificationHistory(
     val body: String,
     @Column(nullable = false)
     var isRead: Boolean = false,
-) : BaseEntity() {
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    var createdAt: LocalDateTime? = null,
+) {
     fun read() {
         this.isRead = true
     }
