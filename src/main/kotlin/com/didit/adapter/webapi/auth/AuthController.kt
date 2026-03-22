@@ -19,7 +19,7 @@ class AuthController(
     private val socialLoginUseCase: SocialLoginUseCase,
     private val refreshTokenUseCase: RefreshTokenUseCase,
 ) {
-    @PostMapping("/social")
+    @PostMapping("/login")
     fun socialLogin(
         @RequestBody request: SocialLoginRequest,
     ): SuccessResponse<TokenResponse> {

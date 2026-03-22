@@ -53,7 +53,7 @@ class AuthControllerTest(
 
         mockMvc
             .perform(
-                post("/auth/social")
+                post("/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request))
                     .with(csrf()),
