@@ -13,13 +13,12 @@ import org.springframework.web.client.RestTemplate
 
 @Component
 class KakaoAuthAdapter(
+    private val restTemplate: RestTemplate,
     @Value("\${oauth.kakao.client-id}")
     private val clientId: String,
     @Value("\${oauth.kakao.client-secret}")
     private val clientSecret: String,
 ) : KakaoAuthPort {
-    private val restTemplate = RestTemplate()
-
     override fun getIdToken(
         code: String,
         redirectUri: String,
