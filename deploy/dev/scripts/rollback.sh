@@ -7,7 +7,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m'
 
 REGISTRY="ghcr.io/ddiddit/didit-backend"
-WORK_DIR="$HOME/didit"
+WORK_DIR="/home/didit-dev/didit"
 DEPLOY_DIR="$WORK_DIR/deploy/dev"
 APP_COMPOSE="docker-compose.app.yaml"
 HEALTH_CHECK_URL="http://localhost:8080/actuator/health"
