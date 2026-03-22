@@ -50,6 +50,7 @@ dependencies {
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
     testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
