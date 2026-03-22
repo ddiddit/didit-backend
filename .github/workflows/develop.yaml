@@ -10,6 +10,7 @@ on:
 
 env:
   IMAGE_NAME: ghcr.io/ddiddit/didit-backend:latest
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
@@ -74,20 +75,13 @@ jobs:
     needs: docker-build
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Check user
-        uses: appleboy/ssh-action@v0.1.6
-        with:
-          host: ${{ secrets.DEV_HOST }}
-          username: ${{ secrets.DEV_USER }}
-          key: ${{ secrets.DEV_SSH_KEY }}
-          script: |
-            whoami
-            echo $HOME
 
       - name: Copy deploy scripts to NCP dev server
         uses: appleboy/scp-action@v0.1.4
@@ -127,3 +121,10 @@ jobs:
             chmod 600 deploy/dev/.env
 
             ./deploy/dev/scripts/deploy.sh
+
+      - name: Create Deployment
+        uses: chrnorm/deployment-action@v2
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          environment: development
+          ref: ${{ github.sha }}
