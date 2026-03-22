@@ -1,5 +1,6 @@
 package com.didit.adapter.webapi.notification
 
+import com.didit.adapter.webapi.notification.DeviceTokenApi
 import com.didit.adapter.webapi.notification.dto.DeviceTokenRequest
 import com.didit.application.notification.provided.DeviceTokenRegister
 import com.didit.docs.ApiDocumentUtils

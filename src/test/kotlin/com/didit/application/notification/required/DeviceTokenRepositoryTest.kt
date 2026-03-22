@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired
 import java.util.UUID
 
 class DeviceTokenRepositoryTest : RepositoryTestSupport() {
+
     @Autowired
     lateinit var deviceTokenRepository: DeviceTokenRepository
 
