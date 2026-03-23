@@ -1,6 +1,7 @@
 package com.didit.application.auth.provided
 
 import com.didit.application.auth.dto.TokenInfo
+import com.didit.application.auth.exception.InvalidIdTokenException
 import com.didit.application.auth.port.JwtPort
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
@@ -27,7 +28,12 @@ class SocialLoginUseCase(
         provider: SocialProvider,
         idToken: String,
     ): TokenInfo {
-        val socialUser = socialAuthPort.verifyIdToken(provider, idToken)
+        val socialUser =
+            try {
+                socialAuthPort.verifyIdToken(provider, idToken)
+            } catch (e: Exception) {
+                throw InvalidIdTokenException()
+            }
 
         var user =
             userRepository.findBySocialIdAndProvider(
