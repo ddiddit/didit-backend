@@ -1,5 +1,6 @@
 package com.didit.adapter.auth.jwt
 
+import com.didit.application.auth.port.JwtPort
 import com.didit.domain.auth.enums.Role
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jwts
@@ -18,10 +19,10 @@ class JwtProvider(
     private val accessTokenExpiration: Long,
     @Value("\${jwt.refresh-token-expiration}")
     private val refreshTokenExpiration: Long,
-) {
+) : JwtPort {
     private val key = Keys.hmacShaKeyFor(jwtSecret.toByteArray())
 
-    fun createAccessToken(
+    override fun createAccessToken(
         userId: UUID,
         role: Role,
     ): String {
@@ -38,7 +39,7 @@ class JwtProvider(
             .compact()
     }
 
-    fun createRefreshToken(userId: UUID): String {
+    override fun createRefreshToken(userId: UUID): String {
         val now = Date()
         return Jwts
             .builder()
@@ -49,7 +50,7 @@ class JwtProvider(
             .compact()
     }
 
-    fun getUserId(token: String): UUID {
+    override fun getUserId(token: String): UUID {
         val claims = parseClaims(token)
         return UUID.fromString(claims.subject)
     }

@@ -50,6 +50,9 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.11.5")
 
+    implementation("com.google.api-client:google-api-client:2.2.0")
+    implementation("com.google.http-client:google-http-client-jackson2:1.43.3")
+
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
     runtimeOnly("com.mysql:mysql-connector-j")
@@ -60,6 +63,7 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
+    testImplementation("org.springframework.security:spring-security-test")
     testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 
