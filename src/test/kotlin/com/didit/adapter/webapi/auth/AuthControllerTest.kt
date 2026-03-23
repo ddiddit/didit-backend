@@ -5,6 +5,7 @@ import com.didit.application.auth.dto.SocialLoginRequest
 import com.didit.application.auth.dto.TokenInfo
 import com.didit.application.auth.provided.RefreshTokenUseCase
 import com.didit.application.auth.provided.SocialLoginUseCase
+import com.didit.docs.ApiDocumentUtils
 import com.didit.domain.auth.enums.SocialProvider
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.mockito.kotlin.any
@@ -16,6 +17,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
 import org.springframework.context.annotation.Import
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
+import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
@@ -53,22 +55,23 @@ class AuthControllerTest(
 
         mockMvc
             .perform(
-                post("/auth/social")
+                post("/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request))
                     .with(csrf()),
             ).andExpect(status().isOk)
             .andDo(
                 document(
-                    "auth-social-login",
+                    "auth-login",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
-                        fieldWithPath("provider").description("소셜 로그인 제공자 (GOOGLE)"),
-                        fieldWithPath("idToken").description("OIDC ID 토큰"),
+                        fieldWithPath("provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자 (GOOGLE)"),
+                        fieldWithPath("idToken").type(JsonFieldType.STRING).description("OIDC ID 토큰"),
                     ),
                     responseFields(
-                        fieldWithPath("data.accessToken").description("액세스 토큰"),
-                        fieldWithPath("data.refreshToken").description("리프레시 토큰"),
-                        fieldWithPath("message").description("응답 메시지"),
+                        fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰"),
+                        fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
                     ),
                 ),
             )
@@ -96,13 +99,14 @@ class AuthControllerTest(
             .andDo(
                 document(
                     "auth-refresh",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
-                        fieldWithPath("refreshToken").description("리프레시 토큰"),
+                        fieldWithPath("refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
                     ),
                     responseFields(
-                        fieldWithPath("data.accessToken").description("액세스 토큰"),
-                        fieldWithPath("data.refreshToken").description("리프레시 토큰"),
-                        fieldWithPath("message").description("응답 메시지"),
+                        fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰"),
+                        fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
                     ),
                 ),
             )
@@ -121,7 +125,7 @@ class AuthControllerTest(
         whenever(
             socialLoginUseCase.loginWithKakao(
                 eq(code),
-                any(),
+                eq("http://localhost:8080/auth/social/kakao"),
             ),
         ).thenReturn(tokenInfo)
 
@@ -134,9 +138,8 @@ class AuthControllerTest(
                 document(
                     "auth-kakao-login",
                     responseFields(
-                        fieldWithPath("data.accessToken").description("액세스 토큰"),
-                        fieldWithPath("data.refreshToken").description("리프레시 토큰"),
-                        fieldWithPath("message").description("응답 메시지"),
+                        fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰"),
+                        fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
                     ),
                 ),
             )

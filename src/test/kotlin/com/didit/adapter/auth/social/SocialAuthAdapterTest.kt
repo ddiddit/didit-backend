@@ -7,6 +7,7 @@ import com.didit.adapter.auth.social.oidc.dto.AppleIdTokenPayload
 import com.didit.adapter.auth.social.oidc.dto.KakaoIdTokenPayload
 import com.didit.application.auth.exception.InvalidIdTokenException
 import com.didit.application.auth.exception.KakaoIdTokenNotFound
+import com.didit.application.auth.exception.KakaoInvalidIdTokenException
 import com.didit.domain.auth.enums.SocialProvider
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -116,10 +117,9 @@ class SocialAuthAdapterTest {
         `when`(kakaoVerifier.verify(idToken))
             .thenThrow(KakaoIdTokenNotFound())
 
-        val ex =
-            assertThrows<KakaoIdTokenNotFound> {
-                adapter.verifyIdToken(SocialProvider.KAKAO, idToken)
-            }
+        assertThrows<KakaoInvalidIdTokenException> {
+            adapter.verifyIdToken(SocialProvider.KAKAO, idToken)
+        }
 
         verify(kakaoVerifier).verify(idToken)
     }
