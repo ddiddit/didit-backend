@@ -3,8 +3,7 @@ package com.didit.adapter.auth.social
 import com.didit.adapter.auth.social.oidc.AppleOidcVerifier
 import com.didit.adapter.auth.social.oidc.GoogleOidcVerifier
 import com.didit.adapter.auth.social.oidc.dto.AppleIdTokenPayload
-import com.didit.application.common.exception.BusinessException
-import com.didit.application.common.exception.ErrorCode
+import com.didit.application.auth.exception.InvalidIdTokenException
 import com.didit.domain.auth.enums.SocialProvider
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -45,12 +44,10 @@ class SocialAuthAdapterTest {
         val idToken = "invalidGoogleToken"
         `when`(googleVerifier.verify(idToken)).thenThrow(RuntimeException("Invalid token"))
 
-        val ex =
-            assertThrows<BusinessException> {
-                adapter.verifyIdToken(SocialProvider.GOOGLE, idToken)
-            }
+        assertThrows<InvalidIdTokenException> {
+            adapter.verifyIdToken(SocialProvider.GOOGLE, idToken)
+        }
 
-        assertEquals(ErrorCode.INVALID_ID_TOKEN, ex.errorCode)
         verify(googleVerifier).verify(idToken)
     }
 
@@ -80,12 +77,10 @@ class SocialAuthAdapterTest {
         val idToken = "invalidAppleToken"
         `when`(appleVerifier.verify(idToken)).thenThrow(RuntimeException("Invalid token"))
 
-        val ex =
-            assertThrows<BusinessException> {
-                adapter.verifyIdToken(SocialProvider.APPLE, idToken)
-            }
+        assertThrows<InvalidIdTokenException> {
+            adapter.verifyIdToken(SocialProvider.APPLE, idToken)
+        }
 
-        assertEquals(ErrorCode.INVALID_ID_TOKEN, ex.errorCode)
         verify(appleVerifier).verify(idToken)
     }
 }
