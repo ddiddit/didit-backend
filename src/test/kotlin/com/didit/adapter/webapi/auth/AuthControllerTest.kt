@@ -125,18 +125,18 @@ class AuthControllerTest(
         whenever(
             socialLoginUseCase.loginWithKakao(
                 eq(code),
-                eq("http://localhost:8080/auth/social/kakao"),
+                eq("http://localhost:8080/auth/kakao/callback"),
             ),
         ).thenReturn(tokenInfo)
 
         mockMvc
             .perform(
-                get("/auth/social/kakao")
+                get("/auth/kakao/callback")
                     .param("code", code),
             ).andExpect(status().isOk)
             .andDo(
                 document(
-                    "auth-kakao-login",
+                    "auth-kakao-callback",
                     responseFields(
                         fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰"),
                         fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),

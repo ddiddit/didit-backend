@@ -28,7 +28,7 @@ class KakaoAuthAdapterTest {
     @Test
     fun `카카오_idToken_조회_성공`() {
         val code = "auth-code"
-        val redirectUri = "http://localhost:8080/auth/social/kakao"
+        val redirectUri = "http://localhost:8080/auth/kakao/callback"
 
         val kakaoResponse =
             KakaoTokenResponse(
