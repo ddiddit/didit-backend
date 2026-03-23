@@ -36,8 +36,15 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+
     implementation("org.jetbrains.kotlin:kotlin-reflect")
     implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("com.google.firebase:firebase-admin:9.2.0")
+
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-mysql")
 
     implementation("io.jsonwebtoken:jjwt-api:0.11.5")
     runtimeOnly("io.jsonwebtoken:jjwt-impl:0.11.5")
@@ -53,6 +60,8 @@ dependencies {
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
+    testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
@@ -104,6 +113,8 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {
     dependsOn(tasks.test)
     configurations("asciidoctorExt")
     baseDirFollowsSourceFile()
+
+    attributes(mapOf("snippets" to snippetsDir.absolutePath))
 
     setSourceDir(file("src/docs/asciidoc/app"))
 
