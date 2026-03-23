@@ -1,47 +1,86 @@
 package com.didit.adapter.auth.jwt
 
-import com.didit.adapter.config.SecurityConfig
-import com.didit.adapter.webapi.test.TestController
 import com.didit.domain.auth.enums.Role
+import jakarta.servlet.FilterChain
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import org.springframework.beans.factory.annotation.Autowired
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest
-import org.springframework.context.annotation.Import
-import org.springframework.http.MediaType
-import org.springframework.test.web.servlet.MockMvc
-import org.springframework.test.web.servlet.get
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.springframework.security.core.context.SecurityContextHolder
 import java.util.UUID
+import kotlin.test.assertEquals
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 
-@WebMvcTest(TestController::class)
-@Import(SecurityConfig::class, JwtProvider::class)
 class JwtFilterTest {
-    @Autowired
-    lateinit var mvc: MockMvc
+    private lateinit var jwtProvider: JwtProvider
+    private lateinit var jwtFilter: JwtFilter
 
-    @Autowired
-    lateinit var jwtProvider: JwtProvider
+    private val secret = "jwt-provider-test-key-jwt-provider-test-key"
+    private val accessExp = 3600000L
+    private val refreshExp = 1209600000L
 
-    @Test
-    fun `JWT_인증_성공_테스트`() {
-        val userId = UUID.randomUUID()
-        val token = jwtProvider.createAccessToken(userId, Role.USER)
-
-        mvc
-            .get("/test/protected") {
-                header("Authorization", "Bearer $token")
-                contentType = MediaType.APPLICATION_JSON
-            }.andExpect {
-                status { isOk() }
-            }
+    @BeforeEach
+    fun setup() {
+        jwtProvider = JwtProvider(secret, accessExp, refreshExp)
+        jwtFilter = JwtFilter(jwtProvider)
+        SecurityContextHolder.clearContext()
     }
 
     @Test
-    fun `JWT_권한_없는_경우_인증_실패`() {
-        mvc
-            .get("/test/protected") {
-                contentType = MediaType.APPLICATION_JSON
-            }.andExpect {
-                status { isForbidden() }
+    fun `JWT 인증 성공 시 SecurityContext에 인증정보 저장`() {
+        val token = jwtProvider.createAccessToken(UUID.randomUUID(), Role.USER)
+
+        val request: HttpServletRequest =
+            mock {
+                on { getHeader("Authorization") } doReturn "Bearer $token"
             }
+        val response: HttpServletResponse = mock()
+        val chain: FilterChain = mock()
+
+        jwtFilter.doFilter(request, response, chain)
+
+        val auth = SecurityContextHolder.getContext().authentication
+        assertNotNull(auth)
+
+        val roles = auth.authorities.map { it.authority }
+        assertEquals(listOf("ROLE_${Role.USER.name}"), roles)
+
+        verify(chain).doFilter(request, response)
+    }
+
+    @Test
+    fun `JWT 없으면 SecurityContext는 null`() {
+        val request: HttpServletRequest =
+            mock {
+                on { getHeader("Authorization") } doReturn null
+            }
+        val response: HttpServletResponse = mock()
+        val chain: FilterChain = mock()
+
+        jwtFilter.doFilter(request, response, chain)
+
+        val auth = SecurityContextHolder.getContext().authentication
+        assertNull(auth)
+        verify(chain).doFilter(request, response)
+    }
+
+    @Test
+    fun `JWT 잘못된 토큰이면 SecurityContext는 null`() {
+        val request: HttpServletRequest =
+            mock {
+                on { getHeader("Authorization") } doReturn "Bearer invalid.token.value"
+            }
+        val response: HttpServletResponse = mock()
+        val chain: FilterChain = mock()
+
+        jwtFilter.doFilter(request, response, chain)
+
+        val auth = SecurityContextHolder.getContext().authentication
+        assertNull(auth)
+        verify(chain).doFilter(request, response)
     }
 }
