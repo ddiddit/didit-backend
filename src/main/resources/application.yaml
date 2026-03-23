@@ -2,10 +2,19 @@ spring:
   application:
     name: didit-api
   profiles:
-      active: local
+    active: local
   docker:
     compose:
       enabled: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
 
 logging:
   pattern:

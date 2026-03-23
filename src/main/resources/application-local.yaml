@@ -5,5 +5,14 @@ spring:
       lifecycle-management: start_only
 
   jpa:
+    hibernate:
+      ddl-auto: update
+
     show-sql: true
     open-in-view: false
+
+  flyway:
+    enabled: false
+
+firebase:
+  service-account-path: src/main/resources/firebase/firebase-service-account.json
