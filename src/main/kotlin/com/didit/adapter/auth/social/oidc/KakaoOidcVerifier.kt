@@ -3,6 +3,7 @@ package com.didit.adapter.auth.social.oidc
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.didit.adapter.auth.social.oidc.dto.KakaoIdTokenPayload
+import com.didit.application.auth.exception.KakaoInvalidIdTokenException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 
@@ -18,7 +19,7 @@ class KakaoOidcVerifier(
 
             val kid =
                 decodedJWT.keyId
-                    ?: throw IllegalArgumentException("Missing kid in Kakao token")
+                    ?: throw KakaoInvalidIdTokenException()
 
             val publicKey = keyProvider.getPublicKey(kid)
 
@@ -33,11 +34,11 @@ class KakaoOidcVerifier(
             val jwt = verifier.verify(idToken)
 
             return KakaoIdTokenPayload(
-                subject = jwt.subject ?: throw IllegalArgumentException("Missing sub"),
+                subject = jwt.subject ?: throw KakaoInvalidIdTokenException(),
                 email = jwt.getClaim("email")?.asString(),
             )
         } catch (e: Exception) {
-            throw IllegalArgumentException("Invalid Kakao ID Token", e)
+            throw KakaoInvalidIdTokenException()
         }
     }
 }

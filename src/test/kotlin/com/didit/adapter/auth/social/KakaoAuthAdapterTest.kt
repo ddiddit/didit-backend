@@ -1,6 +1,8 @@
 package com.didit.adapter.auth.social
 
 import com.didit.adapter.webapi.auth.dto.KakaoTokenResponse
+import com.didit.application.auth.exception.KakaoIdTokenNotFound
+import com.didit.application.auth.exception.KakaoTokenRequestFailedException
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertThrows
 import org.junit.jupiter.api.Test
@@ -70,11 +72,11 @@ class KakaoAuthAdapterTest {
         ).thenReturn(ResponseEntity.ok(kakaoResponse))
 
         val ex =
-            assertThrows(IllegalArgumentException::class.java) {
+            assertThrows(KakaoIdTokenNotFound::class.java) {
                 adapter.getIdToken("code", "redirect-uri")
             }
 
-        assertEquals("id_token 없음 (scope=openid 확인)", ex.message)
+        assertEquals("id_token이 없습니다. scope=openid를 확인하세요.", ex.message)
     }
 
     @Test
@@ -88,11 +90,11 @@ class KakaoAuthAdapterTest {
         ).thenReturn(ResponseEntity.ok(null))
 
         val ex =
-            assertThrows(IllegalArgumentException::class.java) {
+            assertThrows(KakaoTokenRequestFailedException::class.java) {
                 adapter.getIdToken("code", "redirect-uri")
             }
 
-        assertEquals("Kakao token 요청 실패", ex.message)
+        assertEquals("카카오 토큰 요청에 실패했습니다.", ex.message)
     }
 
     @Test
@@ -105,7 +107,7 @@ class KakaoAuthAdapterTest {
             ),
         ).thenThrow(RuntimeException("API error"))
 
-        assertThrows(RuntimeException::class.java) {
+        assertThrows(KakaoTokenRequestFailedException::class.java) {
             adapter.getIdToken("code", "redirect-uri")
         }
     }

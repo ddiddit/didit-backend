@@ -19,7 +19,7 @@ class AuthController(
     private val socialLoginUseCase: SocialLoginUseCase,
     private val refreshTokenUseCase: RefreshTokenUseCase,
 ) {
-    @PostMapping("/social")
+    @PostMapping("/login")
     fun socialLogin(
         @RequestBody request: SocialLoginRequest,
     ): SuccessResponse<TokenResponse> {
@@ -37,7 +37,6 @@ class AuthController(
 
         return SuccessResponse.of(
             data = result,
-            message = "소셜 로그인에 성공했습니다.",
         )
     }
 
@@ -53,7 +52,6 @@ class AuthController(
 
         return SuccessResponse.of(
             data = TokenResponse(useResult.accessToken, useResult.refreshToken),
-            message = "카카오 로그인 성공",
         )
     }
 
@@ -71,7 +69,6 @@ class AuthController(
 
         return SuccessResponse.of(
             data = result,
-            message = "토큰 재발급에 성공했습니다.",
         )
     }
 }
