@@ -13,17 +13,17 @@ include::{snippets}/auth/login/http-response.adoc[]
 include::{snippets}/auth/login/response-body.adoc[]
 include::{snippets}/auth/login/response-fields.adoc[]
 
-== 카카오 로그인 (OAuth 콜백)
+== 카카오 로그인 콜백 처리
 
 === Request
 
-include::{snippets}/auth-kakao-login/http-request.adoc[]
-include::{snippets}/auth-kakao-login/request-parameters.adoc[]
+include::{snippets}/auth-kakao-callback/http-request.adoc[]
+include::{snippets}/auth-kakao-callback/request-parameters.adoc[]
 
 === Response
 
-include::{snippets}/auth-kakao-login/http-response.adoc[]
-include::{snippets}/auth-kakao-login/response-fields.adoc[]
+include::{snippets}/auth-kakao-callback/http-response.adoc[]
+include::{snippets}/auth-kakao-callback/response-fields.adoc[]
 
 == 토큰 재발급
 
