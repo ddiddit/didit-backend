@@ -1,0 +1,27 @@
+= Auth API
+
+== 소셜 로그인
+
+=== Request
+
+include::{snippets}/auth/login/http-request.adoc[]
+include::{snippets}/auth/login/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/auth/login/http-response.adoc[]
+include::{snippets}/auth/login/response-body.adoc[]
+include::{snippets}/auth/login/response-fields.adoc[]
+
+== 토큰 재발급
+
+=== Request
+
+include::{snippets}/auth/refresh/http-request.adoc[]
+include::{snippets}/auth/refresh/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/auth/refresh/http-response.adoc[]
+include::{snippets}/auth/refresh/response-body.adoc[]
+include::{snippets}/auth/refresh/response-fields.adoc[]
