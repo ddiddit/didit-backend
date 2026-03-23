@@ -35,7 +35,6 @@ class AuthController(
 
         return SuccessResponse.of(
             data = result,
-            message = "소셜 로그인에 성공했습니다.",
         )
     }
 
@@ -53,7 +52,6 @@ class AuthController(
 
         return SuccessResponse.of(
             data = result,
-            message = "토큰 재발급에 성공했습니다.",
         )
     }
 }

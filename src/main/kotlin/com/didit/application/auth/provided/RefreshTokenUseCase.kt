@@ -1,11 +1,12 @@
 package com.didit.application.auth.provided
 
 import com.didit.application.auth.dto.TokenInfo
+import com.didit.application.auth.exception.ExpiredRefreshTokenException
+import com.didit.application.auth.exception.InvalidRefreshTokenException
+import com.didit.application.auth.exception.UserNotFoundException
 import com.didit.application.auth.port.JwtPort
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
-import com.didit.application.common.exception.BusinessException
-import com.didit.application.common.exception.ErrorCode
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -25,19 +26,19 @@ class RefreshTokenUseCase(
 
         val savedToken =
             refreshTokenRepository.findByUserId(userId)
-                ?: throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
+                ?: throw InvalidRefreshTokenException()
 
         if (savedToken.token != refreshToken) {
-            throw BusinessException(ErrorCode.INVALID_REFRESH_TOKEN)
+            throw InvalidRefreshTokenException()
         }
 
         if (savedToken.expiresAt.isBefore(LocalDateTime.now())) {
-            throw BusinessException(ErrorCode.EXPIRED_REFRESH_TOKEN)
+            throw ExpiredRefreshTokenException()
         }
 
         val user =
             userRepository.findById(savedToken.userId)
-                ?: throw BusinessException(ErrorCode.USER_NOT_FOUND)
+                ?: throw UserNotFoundException(savedToken.userId)
 
         val newAccessToken = jwtPort.createAccessToken(user.id, user.role)
         val newRefreshToken = jwtPort.createRefreshToken(user.id)

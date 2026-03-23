@@ -1,5 +1,6 @@
 package com.didit.adapter.auth.social.oidc
 
+import com.didit.application.auth.exception.InvalidIdTokenException
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier
 import com.google.api.client.http.javanet.NetHttpTransport
@@ -21,7 +22,7 @@ class GoogleOidcVerifier(
             .build()
 
     override fun verify(idToken: String): GoogleIdToken.Payload {
-        val googleIdToken = verifier.verify(idToken) ?: throw IllegalArgumentException("Invalid Google ID token")
+        val googleIdToken = verifier.verify(idToken) ?: throw InvalidIdTokenException()
         return googleIdToken.payload
     }
 }
