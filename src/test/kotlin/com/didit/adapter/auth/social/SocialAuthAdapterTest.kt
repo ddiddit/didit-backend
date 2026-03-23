@@ -2,8 +2,12 @@ package com.didit.adapter.auth.social
 
 import com.didit.adapter.auth.social.oidc.AppleOidcVerifier
 import com.didit.adapter.auth.social.oidc.GoogleOidcVerifier
+import com.didit.adapter.auth.social.oidc.KakaoOidcVerifier
 import com.didit.adapter.auth.social.oidc.dto.AppleIdTokenPayload
+import com.didit.adapter.auth.social.oidc.dto.KakaoIdTokenPayload
 import com.didit.application.auth.exception.InvalidIdTokenException
+import com.didit.application.auth.exception.KakaoIdTokenNotFound
+import com.didit.application.auth.exception.KakaoInvalidIdTokenException
 import com.didit.domain.auth.enums.SocialProvider
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -16,7 +20,8 @@ import org.mockito.Mockito.`when`
 class SocialAuthAdapterTest {
     private val googleVerifier = mock(GoogleOidcVerifier::class.java)
     private val appleVerifier = mock(AppleOidcVerifier::class.java)
-    private val adapter = SocialAuthAdapter(googleVerifier, appleVerifier)
+    private val kakaoVerifier = mock(KakaoOidcVerifier::class.java)
+    private val adapter = SocialAuthAdapter(googleVerifier, appleVerifier, kakaoVerifier)
 
     @Test
     fun `구글_소셜_로그인_토큰_검증_성공`() {
@@ -82,5 +87,40 @@ class SocialAuthAdapterTest {
         }
 
         verify(appleVerifier).verify(idToken)
+    }
+
+    @Test
+    fun `카카오_소셜_로그인_토큰_검증_성공`() {
+        val idToken = "kakaoToken"
+
+        val kakaoPayload =
+            mock(KakaoIdTokenPayload::class.java).apply {
+                `when`(subject).thenReturn("kakao123")
+                `when`(email).thenReturn("user@kakao.com")
+            }
+
+        `when`(kakaoVerifier.verify(idToken)).thenReturn(kakaoPayload)
+
+        val result = adapter.verifyIdToken(SocialProvider.KAKAO, idToken)
+
+        assertEquals(SocialProvider.KAKAO, result.provider)
+        assertEquals("kakao123", result.socialId)
+        assertEquals("user@kakao.com", result.email)
+
+        verify(kakaoVerifier).verify(idToken)
+    }
+
+    @Test
+    fun `카카오_소셜_로그인_토큰_검증_실패`() {
+        val idToken = "invalidKakaoToken"
+
+        `when`(kakaoVerifier.verify(idToken))
+            .thenThrow(KakaoIdTokenNotFound())
+
+        assertThrows<KakaoInvalidIdTokenException> {
+            adapter.verifyIdToken(SocialProvider.KAKAO, idToken)
+        }
+
+        verify(kakaoVerifier).verify(idToken)
     }
 }

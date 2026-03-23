@@ -30,3 +30,6 @@ oauth:
     client-id: dummy-apple-client-id
   google:
     client-id: dummy-google-client-id
+  kakao:
+    client-id: dummy-google-client-id
+    client-secret: secret-kakao-test
