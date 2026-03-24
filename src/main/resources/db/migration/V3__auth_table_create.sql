@@ -20,8 +20,4 @@ CREATE TABLE refresh_token (
     expires_at DATETIME(6) NOT NULL,
     PRIMARY KEY (id),
     UNIQUE KEY uk_refresh_token_user_id (user_id),
-    CONSTRAINT fk_refresh_token_user
-        FOREIGN KEY (user_id)
-        REFERENCES users(id)
-        ON DELETE CASCADE
 );
