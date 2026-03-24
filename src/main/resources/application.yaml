@@ -32,4 +32,4 @@ oauth:
     client-id: ${APPLE_CLIENT_ID}
   kakao:
     client-id: ${KAKAO_CLIENT_ID}
-    client-secret: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_SECRET}
