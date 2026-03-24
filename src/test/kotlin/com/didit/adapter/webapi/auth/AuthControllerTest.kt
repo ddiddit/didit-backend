@@ -70,7 +70,7 @@ class AuthControllerTest(
             ).andExpect(status().isOk)
             .andDo(
                 document(
-                    "auth-login",
+                    "auth/login",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
@@ -106,7 +106,7 @@ class AuthControllerTest(
             ).andExpect(status().isOk)
             .andDo(
                 document(
-                    "auth-refresh",
+                    "auth/refresh",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
@@ -144,7 +144,7 @@ class AuthControllerTest(
             ).andExpect(status().isOk)
             .andDo(
                 document(
-                    "auth-kakao-callback",
+                    "auth/kakao-callback",
                     responseFields(
                         fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰"),
                         fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
@@ -172,7 +172,7 @@ class AuthControllerTest(
             .andExpect(jsonPath("$.data").isEmpty)
             .andDo(
                 document(
-                    "auth-logout",
+                    "auth/logout",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     responseFields(
