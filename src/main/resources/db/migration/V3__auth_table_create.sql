@@ -19,5 +19,5 @@ CREATE TABLE refresh_token (
     token VARCHAR(500) NOT NULL,
     expires_at DATETIME(6) NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_refresh_token_user_id (user_id),
+    UNIQUE KEY uk_refresh_token_user_id (user_id)
 );
