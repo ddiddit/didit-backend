@@ -6,14 +6,14 @@ CREATE TABLE device_tokens (
     created_at  DATETIME(6)  NOT NULL,
     updated_at  DATETIME(6)  NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uq_device_tokens_user_device (user_id, device_type)
+    CONSTRAINT uq_device_tokens_user_device UNIQUE (user_id, device_type)
 );
 
 CREATE TABLE notification_settings (
     user_id            BINARY(16)  NOT NULL,
-    marketing_consent  TINYINT(1)  NOT NULL DEFAULT 0,
-    night_push_consent TINYINT(1)  NOT NULL DEFAULT 0,
-    enabled            TINYINT(1)  NOT NULL DEFAULT 0,
+    marketing_consent  BOOLEAN NOT NULL DEFAULT FALSE,
+    night_push_consent BOOLEAN NOT NULL DEFAULT FALSE,
+    enabled            BOOLEAN NOT NULL DEFAULT FALSE,
     reminder_time      TIME        NOT NULL,
     created_at         DATETIME(6) NOT NULL,
     updated_at         DATETIME(6) NOT NULL,
