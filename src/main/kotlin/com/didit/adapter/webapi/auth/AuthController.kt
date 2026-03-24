@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("api/v1/auth")
 class AuthController(
     private val socialLoginUseCase: SocialLoginUseCase,
     private val refreshTokenUseCase: RefreshTokenUseCase,
@@ -51,7 +51,7 @@ class AuthController(
         val useResult =
             socialLoginUseCase.loginWithKakao(
                 code = code,
-                redirectUri = "http://localhost:8080/auth/kakao/callback",
+                redirectUri = "http://localhost:8080/api/v1/auth/kakao/callback",
             )
 
         return SuccessResponse.of(
