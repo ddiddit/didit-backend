@@ -47,6 +47,9 @@ dependencies {
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
 
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-mysql")
+
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     "asciidoctorExt"("org.springframework.restdocs:spring-restdocs-asciidoctor")
