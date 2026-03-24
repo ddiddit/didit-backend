@@ -13,9 +13,9 @@ import java.util.UUID
 @Component
 class RetrospectivePersistenceAdapter(
     private val retrospectiveJpaRepository: RetrospectiveJpaRepository,
-    private val retrospectivePersistenceMapper: RetrospectivePersistenceMapper
-) : RetrospectiveCommandPort, RetrospectiveQueryPort {
-
+    private val retrospectivePersistenceMapper: RetrospectivePersistenceMapper,
+) : RetrospectiveCommandPort,
+    RetrospectiveQueryPort {
     override fun save(retrospective: Retrospective): Retrospective {
         val entity = retrospectivePersistenceMapper.toJpaEntity(retrospective)
         val savedEntity = retrospectiveJpaRepository.save(entity)
@@ -23,8 +23,9 @@ class RetrospectivePersistenceAdapter(
     }
 
     override fun findById(retrospectiveId: UUID): Retrospective? {
-        val entity = retrospectiveJpaRepository.findWithChatMessagesById(retrospectiveId)
-            ?: return null
+        val entity =
+            retrospectiveJpaRepository.findWithChatMessagesById(retrospectiveId)
+                ?: return null
 
         return retrospectivePersistenceMapper.toDomain(entity)
     }

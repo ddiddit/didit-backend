@@ -27,7 +27,6 @@ class RetrospectivePersistenceMapper {
                 improvementDirection = domain.summary?.improvementDirection,
             )
 
-
         val chatMessageEntities =
             domain.chatMessages.map { message ->
                 ChatMessageJpaEntity(
