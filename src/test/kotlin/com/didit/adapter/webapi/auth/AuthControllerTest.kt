@@ -63,7 +63,7 @@ class AuthControllerTest(
 
         mockMvc
             .perform(
-                post("/auth/login")
+                post("/api/v1/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request))
                     .with(csrf()),
@@ -99,7 +99,7 @@ class AuthControllerTest(
 
         mockMvc
             .perform(
-                post("/auth/refresh")
+                post("/api/v1/auth/refresh")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request))
                     .with(csrf()),
@@ -133,13 +133,13 @@ class AuthControllerTest(
         whenever(
             socialLoginUseCase.loginWithKakao(
                 eq(code),
-                eq("http://localhost:8080/auth/kakao/callback"),
+                eq("http://localhost:8080/api/v1/auth/kakao/callback"),
             ),
         ).thenReturn(tokenInfo)
 
         mockMvc
             .perform(
-                get("/auth/kakao/callback")
+                get("/api/v1/auth/kakao/callback")
                     .param("code", code),
             ).andExpect(status().isOk)
             .andDo(
@@ -165,7 +165,7 @@ class AuthControllerTest(
 
         mockMvc
             .perform(
-                post("/auth/logout")
+                post("/api/v1/auth/logout")
                     .with(csrf())
                     .with(user(user)),
             ).andExpect(status().isOk)
