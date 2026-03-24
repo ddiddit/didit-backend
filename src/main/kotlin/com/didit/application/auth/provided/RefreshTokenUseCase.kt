@@ -3,10 +3,10 @@ package com.didit.application.auth.provided
 import com.didit.application.auth.dto.TokenInfo
 import com.didit.application.auth.exception.ExpiredRefreshTokenException
 import com.didit.application.auth.exception.InvalidRefreshTokenException
-import com.didit.application.auth.exception.UserNotFoundException
 import com.didit.application.auth.port.JwtPort
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
+import com.didit.application.users.exception.UserNotFoundException
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional

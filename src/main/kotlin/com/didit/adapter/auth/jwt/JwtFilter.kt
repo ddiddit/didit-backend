@@ -1,6 +1,9 @@
 package com.didit.adapter.auth.jwt
 
 import com.didit.adapter.auth.security.CustomUserDetails
+import com.didit.adapter.auth.security.CustomUserDetailsService
+import com.didit.application.users.exception.UserNotFoundException
+import com.didit.application.users.exception.UserWithdrawException
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -12,6 +15,7 @@ import org.springframework.web.filter.OncePerRequestFilter
 
 class JwtFilter(
     private val jwtProvider: JwtProvider,
+    private val userDetailsService: CustomUserDetailsService,
 ) : OncePerRequestFilter() {
     private val logger = KotlinLogging.logger {}
 
@@ -44,8 +48,16 @@ class JwtFilter(
             return
         }
         val userId = jwtProvider.getUserId(token)
-        val role = jwtProvider.getRole(token)
-        val userDetails = CustomUserDetails(userId, role)
+        val userDetails: CustomUserDetails =
+            try {
+                userDetailsService.loadUserById(userId)
+            } catch (ex: UserNotFoundException) {
+                logger.warn("사용자 없음: ${ex.message}")
+                return
+            } catch (ex: UserWithdrawException) {
+                logger.warn("탈퇴 회원 접근 시도: ${ex.message}")
+                return
+            }
 
         val authentication =
             UsernamePasswordAuthenticationToken(

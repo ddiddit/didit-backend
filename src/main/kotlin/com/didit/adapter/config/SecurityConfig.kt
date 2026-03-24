@@ -2,6 +2,7 @@ package com.didit.adapter.config
 
 import com.didit.adapter.auth.jwt.JwtFilter
 import com.didit.adapter.auth.jwt.JwtProvider
+import com.didit.adapter.auth.security.CustomUserDetailsService
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -12,10 +13,11 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @Configuration
 class SecurityConfig(
     private val jwtProvider: JwtProvider,
+    private val customUserDetailsService: CustomUserDetailsService,
 ) {
     @Bean
     fun securityFilterChain(http: HttpSecurity): SecurityFilterChain {
-        val jwtFilter = JwtFilter(jwtProvider)
+        val jwtFilter = JwtFilter(jwtProvider, customUserDetailsService)
 
         http
             .csrf { it.disable() }
