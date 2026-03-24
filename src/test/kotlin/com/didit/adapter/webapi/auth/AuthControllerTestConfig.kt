@@ -1,5 +1,6 @@
 package com.didit.adapter.webapi.auth
 
+import com.didit.application.auth.provided.LogoutUseCase
 import com.didit.application.auth.provided.RefreshTokenUseCase
 import com.didit.application.auth.provided.SocialLoginUseCase
 import org.mockito.Mockito.mock
@@ -15,6 +16,9 @@ class AuthControllerTestConfig {
 
     @Bean
     fun refreshTokenUseCase(): RefreshTokenUseCase = mock(RefreshTokenUseCase::class.java)
+
+    @Bean
+    fun logoutUseCase(): LogoutUseCase = mock(LogoutUseCase::class.java)
 
     @Bean
     fun testSecurityFilterChain(http: HttpSecurity): SecurityFilterChain {

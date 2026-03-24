@@ -26,8 +26,9 @@ class SecurityConfig(
             }.authorizeHttpRequests {
                 it
                     .requestMatchers(
-                        "/auth/**",
+                        "api/v1/auth/**",
                         "/actuator/health",
+                        "/docs/app/*",
                     ).permitAll()
                     .anyRequest()
                     .authenticated()
