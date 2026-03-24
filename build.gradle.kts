@@ -70,9 +70,6 @@ dependencies {
     testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
     testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
 
-    implementation("org.flywaydb:flyway-core")
-    implementation("org.flywaydb:flyway-mysql")
-
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 
     "asciidoctorExt"("org.springframework.restdocs:spring-restdocs-asciidoctor")

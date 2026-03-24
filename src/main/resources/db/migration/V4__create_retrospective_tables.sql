@@ -23,7 +23,7 @@ CREATE TABLE chat_message (
                               sender            VARCHAR(50)  NOT NULL,
                               content           TEXT         NOT NULL,
                               question_type     VARCHAR(50)  NOT NULL,
-                              is_skipped        TINYINT      NOT NULL DEFAULT 0,
+                              is_skipped        BOOLEAN      NOT NULL DEFAULT FALSE,
                               created_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
                               PRIMARY KEY (id),
                               CONSTRAINT fk_chat_message_retrospective

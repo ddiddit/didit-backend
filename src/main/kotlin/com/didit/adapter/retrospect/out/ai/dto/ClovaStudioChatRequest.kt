@@ -9,5 +9,5 @@ data class ClovaStudioChatRequest(
     val repeatPenalty: Double = 1.1,
     val stopBefore: List<String> = emptyList(),
     val includeAiFilters: Boolean = false,
-    val seed: Int = 0
+    val seed: Int = 0,
 )

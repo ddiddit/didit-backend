@@ -6,5 +6,5 @@ data class RetrospectiveSummary(
     val solutionProcess: String,
     val lessonLearned: String,
     val insight: String,
-    val improvementDirection: String
+    val improvementDirection: String,
 )

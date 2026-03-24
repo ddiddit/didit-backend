@@ -1,4 +1,4 @@
-package com.didit.application.retrospect.port.`in`
+package com.didit.application.retrospect.port.inbound
 
 import com.didit.application.retrospect.dto.result.RetrospectiveResult
 import java.util.UUID

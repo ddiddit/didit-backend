@@ -3,13 +3,12 @@ package com.didit.adapter.retrospect.out.persistence
 import com.didit.application.retrospect.port.out.RetrospectiveCommandPort
 import com.didit.application.retrospect.port.out.RetrospectiveQueryPort
 import com.didit.domain.retrospect.entity.Retrospective
-import org.springframework.context.annotation.Primary
-import org.springframework.stereotype.Component
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
-class InMemoryRetrospectivePersistenceAdapter : RetrospectiveCommandPort, RetrospectiveQueryPort {
-
+class InMemoryRetrospectivePersistenceAdapter :
+    RetrospectiveCommandPort,
+    RetrospectiveQueryPort {
     private val storage = ConcurrentHashMap<UUID, Retrospective>()
 
     override fun save(retrospective: Retrospective): Retrospective {
@@ -17,7 +16,5 @@ class InMemoryRetrospectivePersistenceAdapter : RetrospectiveCommandPort, Retros
         return retrospective
     }
 
-    override fun findById(retrospectiveId: UUID): Retrospective? {
-        return storage[retrospectiveId]
-    }
+    override fun findById(retrospectiveId: UUID): Retrospective? = storage[retrospectiveId]
 }

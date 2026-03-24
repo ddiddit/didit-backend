@@ -32,4 +32,4 @@ clova:
     model: HCX-005
 
 firebase:
-  service-account-path: src/main/resources/firebase/firebase-service-account.json
+  enabled: false

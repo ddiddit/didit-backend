@@ -1,9 +1,9 @@
 package com.didit.adapter.retrospect.out.persistence
 
-import com.didit.application.retrospect.port.out.RetrospectiveCommandPort
-import com.didit.application.retrospect.port.out.RetrospectiveQueryPort
 import com.didit.adapter.retrospect.out.persistence.mapper.RetrospectivePersistenceMapper
 import com.didit.adapter.retrospect.out.persistence.repository.RetrospectiveJpaRepository
+import com.didit.application.retrospect.port.out.RetrospectiveCommandPort
+import com.didit.application.retrospect.port.out.RetrospectiveQueryPort
 import com.didit.domain.retrospect.entity.Retrospective
 import org.springframework.context.annotation.Primary
 import org.springframework.stereotype.Component
@@ -23,8 +23,9 @@ class RetrospectivePersistenceAdapter(
     }
 
     override fun findById(retrospectiveId: UUID): Retrospective? {
-        return retrospectiveJpaRepository.findById(retrospectiveId)
-            .map(retrospectivePersistenceMapper::toDomain)
-            .orElse(null)
+        val entity = retrospectiveJpaRepository.findWithChatMessagesById(retrospectiveId)
+            ?: return null
+
+        return retrospectivePersistenceMapper.toDomain(entity)
     }
 }

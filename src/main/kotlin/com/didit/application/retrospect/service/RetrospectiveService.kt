@@ -6,9 +6,9 @@ import com.didit.application.retrospect.dto.result.RetrospectiveResult
 import com.didit.application.retrospect.dto.result.RetrospectiveSummaryResult
 import com.didit.application.retrospect.dto.result.StartRetrospectiveResult
 import com.didit.application.retrospect.dto.result.SubmitAnswerResult
-import com.didit.application.retrospect.port.`in`.GetRetrospectiveResultUseCase
-import com.didit.application.retrospect.port.`in`.StartRetrospectiveUseCase
-import com.didit.application.retrospect.port.`in`.SubmitAnswerUseCase
+import com.didit.application.retrospect.port.inbound.GetRetrospectiveResultUseCase
+import com.didit.application.retrospect.port.inbound.StartRetrospectiveUseCase
+import com.didit.application.retrospect.port.inbound.SubmitAnswerUseCase
 import com.didit.application.retrospect.port.out.RetrospectiveAiPort
 import com.didit.application.retrospect.port.out.RetrospectiveCommandPort
 import com.didit.application.retrospect.port.out.RetrospectiveQueryPort
@@ -22,16 +22,18 @@ import java.util.UUID
 class RetrospectiveService(
     private val retrospectiveCommandPort: RetrospectiveCommandPort,
     private val retrospectiveQueryPort: RetrospectiveQueryPort,
-    private val retrospectiveAiPort: RetrospectiveAiPort
-) : StartRetrospectiveUseCase, SubmitAnswerUseCase, GetRetrospectiveResultUseCase {
-
+    private val retrospectiveAiPort: RetrospectiveAiPort,
+) : StartRetrospectiveUseCase,
+    SubmitAnswerUseCase,
+    GetRetrospectiveResultUseCase {
     override fun start(command: StartRetrospectiveCommand): StartRetrospectiveResult {
-        val retrospective = Retrospective(
-            id = UUID.randomUUID(),
-            userId = command.userId,
-            projectId = command.projectId,
-            tagIds = command.tagIds.toMutableList()
-        )
+        val retrospective =
+            Retrospective(
+                id = UUID.randomUUID(),
+                userId = command.userId,
+                projectId = command.projectId,
+                tagIds = command.tagIds.toMutableList(),
+            )
 
         val firstQuestion = FixedQuestionProvider.q1()
         retrospective.addAiQuestion(QuestionType.Q1, firstQuestion)
@@ -40,16 +42,18 @@ class RetrospectiveService(
         return StartRetrospectiveResult(
             retrospectiveId = retrospective.id,
             questionType = QuestionType.Q1,
-            question = firstQuestion
+            question = firstQuestion,
         )
     }
 
     override fun submitAnswer(command: SubmitAnswerCommand): SubmitAnswerResult {
-        val retrospective = retrospectiveQueryPort.findById(command.retrospectiveId)
-            ?: throw IllegalArgumentException("회고를 찾을 수 없습니다.")
+        val retrospective =
+            retrospectiveQueryPort.findById(command.retrospectiveId)
+                ?: throw IllegalArgumentException("회고를 찾을 수 없습니다.")
 
-        val currentQuestionType = retrospective.currentQuestionType()
-            ?: throw IllegalStateException("이미 완료된 회고입니다.")
+        val currentQuestionType =
+            retrospective.currentQuestionType()
+                ?: throw IllegalStateException("이미 완료된 회고입니다.")
 
         retrospective.addUserAnswer(currentQuestionType, command.answer)
 
@@ -74,7 +78,7 @@ class RetrospectiveService(
                 SubmitAnswerResult(
                     completed = false,
                     questionType = QuestionType.Q4_DEEP,
-                    question = deepQuestionResult.question
+                    question = deepQuestionResult.question,
                 )
             }
 
@@ -86,43 +90,46 @@ class RetrospectiveService(
 
                 SubmitAnswerResult(
                     completed = true,
-                    summary = RetrospectiveSummaryResult(
-                        doneWork = summaryResult.summary.doneWork,
-                        blockedPoint = summaryResult.summary.blockedPoint,
-                        solutionProcess = summaryResult.summary.solutionProcess,
-                        lessonLearned = summaryResult.summary.lessonLearned,
-                        insight = summaryResult.summary.insight,
-                        improvementDirection = summaryResult.summary.improvementDirection
-                    )
+                    summary =
+                        RetrospectiveSummaryResult(
+                            doneWork = summaryResult.summary.doneWork,
+                            blockedPoint = summaryResult.summary.blockedPoint,
+                            solutionProcess = summaryResult.summary.solutionProcess,
+                            lessonLearned = summaryResult.summary.lessonLearned,
+                            insight = summaryResult.summary.insight,
+                            improvementDirection = summaryResult.summary.improvementDirection,
+                        ),
                 )
             }
         }
     }
 
     override fun getResult(retrospectiveId: UUID): RetrospectiveResult {
-        val retrospective = retrospectiveQueryPort.findById(retrospectiveId)
-            ?: throw IllegalArgumentException("회고를 찾을 수 없습니다.")
+        val retrospective =
+            retrospectiveQueryPort.findById(retrospectiveId)
+                ?: throw IllegalArgumentException("회고를 찾을 수 없습니다.")
 
         return RetrospectiveResult(
             retrospectiveId = retrospective.id,
             status = retrospective.status,
-            summary = retrospective.summary?.let {
-                RetrospectiveSummaryResult(
-                    doneWork = it.doneWork,
-                    blockedPoint = it.blockedPoint,
-                    solutionProcess = it.solutionProcess,
-                    lessonLearned = it.lessonLearned,
-                    insight = it.insight,
-                    improvementDirection = it.improvementDirection
-                )
-            }
+            summary =
+                retrospective.summary?.let {
+                    RetrospectiveSummaryResult(
+                        doneWork = it.doneWork,
+                        blockedPoint = it.blockedPoint,
+                        solutionProcess = it.solutionProcess,
+                        lessonLearned = it.lessonLearned,
+                        insight = it.insight,
+                        improvementDirection = it.improvementDirection,
+                    )
+                },
         )
     }
 
     private fun nextFixedQuestion(
         retrospective: Retrospective,
         questionType: QuestionType,
-        question: String
+        question: String,
     ): SubmitAnswerResult {
         retrospective.addAiQuestion(questionType, question)
         retrospectiveCommandPort.save(retrospective)
@@ -130,7 +137,7 @@ class RetrospectiveService(
         return SubmitAnswerResult(
             completed = false,
             questionType = questionType,
-            question = question
+            question = question,
         )
     }
 }

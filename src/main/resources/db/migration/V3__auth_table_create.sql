@@ -10,7 +10,7 @@ CREATE TABLE users (
     updated_at DATETIME(6) NOT NULL,
     deleted_at DATETIME(6),
     PRIMARY KEY (id),
-    UNIQUE KEY uk_users_social_id (social_id)
+    CONSTRAINT uk_users_social_id UNIQUE (social_id)
 );
 
 CREATE TABLE refresh_token (
@@ -19,5 +19,5 @@ CREATE TABLE refresh_token (
     token VARCHAR(500) NOT NULL,
     expires_at DATETIME(6) NOT NULL,
     PRIMARY KEY (id),
-    UNIQUE KEY uk_refresh_token_user_id (user_id),
+    CONSTRAINT uk_refresh_token_user_id UNIQUE (user_id)
 );

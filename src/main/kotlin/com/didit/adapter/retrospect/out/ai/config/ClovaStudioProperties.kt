@@ -7,5 +7,5 @@ data class ClovaStudioProperties(
     val baseUrl: String,
     val apiKey: String,
     val requestId: String,
-    val model: String
+    val model: String,
 )

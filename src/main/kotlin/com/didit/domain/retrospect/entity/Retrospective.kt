@@ -15,22 +15,29 @@ data class Retrospective(
     var inputTokens: Int = 0,
     var outputTokens: Int = 0,
     val chatMessages: MutableList<ChatMessage> = mutableListOf(),
-    var summary: RetrospectiveSummary? = null
+    var summary: RetrospectiveSummary? = null,
 ) {
-    fun addUserAnswer(questionType: QuestionType, content: String) {
+    fun addUserAnswer(
+        questionType: QuestionType,
+        content: String,
+    ) {
         validateNotCompleted()
         chatMessages.add(ChatMessage.user(questionType, content))
     }
 
-    fun addAiQuestion(questionType: QuestionType, content: String) {
+    fun addAiQuestion(
+        questionType: QuestionType,
+        content: String,
+    ) {
         chatMessages.add(ChatMessage.ai(questionType, content))
     }
 
     fun currentQuestionType(): QuestionType? {
-        val answeredTypes = chatMessages
-            .filter { it.isUserMessage() }
-            .map { it.questionType }
-            .toSet()
+        val answeredTypes =
+            chatMessages
+                .filter { it.isUserMessage() }
+                .map { it.questionType }
+                .toSet()
 
         return when {
             QuestionType.Q1 !in answeredTypes -> QuestionType.Q1
@@ -47,7 +54,10 @@ data class Retrospective(
         this.status = RetroStatus.COMPLETED
     }
 
-    fun accumulateTokens(input: Int, output: Int) {
+    fun accumulateTokens(
+        input: Int,
+        output: Int,
+    ) {
         inputTokens += input
         outputTokens += output
     }

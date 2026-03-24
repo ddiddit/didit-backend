@@ -6,5 +6,5 @@ import java.util.UUID
 data class StartRetrospectiveResult(
     val retrospectiveId: UUID,
     val questionType: QuestionType,
-    val question: String
+    val question: String,
 )

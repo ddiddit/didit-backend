@@ -10,27 +10,29 @@ data class ChatMessage(
     val content: String,
     val questionType: QuestionType,
     val isSkipped: Boolean = false,
-    val createdAt: LocalDateTime = LocalDateTime.now()
+    val createdAt: LocalDateTime = LocalDateTime.now(),
 ) {
     fun isUserMessage(): Boolean = sender == Sender.USER
 
     companion object {
         fun user(
             questionType: QuestionType,
-            content: String
-        ): ChatMessage = ChatMessage(
-            sender = Sender.USER,
-            content = content,
-            questionType = questionType
-        )
+            content: String,
+        ): ChatMessage =
+            ChatMessage(
+                sender = Sender.USER,
+                content = content,
+                questionType = questionType,
+            )
 
         fun ai(
             questionType: QuestionType,
-            content: String
-        ): ChatMessage = ChatMessage(
-            sender = Sender.AI,
-            content = content,
-            questionType = questionType
-        )
+            content: String,
+        ): ChatMessage =
+            ChatMessage(
+                sender = Sender.AI,
+                content = content,
+                questionType = questionType,
+            )
     }
 }

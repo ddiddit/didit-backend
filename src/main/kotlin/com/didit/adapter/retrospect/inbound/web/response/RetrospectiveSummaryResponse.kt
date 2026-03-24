@@ -1,4 +1,4 @@
-package com.didit.adapter.retrospect.`in`.web.response
+package com.didit.adapter.retrospect.inbound.web.response
 
 data class RetrospectiveSummaryResponse(
     val doneWork: String,
@@ -6,5 +6,5 @@ data class RetrospectiveSummaryResponse(
     val solutionProcess: String,
     val lessonLearned: String,
     val insight: String,
-    val improvementDirection: String
+    val improvementDirection: String,
 )

@@ -8,13 +8,10 @@ import org.springframework.web.client.RestClient
 @Configuration
 @EnableConfigurationProperties(ClovaStudioProperties::class)
 class ClovaStudioConfig {
-
     @Bean
-    fun clovaStudioRestClient(
-        properties: ClovaStudioProperties
-    ): RestClient {
-        return RestClient.builder()
+    fun clovaStudioRestClient(properties: ClovaStudioProperties): RestClient =
+        RestClient
+            .builder()
             .baseUrl(properties.baseUrl)
             .build()
-    }
 }

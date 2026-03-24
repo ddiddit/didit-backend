@@ -6,5 +6,5 @@ data class SubmitAnswerResult(
     val completed: Boolean,
     val questionType: QuestionType? = null,
     val question: String? = null,
-    val summary: RetrospectiveSummaryResult? = null
+    val summary: RetrospectiveSummaryResult? = null,
 )
