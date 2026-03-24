@@ -7,6 +7,7 @@ import com.didit.application.auth.dto.TokenInfo
 import com.didit.application.auth.provided.LogoutUseCase
 import com.didit.application.auth.provided.RefreshTokenUseCase
 import com.didit.application.auth.provided.SocialLoginUseCase
+import com.didit.docs.ApiDocumentUtils
 import com.didit.domain.auth.enums.Role
 import com.didit.domain.auth.enums.SocialProvider
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -42,7 +43,7 @@ class AuthControllerTest(
     @Autowired val objectMapper: ObjectMapper,
     @Autowired val socialLoginUseCase: SocialLoginUseCase,
     @Autowired val refreshTokenUseCase: RefreshTokenUseCase,
-    @Autowired val logoutUseCase: LogoutUseCase
+    @Autowired val logoutUseCase: LogoutUseCase,
 ) {
     @Test
     fun `소셜_로그인_성공`() {
@@ -69,15 +70,16 @@ class AuthControllerTest(
             ).andExpect(status().isOk)
             .andDo(
                 document(
-                    "auth-social-login",
+                    "auth-login",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
-                        fieldWithPath("provider").description("소셜 로그인 제공자 (GOOGLE)"),
-                        fieldWithPath("idToken").description("OIDC ID 토큰"),
+                        fieldWithPath("provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자 (GOOGLE)"),
+                        fieldWithPath("idToken").type(JsonFieldType.STRING).description("OIDC ID 토큰"),
                     ),
                     responseFields(
-                        fieldWithPath("data.accessToken").description("액세스 토큰"),
-                        fieldWithPath("data.refreshToken").description("리프레시 토큰"),
-                        fieldWithPath("message").description("응답 메시지"),
+                        fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰"),
+                        fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
                     ),
                 ),
             )
@@ -105,13 +107,14 @@ class AuthControllerTest(
             .andDo(
                 document(
                     "auth-refresh",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
-                        fieldWithPath("refreshToken").description("리프레시 토큰"),
+                        fieldWithPath("refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
                     ),
                     responseFields(
-                        fieldWithPath("data.accessToken").description("액세스 토큰"),
-                        fieldWithPath("data.refreshToken").description("리프레시 토큰"),
-                        fieldWithPath("message").description("응답 메시지"),
+                        fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰"),
+                        fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
                     ),
                 ),
             )
@@ -130,22 +133,21 @@ class AuthControllerTest(
         whenever(
             socialLoginUseCase.loginWithKakao(
                 eq(code),
-                any(),
+                eq("http://localhost:8080/auth/kakao/callback"),
             ),
         ).thenReturn(tokenInfo)
 
         mockMvc
             .perform(
-                get("/auth/social/kakao")
+                get("/auth/kakao/callback")
                     .param("code", code),
             ).andExpect(status().isOk)
             .andDo(
                 document(
-                    "auth-kakao-login",
+                    "auth-kakao-callback",
                     responseFields(
-                        fieldWithPath("data.accessToken").description("액세스 토큰"),
-                        fieldWithPath("data.refreshToken").description("리프레시 토큰"),
-                        fieldWithPath("message").description("응답 메시지"),
+                        fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰"),
+                        fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰"),
                     ),
                 ),
             )
@@ -153,26 +155,30 @@ class AuthControllerTest(
 
     @Test
     fun `로그아웃_성공`() {
-        val user = CustomUserDetails(
-            userId = UUID.randomUUID(),
-            role = Role.USER,
-        )
+        val user =
+            CustomUserDetails(
+                userId = UUID.randomUUID(),
+                role = Role.USER,
+            )
 
         doNothing().`when`(logoutUseCase).logout(any())
 
-        mockMvc.perform(
-            post("/auth/logout")
-                .with(csrf())
-                .with(user(user))
-        )
-            .andExpect(status().isOk)
-            .andExpect(jsonPath("$.message").value("로그아웃에 성공했습니다."))
+        mockMvc
+            .perform(
+                post("/auth/logout")
+                    .with(csrf())
+                    .with(user(user)),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data").isEmpty)
             .andDo(
                 document(
                     "auth-logout",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
                     responseFields(
-                        fieldWithPath("message").type(JsonFieldType.STRING)
-                            .description("응답 메시지")
+                        fieldWithPath("data")
+                            .type(JsonFieldType.NULL)
+                            .description("응답 데이터 (로그아웃 성공 시 null 반환)"),
                     ),
                 ),
             )

@@ -1,6 +1,8 @@
 package com.didit.adapter.auth.social
 
 import com.didit.adapter.webapi.auth.dto.KakaoTokenResponse
+import com.didit.application.auth.exception.KakaoIdTokenNotFound
+import com.didit.application.auth.exception.KakaoTokenRequestFailedException
 import com.didit.application.auth.required.social.KakaoAuthPort
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.HttpEntity
@@ -42,17 +44,21 @@ class KakaoAuthAdapter(
         val request = HttpEntity(body, headers)
 
         val response =
-            restTemplate.postForEntity(
-                url,
-                request,
-                KakaoTokenResponse::class.java,
-            )
+            try {
+                restTemplate.postForEntity(
+                    url,
+                    request,
+                    KakaoTokenResponse::class.java,
+                )
+            } catch (e: Exception) {
+                throw KakaoTokenRequestFailedException()
+            }
 
         val responseBody =
             response.body
-                ?: throw IllegalArgumentException("Kakao token 요청 실패")
+                ?: throw KakaoTokenRequestFailedException()
 
         return responseBody.idToken
-            ?: throw IllegalArgumentException("id_token 없음 (scope=openid 확인)")
+            ?: throw KakaoIdTokenNotFound()
     }
 }

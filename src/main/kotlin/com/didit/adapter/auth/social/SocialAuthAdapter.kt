@@ -3,9 +3,9 @@ package com.didit.adapter.auth.social
 import com.didit.adapter.auth.social.oidc.AppleOidcVerifier
 import com.didit.adapter.auth.social.oidc.GoogleOidcVerifier
 import com.didit.adapter.auth.social.oidc.KakaoOidcVerifier
+import com.didit.application.auth.exception.InvalidIdTokenException
+import com.didit.application.auth.exception.KakaoInvalidIdTokenException
 import com.didit.application.auth.required.social.SocialAuthPort
-import com.didit.application.common.exception.BusinessException
-import com.didit.application.common.exception.ErrorCode
 import com.didit.domain.auth.enums.SocialProvider
 import com.didit.domain.auth.model.SocialUserInfo
 import org.springframework.stereotype.Component
@@ -31,7 +31,7 @@ class SocialAuthAdapter(
                         email = googleIdToken.email,
                     )
                 } catch (e: Exception) {
-                    throw BusinessException(ErrorCode.INVALID_ID_TOKEN)
+                    throw InvalidIdTokenException()
                 }
             }
 
@@ -44,7 +44,7 @@ class SocialAuthAdapter(
                         email = appleIdToken.email,
                     )
                 } catch (e: Exception) {
-                    throw BusinessException(ErrorCode.INVALID_ID_TOKEN)
+                    throw InvalidIdTokenException()
                 }
             }
 
@@ -57,7 +57,7 @@ class SocialAuthAdapter(
                         email = payload.email,
                     )
                 } catch (e: Exception) {
-                    throw BusinessException(ErrorCode.INVALID_ID_TOKEN)
+                    throw KakaoInvalidIdTokenException()
                 }
             }
         }

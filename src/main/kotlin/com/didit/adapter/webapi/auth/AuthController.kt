@@ -41,23 +41,21 @@ class AuthController(
 
         return SuccessResponse.of(
             data = result,
-            message = "소셜 로그인에 성공했습니다.",
         )
     }
 
-    @GetMapping("/social/kakao")
+    @GetMapping("/kakao/callback")
     fun kakaoCallback(
         @RequestParam code: String,
     ): SuccessResponse<TokenResponse> {
         val useResult =
             socialLoginUseCase.loginWithKakao(
                 code = code,
-                redirectUri = "http://localhost:8080/auth/social/kakao",
+                redirectUri = "http://localhost:8080/auth/kakao/callback",
             )
 
         return SuccessResponse.of(
             data = TokenResponse(useResult.accessToken, useResult.refreshToken),
-            message = "카카오 로그인 성공",
         )
     }
 
@@ -75,16 +73,15 @@ class AuthController(
 
         return SuccessResponse.of(
             data = result,
-            message = "토큰 재발급에 성공했습니다.",
         )
     }
 
     @PostMapping("/logout")
     fun logout(
         @AuthenticationPrincipal user: CustomUserDetails,
-    ): SuccessResponse<Unit> {
+    ): SuccessResponse<Void?> {
         logoutUseCase.logout(user.getUserId())
 
-        return SuccessResponse.of(message = "로그아웃에 성공했습니다.")
+        return SuccessResponse.of(null)
     }
 }
