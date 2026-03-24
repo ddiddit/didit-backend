@@ -28,6 +28,7 @@ class SecurityConfig(
                     .requestMatchers(
                         "/auth/**",
                         "/actuator/health",
+                        "/docs/**",
                     ).permitAll()
                     .anyRequest()
                     .authenticated()
