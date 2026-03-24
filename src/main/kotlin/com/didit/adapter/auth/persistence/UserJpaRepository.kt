@@ -15,4 +15,11 @@ interface UserJpaRepository : JpaRepository<User, UUID> {
         socialId: String,
         provider: SocialProvider,
     ): Boolean
+
+    fun existsBySocialIdAndProviderAndDeletedAtIsNull(
+        socialId: String,
+        provider: SocialProvider,
+    ): Boolean
+
+    fun findByIdAndDeletedAtIsNull(id: UUID): User?
 }

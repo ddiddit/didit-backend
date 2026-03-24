@@ -35,6 +35,13 @@ class User(
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null,
 ) : BaseEntity() {
+    fun withdraw() {
+        if (this.deletedAt != null) throw IllegalArgumentException("이미 탈퇴한 사용자입니다.")
+        this.deletedAt = LocalDateTime.now()
+    }
+
+    fun isDeleted(): Boolean = this.deletedAt != null
+
     companion object {
         fun create(
             provider: SocialProvider,

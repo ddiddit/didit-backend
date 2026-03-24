@@ -23,4 +23,11 @@ class UserRepositoryImpl(
     override fun save(user: User): User = userJpaRepository.save(user)
 
     override fun findById(id: UUID): User? = userJpaRepository.findById(id).orElse(null)
+
+    override fun existsBySocialIdAndProviderAndDeletedAtIsNull(
+        socialId: String,
+        provider: SocialProvider,
+    ): Boolean = userJpaRepository.existsBySocialIdAndProviderAndDeletedAtIsNull(socialId, provider)
+
+    override fun findByIdAndDeletedAtIsNull(id: UUID): User? = userJpaRepository.findByIdAndDeletedAtIsNull(id)
 }

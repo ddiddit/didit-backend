@@ -18,4 +18,11 @@ interface UserRepository {
     fun save(user: User): User
 
     fun findById(id: UUID): User?
+
+    fun existsBySocialIdAndProviderAndDeletedAtIsNull(
+        socialId: String,
+        provider: SocialProvider,
+    ): Boolean
+
+    fun findByIdAndDeletedAtIsNull(id: UUID): User?
 }
