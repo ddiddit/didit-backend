@@ -16,17 +16,3 @@ spring:
 
 firebase:
   service-account-path: src/main/resources/firebase/firebase-service-account.json
-
-jwt:
-  secret: ${JWT_SECRET}
-  access-token-expiration: 3600000
-  refresh-token-expiration: 1209600000
-
-oauth:
-  google:
-    client-id: google-client-id
-  apple:
-    client-id: apple-client-id
-  kakao:
-    client-id: kakao-client-id
-    client-secret: kakao-client-secret

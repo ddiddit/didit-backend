@@ -19,3 +19,17 @@ management:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{requestId}] %logger - %msg%n"
+
+jwt:
+  secret: ${JWT_SECRET}
+  access-token-expiration: 3600000
+  refresh-token-expiration: 1209600000
+
+oauth:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID}
+  apple:
+    client-id: ${APPLE_CLIENT_ID}
+  kakao:
+    client-id: ${KAKAO_CLIENT_ID}
+    client-secret: ${KAKAO_CLIENT_ID}
