@@ -1,0 +1,14 @@
+= User API
+
+== 회원 탈퇴
+
+=== Request
+
+include::{snippets}/users/withdraw/http-request.adoc[]
+include::{snippets}/users/withdraw/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/users/withdraw/http-response.adoc[]
+include::{snippets}/users/withdraw/response-body.adoc[]
+include::{snippets}/users/withdraw/response-fields.adoc[]
