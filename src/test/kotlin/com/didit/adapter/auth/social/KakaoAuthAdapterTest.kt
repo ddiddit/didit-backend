@@ -1,0 +1,114 @@
+package com.didit.adapter.auth.social
+
+import com.didit.adapter.webapi.auth.dto.KakaoTokenResponse
+import com.didit.application.auth.exception.KakaoIdTokenNotFound
+import com.didit.application.auth.exception.KakaoTokenRequestFailedException
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertThrows
+import org.junit.jupiter.api.Test
+import org.mockito.ArgumentMatchers.anyString
+import org.mockito.Mockito.mock
+import org.mockito.Mockito.`when`
+import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.verify
+import org.springframework.http.ResponseEntity
+import org.springframework.web.client.RestTemplate
+
+class KakaoAuthAdapterTest {
+    private val restTemplate = mock(RestTemplate::class.java)
+
+    private val adapter =
+        KakaoAuthAdapter(
+            restTemplate = restTemplate,
+            clientId = "test-client-id",
+            clientSecret = "test-client-secret",
+        )
+
+    @Test
+    fun `카카오_idToken_조회_성공`() {
+        val code = "auth-code"
+        val redirectUri = "http://localhost:8080/auth/kakao/callback"
+
+        val kakaoResponse =
+            KakaoTokenResponse(
+                accessToken = "dummy-access-token",
+                idToken = "id-token",
+            )
+
+        `when`(
+            restTemplate.postForEntity(
+                anyString(),
+                any(),
+                eq(KakaoTokenResponse::class.java),
+            ),
+        ).thenReturn(ResponseEntity.ok(kakaoResponse))
+
+        val result = adapter.getIdToken(code, redirectUri)
+
+        assertEquals("id-token", result)
+
+        verify(restTemplate).postForEntity(
+            anyString(),
+            any(),
+            eq(KakaoTokenResponse::class.java),
+        )
+    }
+
+    @Test
+    fun `카카오_idToken_없음_예외`() {
+        val kakaoResponse =
+            KakaoTokenResponse(
+                accessToken = "dummy-access-token",
+                idToken = null,
+            )
+
+        `when`(
+            restTemplate.postForEntity(
+                anyString(),
+                any(),
+                eq(KakaoTokenResponse::class.java),
+            ),
+        ).thenReturn(ResponseEntity.ok(kakaoResponse))
+
+        val ex =
+            assertThrows(KakaoIdTokenNotFound::class.java) {
+                adapter.getIdToken("code", "redirect-uri")
+            }
+
+        assertEquals("id_token이 없습니다. scope=openid를 확인하세요.", ex.message)
+    }
+
+    @Test
+    fun `카카오_응답_body_null_예외`() {
+        `when`(
+            restTemplate.postForEntity(
+                anyString(),
+                any(),
+                eq(KakaoTokenResponse::class.java),
+            ),
+        ).thenReturn(ResponseEntity.ok(null))
+
+        val ex =
+            assertThrows(KakaoTokenRequestFailedException::class.java) {
+                adapter.getIdToken("code", "redirect-uri")
+            }
+
+        assertEquals("카카오 토큰 요청에 실패했습니다.", ex.message)
+    }
+
+    @Test
+    fun `카카오_API_호출_실패_예외`() {
+        `when`(
+            restTemplate.postForEntity(
+                anyString(),
+                any(),
+                eq(KakaoTokenResponse::class.java),
+            ),
+        ).thenThrow(RuntimeException("API error"))
+
+        assertThrows(KakaoTokenRequestFailedException::class.java) {
+            adapter.getIdToken("code", "redirect-uri")
+        }
+    }
+}

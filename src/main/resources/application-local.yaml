@@ -30,3 +30,6 @@ clova:
     api-key: ${CLOVA_API_KEY:test-api-key}
     request-id: ${CLOVA_REQUEST_ID:didit-retrospect-local}
     model: HCX-005
+
+firebase:
+  service-account-path: src/main/resources/firebase/firebase-service-account.json
