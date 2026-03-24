@@ -17,13 +17,13 @@ include::{snippets}/auth/login/response-fields.adoc[]
 
 === Request
 
-include::{snippets}/auth-kakao-callback/http-request.adoc[]
-include::{snippets}/auth-kakao-callback/request-parameters.adoc[]
+include::{snippets}/auth/kakao-callback/http-request.adoc[]
+include::{snippets}/auth/kakao-callback/request-parameters.adoc[]
 
 === Response
 
-include::{snippets}/auth-kakao-callback/http-response.adoc[]
-include::{snippets}/auth-kakao-callback/response-fields.adoc[]
+include::{snippets}/auth/kakao-callback/http-response.adoc[]
+include::{snippets}/auth/kakao-callback/response-fields.adoc[]
 
 == 토큰 재발급
 
