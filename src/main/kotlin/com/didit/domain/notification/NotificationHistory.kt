@@ -39,6 +39,8 @@ class NotificationHistory(
     }
 
     companion object {
+        const val RETENTION_DAYS = 30L
+
         fun create(request: NotificationHistoryCreateRequest): NotificationHistory =
             NotificationHistory(
                 userId = request.userId,

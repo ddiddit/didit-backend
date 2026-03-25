@@ -16,6 +16,6 @@ class NotificationHistoryQueryService(
     override fun findAllByUserId(userId: UUID): List<NotificationHistory> =
         notificationHistoryRepository.findAllByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(
             userId = userId,
-            createdAt = LocalDateTime.now().minusDays(30),
+            createdAt = LocalDateTime.now().minusDays(NotificationHistory.RETENTION_DAYS),
         )
 }
