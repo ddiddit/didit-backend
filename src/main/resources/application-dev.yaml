@@ -42,3 +42,6 @@ logging:
 
 firebase:
   service-account-path: /home/didit-dev/didit/firebase/firebase-service-account.json
+
+jwt:
+  secret: ${JWT_SECRET}

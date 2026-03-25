@@ -19,3 +19,15 @@ management:
 logging:
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{requestId}] %logger - %msg%n"
+
+oauth:
+  kakao:
+    user-info-url: https://kapi.kakao.com/v2/user/me
+  google:
+    token-info-url: https://oauth2.googleapis.com/tokeninfo
+  apple:
+    jwks-url: https://appleid.apple.com/auth/keys
+
+jwt:
+  access-token-expiry-ms: 3600000
+  refresh-token-expiry-days: 14

@@ -16,3 +16,6 @@ spring:
 
 firebase:
   service-account-path: src/main/resources/firebase/firebase-service-account.json
+
+jwt:
+  secret: /jc2w58FPaFaRr9aOAudmWLTlf8rgeD6e5pKU2Hz3Dw=
