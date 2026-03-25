@@ -6,7 +6,6 @@ import com.didit.application.notification.provided.NotificationHistoryFinder
 import com.didit.application.notification.provided.NotificationHistoryRegister
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
@@ -27,15 +26,6 @@ class NotificationHistoryApi(
         val histories = notificationHistoryFinder.findAllByUserId(userId)
 
         return SuccessResponse.of(histories.map { NotificationHistoryResponse.from(it) })
-    }
-
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PutMapping("/{id}/read")
-    fun read(
-        @RequestHeader("X-User-Id") userId: UUID,
-        @PathVariable id: UUID,
-    ) {
-        notificationHistoryRegister.read(id, userId)
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
