@@ -9,6 +9,7 @@ interface UserRegister {
         nickname: String,
         job: Job,
         marketingAgreed: Boolean,
+        nightPushAgreed: Boolean,
     )
 
     fun updateProfile(

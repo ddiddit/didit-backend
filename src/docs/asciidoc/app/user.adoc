@@ -1,0 +1,35 @@
+= 유저 API
+
+== 닉네임 중복 확인
+
+=== Request
+
+include::{snippets}/user/nickname-check/http-request.adoc[]
+include::{snippets}/user/nickname-check/query-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/user/nickname-check/http-response.adoc[]
+include::{snippets}/user/nickname-check/response-fields.adoc[]
+
+== 온보딩 완료
+
+=== Request
+
+include::{snippets}/user/onboarding/http-request.adoc[]
+include::{snippets}/user/onboarding/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/user/onboarding/http-response.adoc[]
+
+== 프로필 수정
+
+=== Request
+
+include::{snippets}/user/update-profile/http-request.adoc[]
+include::{snippets}/user/update-profile/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/user/update-profile/http-response.adoc[]

@@ -22,6 +22,7 @@ class UserRegisterTest {
             nickname = "디딧유저",
             job = Job.DEVELOPER,
             marketingAgreed = true,
+            nightPushAgreed = false,
         )
 
         verify(userRegister).register(
@@ -29,6 +30,49 @@ class UserRegisterTest {
             nickname = "디딧유저",
             job = Job.DEVELOPER,
             marketingAgreed = true,
+            nightPushAgreed = false,
+        )
+    }
+
+    @Test
+    fun `register - marketing not agreed`() {
+        val userId = UUID.randomUUID()
+
+        userRegister.register(
+            userId = userId,
+            nickname = "디딧유저",
+            job = Job.DEVELOPER,
+            marketingAgreed = false,
+            nightPushAgreed = false,
+        )
+
+        verify(userRegister).register(
+            userId = userId,
+            nickname = "디딧유저",
+            job = Job.DEVELOPER,
+            marketingAgreed = false,
+            nightPushAgreed = false,
+        )
+    }
+
+    @Test
+    fun `register - night push agreed`() {
+        val userId = UUID.randomUUID()
+
+        userRegister.register(
+            userId = userId,
+            nickname = "디딧유저",
+            job = Job.DEVELOPER,
+            marketingAgreed = false,
+            nightPushAgreed = true,
+        )
+
+        verify(userRegister).register(
+            userId = userId,
+            nickname = "디딧유저",
+            job = Job.DEVELOPER,
+            marketingAgreed = false,
+            nightPushAgreed = true,
         )
     }
 

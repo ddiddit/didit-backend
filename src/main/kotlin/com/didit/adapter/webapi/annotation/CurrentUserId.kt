@@ -1,0 +1,5 @@
+package com.didit.adapter.webapi.annotation
+
+@Target(AnnotationTarget.VALUE_PARAMETER)
+@Retention(AnnotationRetention.RUNTIME)
+annotation class CurrentUserId

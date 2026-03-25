@@ -1,5 +1,6 @@
 package com.didit.application.auth.provided
 
+import com.didit.application.auth.dto.RefreshResponse
 import com.didit.application.auth.dto.TokenResponse
 import com.didit.domain.auth.Provider
 import java.util.UUID
@@ -14,5 +15,5 @@ interface Auth {
 
     fun withdraw(userId: UUID)
 
-    fun refresh(refreshToken: String): TokenResponse
+    fun refresh(refreshToken: String): RefreshResponse
 }

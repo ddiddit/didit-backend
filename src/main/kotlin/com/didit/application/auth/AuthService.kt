@@ -1,5 +1,6 @@
 package com.didit.application.auth
 
+import com.didit.application.auth.dto.RefreshResponse
 import com.didit.application.auth.dto.TokenResponse
 import com.didit.application.auth.exception.ExpiredRefreshTokenException
 import com.didit.application.auth.exception.InvalidRefreshTokenException
@@ -34,7 +35,7 @@ class AuthService(
         val client = oAuthClientFactory.getClient(provider)
         val userInfo = client.getUserInfo(oauthToken)
         val (user, isNewUser) = resolveUser(provider, userInfo.providerId, userInfo.email)
-        return issueTokens(user.id, isNewUser)
+        return issueTokens(user, isNewUser)
     }
 
     @Transactional
@@ -51,7 +52,7 @@ class AuthService(
     }
 
     @Transactional
-    override fun refresh(refreshToken: String): TokenResponse {
+    override fun refresh(refreshToken: String): RefreshResponse {
         val storedToken =
             refreshTokenRepository.findByToken(refreshToken)
                 ?: throw InvalidRefreshTokenException()
@@ -63,7 +64,7 @@ class AuthService(
         storedToken.rotate(newRefreshToken, tokenProvider.getRefreshTokenExpiresAt())
         refreshTokenRepository.save(storedToken)
 
-        return TokenResponse(
+        return RefreshResponse(
             accessToken = tokenProvider.generateAccessToken(user.id),
             refreshToken = newRefreshToken,
         )
@@ -98,18 +99,19 @@ class AuthService(
     }
 
     private fun issueTokens(
-        userId: UUID,
+        user: User,
         isNewUser: Boolean,
     ): TokenResponse {
-        refreshTokenRepository.deleteByUserId(userId)
+        refreshTokenRepository.deleteByUserId(user.id)
         val newRefreshToken = tokenProvider.generateRefreshToken()
         refreshTokenRepository.save(
-            RefreshToken.create(userId, newRefreshToken, tokenProvider.getRefreshTokenExpiresAt()),
+            RefreshToken.create(user.id, newRefreshToken, tokenProvider.getRefreshTokenExpiresAt()),
         )
         return TokenResponse(
-            accessToken = tokenProvider.generateAccessToken(userId),
+            accessToken = tokenProvider.generateAccessToken(user.id),
             refreshToken = newRefreshToken,
             isNewUser = isNewUser,
+            isOnboardingCompleted = user.isOnboardingCompleted,
         )
     }
 }

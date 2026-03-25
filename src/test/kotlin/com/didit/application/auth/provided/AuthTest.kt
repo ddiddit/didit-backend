@@ -1,5 +1,6 @@
 package com.didit.application.auth.provided
 
+import com.didit.application.auth.dto.RefreshResponse
 import com.didit.application.auth.dto.TokenResponse
 import com.didit.domain.auth.Provider
 import org.assertj.core.api.Assertions.assertThat
@@ -18,13 +19,20 @@ class AuthTest {
 
     @Test
     fun `login`() {
-        val response = TokenResponse(accessToken = "access-token", refreshToken = "refresh-token", isNewUser = true)
+        val response =
+            TokenResponse(
+                accessToken = "access-token",
+                refreshToken = "refresh-token",
+                isNewUser = true,
+                isOnboardingCompleted = false,
+            )
         whenever(auth.login(Provider.KAKAO, "oauth-token")).thenReturn(response)
 
         val result = auth.login(Provider.KAKAO, "oauth-token")
 
         verify(auth).login(Provider.KAKAO, "oauth-token")
         assertThat(result.isNewUser).isTrue()
+        assertThat(result.isOnboardingCompleted).isFalse()
         assertThat(result.accessToken).isEqualTo("access-token")
     }
 
@@ -48,7 +56,11 @@ class AuthTest {
 
     @Test
     fun `refresh`() {
-        val response = TokenResponse(accessToken = "new-access-token", refreshToken = "new-refresh-token")
+        val response =
+            RefreshResponse(
+                accessToken = "new-access-token",
+                refreshToken = "new-refresh-token",
+            )
         whenever(auth.refresh("refresh-token")).thenReturn(response)
 
         val result = auth.refresh("refresh-token")

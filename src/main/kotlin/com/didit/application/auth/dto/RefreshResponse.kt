@@ -1,8 +1,6 @@
 package com.didit.application.auth.dto
 
-data class TokenResponse(
+data class RefreshResponse(
     val accessToken: String,
     val refreshToken: String,
-    val isNewUser: Boolean,
-    val isOnboardingCompleted: Boolean,
 )
