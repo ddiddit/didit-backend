@@ -43,12 +43,21 @@ class UserTest {
     }
 
     @Test
-    fun `completeOnboarding - blank nickname throws exception`() {
+    fun `completeOnboarding - invalid nickname throws exception`() {
         val user = UserFixture.create()
 
-        assertThatThrownBy { user.completeOnboarding(nickname = " ", job = Job.DEVELOPER) }
+        assertThatThrownBy { user.completeOnboarding(nickname = "a", job = Job.DEVELOPER) }
             .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("닉네임은 비어있을 수 없습니다.")
+            .hasMessage("닉네임은 2~10자 한글, 영문, 숫자만 가능합니다.")
+    }
+
+    @Test
+    fun `completeOnboarding - nickname with special characters throws exception`() {
+        val user = UserFixture.create()
+
+        assertThatThrownBy { user.completeOnboarding(nickname = "닉네임!", job = Job.DEVELOPER) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessage("닉네임은 2~10자 한글, 영문, 숫자만 가능합니다.")
     }
 
     @Test
@@ -105,12 +114,21 @@ class UserTest {
     }
 
     @Test
-    fun `updateProfile - blank nickname throws exception`() {
+    fun `updateProfile - invalid nickname throws exception`() {
         val user = UserFixture.createOnboarded()
 
-        assertThatThrownBy { user.updateProfile(nickname = " ", job = null) }
+        assertThatThrownBy { user.updateProfile(nickname = "a", job = null) }
             .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("닉네임은 비어있을 수 없습니다.")
+            .hasMessage("닉네임은 2~10자 한글, 영문, 숫자만 가능합니다.")
+    }
+
+    @Test
+    fun `updateProfile - nickname with special characters throws exception`() {
+        val user = UserFixture.createOnboarded()
+
+        assertThatThrownBy { user.updateProfile(nickname = "닉네임!", job = null) }
+            .isInstanceOf(IllegalArgumentException::class.java)
+            .hasMessage("닉네임은 2~10자 한글, 영문, 숫자만 가능합니다.")
     }
 
     @Test
