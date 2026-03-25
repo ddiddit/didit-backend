@@ -1,18 +1,33 @@
 package com.didit.support
 
+import com.didit.domain.auth.Job
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.RefreshToken
 import com.didit.domain.auth.User
 import com.didit.domain.auth.UserConsent
+import com.didit.domain.auth.UserRegisterRequest
 import java.time.LocalDateTime
 import java.util.UUID
 
 object UserFixture {
     fun create(
         provider: Provider = Provider.KAKAO,
-        providerId: String = "kakao-123",
+        providerId: String = "kakao-0325",
+    ) = User.register(
+        UserRegisterRequest(
+            provider = provider,
+            providerId = providerId,
+        ),
+    )
+
+    fun createOnboarded(
+        provider: Provider = Provider.KAKAO,
+        providerId: String = "kakao-0325",
         nickname: String = "디딧유저",
-    ) = User.register(provider = provider, providerId = providerId, nickname = nickname)
+        job: Job = Job.DEVELOPER,
+    ) = create(provider, providerId).apply {
+        completeOnboarding(nickname = nickname, job = job)
+    }
 }
 
 object UserConsentFixture {

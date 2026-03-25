@@ -1,0 +1,19 @@
+package com.didit.application.auth.required
+
+import com.didit.domain.auth.Provider
+import com.didit.domain.auth.User
+import org.springframework.data.repository.Repository
+import java.util.UUID
+
+interface UserRepository : Repository<User, UUID> {
+    fun save(user: User): User
+
+    fun existsByNickname(nickname: String): Boolean
+
+    fun findById(id: UUID): User?
+
+    fun findByProviderAndProviderId(
+        provider: Provider,
+        providerId: String,
+    ): User?
+}
