@@ -60,7 +60,7 @@ class User(
         now: LocalDateTime = LocalDateTime.now(),
     ) {
         check(!isOnboardingCompleted) { "이미 온보딩이 완료된 회원입니다." }
-        require(nickname.isNotBlank()) { "닉네임은 비어있을 수 없습니다." }
+        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문, 숫자만 가능합니다." }
 
         this.nickname = nickname
         this.job = job
@@ -71,7 +71,7 @@ class User(
         nickname: String,
         job: Job?,
     ) {
-        require(nickname.isNotBlank()) { "닉네임은 비어있을 수 없습니다." }
+        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문, 숫자만 가능합니다." }
 
         this.nickname = nickname
         this.job = job
@@ -95,6 +95,8 @@ class User(
         checkNotNull(consent) { "동의 정보가 존재하지 않습니다." }
         consent!!.updateMarketing(agreed)
     }
+
+    private fun String.isValidNickname(): Boolean = matches(Regex("^[가-힣a-zA-Z0-9]{2,10}$"))
 
     companion object {
         fun register(request: UserRegisterRequest) =

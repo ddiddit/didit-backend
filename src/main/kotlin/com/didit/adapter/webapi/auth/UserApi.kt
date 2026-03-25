@@ -9,6 +9,7 @@ import com.didit.adapter.webapi.auth.dto.UserProfileResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
+import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -39,7 +40,7 @@ class UserApi(
     @PostMapping("/onboarding")
     fun onboarding(
         @CurrentUserId userId: UUID,
-        @RequestBody request: OnboardingRequest,
+        @Valid @RequestBody request: OnboardingRequest,
     ) {
         userRegister.register(
             userId = userId,
@@ -64,7 +65,7 @@ class UserApi(
     @PatchMapping("/profile")
     fun updateProfile(
         @CurrentUserId userId: UUID,
-        @RequestBody request: UpdateProfileRequest,
+        @Valid @RequestBody request: UpdateProfileRequest,
     ) {
         userRegister.updateProfile(
             userId = userId,
