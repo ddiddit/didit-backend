@@ -1,15 +1,21 @@
 package com.didit.adapter.webapi.auth
 
+import com.didit.adapter.webapi.exception.ApiControllerAdvice
+import com.didit.adapter.webapi.resolver.CurrentUserIdResolver
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.RestDocsSupport
 import com.didit.domain.auth.Job
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
+import org.springframework.restdocs.RestDocumentationContextProvider
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
+import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post
@@ -19,14 +25,40 @@ import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.queryParameters
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
+import org.springframework.security.core.authority.SimpleGrantedAuthority
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import org.springframework.test.web.servlet.setup.MockMvcBuilders
+import org.springframework.test.web.servlet.setup.StandaloneMockMvcBuilder
+import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
 import java.util.UUID
 
 class UserApiTest : RestDocsSupport() {
     private val userFinder: UserFinder = mock(UserFinder::class.java)
     private val userRegister: UserRegister = mock(UserRegister::class.java)
+    private val userId = UUID.randomUUID()
 
     override fun initController() = UserApi(userFinder, userRegister)
+
+    @BeforeEach
+    fun setUpSecurityContext(provider: RestDocumentationContextProvider) {
+        SecurityContextHolder.getContext().authentication =
+            UsernamePasswordAuthenticationToken(
+                userId.toString(),
+                null,
+                listOf(SimpleGrantedAuthority("ROLE_USER")),
+            )
+        mockMvc =
+            MockMvcBuilders
+                .standaloneSetup(initController())
+                .setControllerAdvice(ApiControllerAdvice())
+                .setMessageConverters(MappingJackson2HttpMessageConverter(objectMapper))
+                .setValidator(LocalValidatorFactoryBean().also { it.afterPropertiesSet() })
+                .setCustomArgumentResolvers(CurrentUserIdResolver())
+                .apply<StandaloneMockMvcBuilder>(documentationConfiguration(provider))
+                .build()
+    }
 
     @Test
     fun `닉네임 중복 확인`() {
@@ -65,7 +97,6 @@ class UserApiTest : RestDocsSupport() {
         mockMvc
             .perform(
                 post("/api/v1/users/onboarding")
-                    .header("X-User-Id", UUID.randomUUID().toString())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isNoContent)
@@ -95,7 +126,6 @@ class UserApiTest : RestDocsSupport() {
         mockMvc
             .perform(
                 patch("/api/v1/users/profile")
-                    .header("X-User-Id", UUID.randomUUID().toString())
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isNoContent)
