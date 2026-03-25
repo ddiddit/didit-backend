@@ -1,6 +1,7 @@
 CREATE TABLE users (
     id                      BINARY(16)   NOT NULL,
     nickname                VARCHAR(50),
+    email                   VARCHAR(255),
     job                     VARCHAR(20),
     provider                VARCHAR(20)  NOT NULL,
     provider_id             VARCHAR(255) NOT NULL,

@@ -3,10 +3,9 @@ package com.didit.application.auth
 import com.didit.application.auth.dto.TokenResponse
 import com.didit.application.auth.exception.ExpiredRefreshTokenException
 import com.didit.application.auth.exception.InvalidRefreshTokenException
-import com.didit.application.auth.exception.UnsupportedOAuthProviderException
 import com.didit.application.auth.provided.Auth
 import com.didit.application.auth.provided.UserFinder
-import com.didit.application.auth.required.OAuthClient
+import com.didit.application.auth.required.OAuthClientFactory
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.TokenProvider
 import com.didit.application.auth.required.UserRepository
@@ -24,7 +23,7 @@ class AuthService(
     private val userRepository: UserRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userFinder: UserFinder,
-    private val oauthClients: List<OAuthClient>,
+    private val oAuthClientFactory: OAuthClientFactory,
     private val tokenProvider: TokenProvider,
 ) : Auth {
     @Transactional
@@ -32,13 +31,9 @@ class AuthService(
         provider: Provider,
         oauthToken: String,
     ): TokenResponse {
-        val client =
-            oauthClients.firstOrNull { it.supports(provider) }
-                ?: throw UnsupportedOAuthProviderException()
-
+        val client = oAuthClientFactory.getClient(provider)
         val userInfo = client.getUserInfo(oauthToken)
-        val (user, isNewUser) = resolveUser(provider, userInfo.providerId)
-
+        val (user, isNewUser) = resolveUser(provider, userInfo.providerId, userInfo.email)
         return issueTokens(user.id, isNewUser)
     }
 
@@ -77,10 +72,11 @@ class AuthService(
     private fun resolveUser(
         provider: Provider,
         providerId: String,
+        email: String?,
     ): Pair<User, Boolean> {
         val existingUser =
             userRepository.findByProviderAndProviderId(provider, providerId)
-                ?: return createNewUser(provider, providerId) to true
+                ?: return createNewUser(provider, providerId, email) to true
 
         if (existingUser.isDeleted) return rejoinUser(existingUser) to true
 
@@ -90,9 +86,10 @@ class AuthService(
     private fun createNewUser(
         provider: Provider,
         providerId: String,
+        email: String?,
     ): User =
         userRepository.save(
-            User.register(UserRegisterRequest(provider = provider, providerId = providerId)),
+            User.register(UserRegisterRequest(provider = provider, providerId = providerId, email = email)),
         )
 
     private fun rejoinUser(user: User): User {

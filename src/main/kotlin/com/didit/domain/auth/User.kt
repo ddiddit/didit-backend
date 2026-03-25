@@ -22,6 +22,8 @@ class User(
     val id: UUID = UUID.randomUUID(),
     @Column(length = 50)
     var nickname: String? = null,
+    @Column
+    var email: String? = null,
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     var job: Job? = null,
@@ -80,6 +82,7 @@ class User(
             User(
                 provider = request.provider,
                 providerId = request.providerId,
+                email = request.email,
             )
     }
 }

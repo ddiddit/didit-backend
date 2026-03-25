@@ -13,19 +13,22 @@ object UserFixture {
     fun create(
         provider: Provider = Provider.KAKAO,
         providerId: String = "kakao-0325",
+        email: String? = "test@kakao.com",
     ) = User.register(
         UserRegisterRequest(
             provider = provider,
             providerId = providerId,
+            email = email,
         ),
     )
 
     fun createOnboarded(
         provider: Provider = Provider.KAKAO,
         providerId: String = "kakao-0325",
+        email: String? = "test@kakao.com",
         nickname: String = "디딧유저",
         job: Job = Job.DEVELOPER,
-    ) = create(provider, providerId).apply {
+    ) = create(provider, providerId, email).apply {
         completeOnboarding(nickname = nickname, job = job)
     }
 }

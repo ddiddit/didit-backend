@@ -13,6 +13,7 @@ class UserTest {
 
         assertThat(user.provider).isEqualTo(Provider.KAKAO)
         assertThat(user.providerId).isEqualTo("kakao-0325")
+        assertThat(user.email).isEqualTo("test@kakao.com")
         assertThat(user.nickname).isNull()
         assertThat(user.job).isNull()
         assertThat(user.isDeleted).isFalse()
