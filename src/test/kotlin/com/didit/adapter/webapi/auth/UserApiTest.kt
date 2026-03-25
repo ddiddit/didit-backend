@@ -1,21 +1,16 @@
 package com.didit.adapter.webapi.auth
 
-import com.didit.adapter.webapi.auth.resolver.CurrentUserIdResolver
-import com.didit.adapter.webapi.exception.ApiControllerAdvice
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import com.didit.docs.ApiDocumentUtils
-import com.didit.docs.RestDocsSupport
+import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.auth.Job
-import org.junit.jupiter.api.BeforeEach
+import com.didit.support.UserFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
-import org.springframework.restdocs.RestDocumentationContextProvider
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
-import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post
@@ -25,40 +20,13 @@ import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.queryParameters
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
-import org.springframework.test.web.servlet.setup.StandaloneMockMvcBuilder
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
-import java.util.UUID
 
-class UserApiTest : RestDocsSupport() {
+class UserApiTest : AuthenticatedRestDocsSupport() {
     private val userFinder: UserFinder = mock(UserFinder::class.java)
     private val userRegister: UserRegister = mock(UserRegister::class.java)
-    private val userId = UUID.randomUUID()
 
     override fun initController() = UserApi(userFinder, userRegister)
-
-    @BeforeEach
-    fun setUpSecurityContext(provider: RestDocumentationContextProvider) {
-        SecurityContextHolder.getContext().authentication =
-            UsernamePasswordAuthenticationToken(
-                userId.toString(),
-                null,
-                listOf(SimpleGrantedAuthority("ROLE_USER")),
-            )
-        mockMvc =
-            MockMvcBuilders
-                .standaloneSetup(initController())
-                .setControllerAdvice(ApiControllerAdvice())
-                .setMessageConverters(MappingJackson2HttpMessageConverter(objectMapper))
-                .setValidator(LocalValidatorFactoryBean().also { it.afterPropertiesSet() })
-                .setCustomArgumentResolvers(CurrentUserIdResolver())
-                .apply<StandaloneMockMvcBuilder>(documentationConfiguration(provider))
-                .build()
-    }
 
     @Test
     fun `닉네임 중복 확인`() {
@@ -116,6 +84,29 @@ class UserApiTest : RestDocsSupport() {
     }
 
     @Test
+    fun `프로필 조회`() {
+        val user = UserFixture.createOnboarded()
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+
+        mockMvc
+            .perform(get("/api/v1/users/profile"))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "user/profile",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data.nickname").type(JsonFieldType.STRING).description("닉네임"),
+                        fieldWithPath("data.job").type(JsonFieldType.STRING).description("직무 (DEVELOPER, PLANNER, DESIGNER)"),
+                        fieldWithPath("data.email").type(JsonFieldType.STRING).description("이메일"),
+                        fieldWithPath("data.provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자 (KAKAO, GOOGLE, APPLE)"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
     fun `프로필 수정`() {
         val request =
             mapOf(
@@ -137,6 +128,28 @@ class UserApiTest : RestDocsSupport() {
                     requestFields(
                         fieldWithPath("nickname").type(JsonFieldType.STRING).description("닉네임"),
                         fieldWithPath("job").type(JsonFieldType.STRING).description("직무 (DEVELOPER, PLANNER, DESIGNER)"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `마케팅 정보 수신 동의 수정`() {
+        val request = mapOf("agreed" to true)
+
+        mockMvc
+            .perform(
+                patch("/api/v1/users/marketing-consent")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "user/marketing-consent",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    requestFields(
+                        fieldWithPath("agreed").type(JsonFieldType.BOOLEAN).description("마케팅 정보 수신 동의 여부"),
                     ),
                 ),
             )

@@ -18,6 +18,8 @@ class NotificationSettingQueryService(
         notificationSettingRepository.findByUserId(userId)
             ?: throw NotificationSettingNotFoundException(userId)
 
+    override fun findByUserIdOrNull(userId: UUID): NotificationSetting? = notificationSettingRepository.findByUserId(userId)
+
     override fun findAllByReminderTime(reminderTime: LocalTime): List<NotificationSetting> =
         notificationSettingRepository.findAllByEnabledTrueAndReminderTime(reminderTime)
 }

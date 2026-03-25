@@ -121,4 +121,52 @@ class UserTest {
 
         assertThat(user.job).isNull()
     }
+
+    @Test
+    fun `createConsent`() {
+        val user = UserFixture.create()
+
+        user.createConsent(marketingAgreed = true)
+
+        assertThat(user.consent).isNotNull
+        assertThat(user.marketingAgreed).isTrue()
+    }
+
+    @Test
+    fun `createConsent - already exists throws exception`() {
+        val user = UserFixture.create()
+        user.createConsent(marketingAgreed = true)
+
+        assertThatThrownBy { user.createConsent(marketingAgreed = false) }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessage("이미 동의 정보가 존재합니다.")
+    }
+
+    @Test
+    fun `updateMarketingConsent`() {
+        val user = UserFixture.create()
+        user.createConsent(marketingAgreed = true)
+
+        user.updateMarketingConsent(agreed = false)
+
+        assertThat(user.marketingAgreed).isFalse()
+    }
+
+    @Test
+    fun `updateMarketingConsent - consent not exists throws exception`() {
+        val user = UserFixture.create()
+
+        assertThatThrownBy { user.updateMarketingConsent(agreed = true) }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessage("동의 정보가 존재하지 않습니다.")
+    }
+
+    @Test
+    fun `marketingAgreed - consent not exists throws exception`() {
+        val user = UserFixture.create()
+
+        assertThatThrownBy { user.marketingAgreed }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessage("동의 정보가 존재하지 않습니다.")
+    }
 }

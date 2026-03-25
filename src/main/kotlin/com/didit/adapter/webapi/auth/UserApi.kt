@@ -4,7 +4,9 @@ import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.auth.dto.NicknameCheckResponse
 import com.didit.adapter.webapi.auth.dto.OnboardingRequest
+import com.didit.adapter.webapi.auth.dto.UpdateMarketingConsentRequest
 import com.didit.adapter.webapi.auth.dto.UpdateProfileRequest
+import com.didit.adapter.webapi.auth.dto.UserProfileResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
@@ -33,9 +35,9 @@ class UserApi(
         return SuccessResponse.of(NicknameCheckResponse(isDuplicate = isDuplicate))
     }
 
+    @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/onboarding")
-    @RequireAuth
     fun onboarding(
         @CurrentUserId userId: UUID,
         @RequestBody request: OnboardingRequest,
@@ -49,9 +51,19 @@ class UserApi(
         )
     }
 
+    @RequireAuth
+    @GetMapping("/profile")
+    fun getProfile(
+        @CurrentUserId userId: UUID,
+    ): SuccessResponse<UserProfileResponse> {
+        val user = userFinder.findByIdOrThrow(userId)
+
+        return SuccessResponse.of(UserProfileResponse.from(user))
+    }
+
+    @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PatchMapping("/profile")
-    @RequireAuth
     fun updateProfile(
         @CurrentUserId userId: UUID,
         @RequestBody request: UpdateProfileRequest,
@@ -60,6 +72,19 @@ class UserApi(
             userId = userId,
             nickname = request.nickname,
             job = request.job,
+        )
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping("/marketing-consent")
+    fun updateMarketingConsent(
+        @CurrentUserId userId: UUID,
+        @RequestBody request: UpdateMarketingConsentRequest,
+    ) {
+        userRegister.updateMarketingConsent(
+            userId = userId,
+            agreed = request.agreed,
         )
     }
 }

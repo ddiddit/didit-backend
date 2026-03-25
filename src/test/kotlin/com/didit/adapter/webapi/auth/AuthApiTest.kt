@@ -1,62 +1,29 @@
 package com.didit.adapter.webapi.auth
 
-import com.didit.adapter.webapi.auth.resolver.CurrentUserIdResolver
-import com.didit.adapter.webapi.exception.ApiControllerAdvice
 import com.didit.application.auth.dto.RefreshResponse
 import com.didit.application.auth.dto.TokenResponse
 import com.didit.application.auth.provided.Auth
 import com.didit.docs.ApiDocumentUtils
-import com.didit.docs.RestDocsSupport
+import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.auth.Provider
-import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter
-import org.springframework.restdocs.RestDocumentationContextProvider
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
-import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.documentationConfiguration
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken
-import org.springframework.security.core.authority.SimpleGrantedAuthority
-import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import org.springframework.test.web.servlet.setup.MockMvcBuilders
-import org.springframework.test.web.servlet.setup.StandaloneMockMvcBuilder
-import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean
-import java.util.UUID
 
-class AuthApiTest : RestDocsSupport() {
+class AuthApiTest : AuthenticatedRestDocsSupport() {
     private val auth: Auth = mock(Auth::class.java)
-    private val userId = UUID.randomUUID()
 
     override fun initController() = AuthApi(auth)
-
-    @BeforeEach
-    fun setUpSecurityContext(provider: RestDocumentationContextProvider) {
-        SecurityContextHolder.getContext().authentication =
-            UsernamePasswordAuthenticationToken(
-                userId.toString(),
-                null,
-                listOf(SimpleGrantedAuthority("ROLE_USER")),
-            )
-        mockMvc =
-            MockMvcBuilders
-                .standaloneSetup(initController())
-                .setControllerAdvice(ApiControllerAdvice())
-                .setMessageConverters(MappingJackson2HttpMessageConverter(objectMapper))
-                .setValidator(LocalValidatorFactoryBean().also { it.afterPropertiesSet() })
-                .setCustomArgumentResolvers(CurrentUserIdResolver())
-                .apply<StandaloneMockMvcBuilder>(documentationConfiguration(provider))
-                .build()
-    }
 
     @Test
     fun `소셜 로그인`() {

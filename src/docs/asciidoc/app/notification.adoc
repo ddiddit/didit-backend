@@ -5,7 +5,6 @@
 === Request
 
 include::{snippets}/notification-history/find-all/http-request.adoc[]
-include::{snippets}/notification-history/find-all/request-headers.adoc[]
 
 === Response
 
@@ -17,7 +16,6 @@ include::{snippets}/notification-history/find-all/response-fields.adoc[]
 === Request
 
 include::{snippets}/notification-history/read-all/http-request.adoc[]
-include::{snippets}/notification-history/read-all/request-headers.adoc[]
 
 === Response
 
@@ -28,7 +26,6 @@ include::{snippets}/notification-history/read-all/http-response.adoc[]
 === Request
 
 include::{snippets}/notification-setting/find/http-request.adoc[]
-include::{snippets}/notification-setting/find/request-headers.adoc[]
 
 === Response
 
@@ -40,19 +37,28 @@ include::{snippets}/notification-setting/find/response-fields.adoc[]
 === Request
 
 include::{snippets}/notification-setting/update/http-request.adoc[]
-include::{snippets}/notification-setting/update/request-headers.adoc[]
 include::{snippets}/notification-setting/update/request-fields.adoc[]
 
 === Response
 
 include::{snippets}/notification-setting/update/http-response.adoc[]
 
+== 마케팅 정보 수신 동의 수정
+
+=== Request
+
+include::{snippets}/user/marketing-consent/http-request.adoc[]
+include::{snippets}/user/marketing-consent/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/user/marketing-consent/http-response.adoc[]
+
 == 야간 푸시 동의 수정
 
 === Request
 
 include::{snippets}/notification-setting/night-push-consent/http-request.adoc[]
-include::{snippets}/notification-setting/night-push-consent/request-headers.adoc[]
 include::{snippets}/notification-setting/night-push-consent/request-fields.adoc[]
 
 === Response

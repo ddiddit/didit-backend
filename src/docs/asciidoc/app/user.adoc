@@ -23,6 +23,17 @@ include::{snippets}/user/onboarding/request-fields.adoc[]
 
 include::{snippets}/user/onboarding/http-response.adoc[]
 
+== 프로필 조회
+
+=== Request
+
+include::{snippets}/user/profile/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/user/profile/http-response.adoc[]
+include::{snippets}/user/profile/response-fields.adoc[]
+
 == 프로필 수정
 
 === Request
@@ -33,3 +44,14 @@ include::{snippets}/user/update-profile/request-fields.adoc[]
 === Response
 
 include::{snippets}/user/update-profile/http-response.adoc[]
+
+== 마케팅 정보 수신 동의 수정
+
+=== Request
+
+include::{snippets}/user/marketing-consent/http-request.adoc[]
+include::{snippets}/user/marketing-consent/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/user/marketing-consent/http-response.adoc[]
