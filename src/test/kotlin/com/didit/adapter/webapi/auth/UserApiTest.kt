@@ -132,26 +132,4 @@ class UserApiTest : AuthenticatedRestDocsSupport() {
                 ),
             )
     }
-
-    @Test
-    fun `마케팅 정보 수신 동의 수정`() {
-        val request = mapOf("agreed" to true)
-
-        mockMvc
-            .perform(
-                patch("/api/v1/users/marketing-consent")
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)),
-            ).andExpect(status().isNoContent)
-            .andDo(
-                document(
-                    "user/marketing-consent",
-                    ApiDocumentUtils.getDocumentRequest(),
-                    ApiDocumentUtils.getDocumentResponse(),
-                    requestFields(
-                        fieldWithPath("agreed").type(JsonFieldType.BOOLEAN).description("마케팅 정보 수신 동의 여부"),
-                    ),
-                ),
-            )
-    }
 }

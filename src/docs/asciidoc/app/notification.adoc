@@ -43,17 +43,6 @@ include::{snippets}/notification-setting/update/request-fields.adoc[]
 
 include::{snippets}/notification-setting/update/http-response.adoc[]
 
-== 마케팅 정보 수신 동의 수정
-
-=== Request
-
-include::{snippets}/user/marketing-consent/http-request.adoc[]
-include::{snippets}/user/marketing-consent/request-fields.adoc[]
-
-=== Response
-
-include::{snippets}/user/marketing-consent/http-response.adoc[]
-
 == 야간 푸시 동의 수정
 
 === Request
@@ -64,3 +53,14 @@ include::{snippets}/notification-setting/night-push-consent/request-fields.adoc[
 === Response
 
 include::{snippets}/notification-setting/night-push-consent/http-response.adoc[]
+
+== 마케팅 정보 수신 동의 수정
+
+=== Request
+
+include::{snippets}/notification-setting/marketing-consent/http-request.adoc[]
+include::{snippets}/notification-setting/marketing-consent/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/notification-setting/marketing-consent/http-response.adoc[]

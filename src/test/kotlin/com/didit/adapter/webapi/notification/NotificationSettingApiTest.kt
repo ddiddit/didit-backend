@@ -1,8 +1,10 @@
 package com.didit.adapter.webapi.notification
 
 import com.didit.adapter.webapi.notification.dto.UpdateConsentRequest
+import com.didit.adapter.webapi.notification.dto.UpdateMarketingConsentRequest
 import com.didit.adapter.webapi.notification.dto.UpdateNotificationSettingRequest
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.auth.provided.UserRegister
 import com.didit.application.notification.provided.NotificationSettingFinder
 import com.didit.application.notification.provided.NotificationSettingModifier
 import com.didit.docs.ApiDocumentUtils
@@ -27,8 +29,9 @@ class NotificationSettingApiTest : AuthenticatedRestDocsSupport() {
     private val notificationSettingFinder: NotificationSettingFinder = mock(NotificationSettingFinder::class.java)
     private val notificationSettingModifier: NotificationSettingModifier = mock(NotificationSettingModifier::class.java)
     private val userFinder: UserFinder = mock(UserFinder::class.java)
+    private val userRegister: UserRegister = mock(UserRegister::class.java)
 
-    override fun initController() = NotificationSettingApi(notificationSettingFinder, notificationSettingModifier, userFinder)
+    override fun initController() = NotificationSettingApi(notificationSettingFinder, notificationSettingModifier, userFinder, userRegister)
 
     @Test
     fun `알림 설정 조회`() {
@@ -96,6 +99,28 @@ class NotificationSettingApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
                         fieldWithPath("consent").type(JsonFieldType.BOOLEAN).description("야간 푸시 동의 여부"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `마케팅 정보 수신 동의 수정`() {
+        val request = UpdateMarketingConsentRequest(agreed = true)
+
+        mockMvc
+            .perform(
+                put("/api/v1/notification-settings/marketing-consent")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "notification-setting/marketing-consent",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    requestFields(
+                        fieldWithPath("agreed").type(JsonFieldType.BOOLEAN).description("마케팅 정보 수신 동의 여부"),
                     ),
                 ),
             )
