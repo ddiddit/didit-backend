@@ -1,6 +1,6 @@
 package com.didit.adapter.config
 
-import com.didit.adapter.webapi.filter.JwtAuthenticationFilter
+import com.didit.adapter.webapi.auth.filter.JwtAuthenticationFilter
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity

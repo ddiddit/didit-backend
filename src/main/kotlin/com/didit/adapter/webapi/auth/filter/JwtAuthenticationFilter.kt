@@ -1,4 +1,4 @@
-package com.didit.adapter.webapi.filter
+package com.didit.adapter.webapi.auth.filter
 
 import com.didit.adapter.security.JwtTokenParser
 import jakarta.servlet.FilterChain

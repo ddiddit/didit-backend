@@ -1,6 +1,6 @@
-package com.didit.adapter.webapi.resolver
+package com.didit.adapter.webapi.auth.resolver
 
-import com.didit.adapter.webapi.annotation.CurrentUserId
+import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import org.springframework.core.MethodParameter
 import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component

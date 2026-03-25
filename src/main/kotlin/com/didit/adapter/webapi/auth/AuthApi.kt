@@ -1,7 +1,7 @@
 package com.didit.adapter.webapi.auth
 
-import com.didit.adapter.webapi.annotation.CurrentUserId
-import com.didit.adapter.webapi.annotation.RequireAuth
+import com.didit.adapter.webapi.auth.annotation.CurrentUserId
+import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.auth.dto.LoginRequest
 import com.didit.adapter.webapi.auth.dto.LoginResponse
 import com.didit.adapter.webapi.auth.dto.TokenRefreshRequest

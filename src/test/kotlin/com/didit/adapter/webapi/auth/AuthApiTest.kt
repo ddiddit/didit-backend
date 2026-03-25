@@ -1,7 +1,7 @@
 package com.didit.adapter.webapi.auth
 
+import com.didit.adapter.webapi.auth.resolver.CurrentUserIdResolver
 import com.didit.adapter.webapi.exception.ApiControllerAdvice
-import com.didit.adapter.webapi.resolver.CurrentUserIdResolver
 import com.didit.application.auth.dto.RefreshResponse
 import com.didit.application.auth.dto.TokenResponse
 import com.didit.application.auth.provided.Auth

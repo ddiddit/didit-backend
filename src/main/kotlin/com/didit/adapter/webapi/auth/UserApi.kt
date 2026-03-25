@@ -1,7 +1,7 @@
 package com.didit.adapter.webapi.auth
 
-import com.didit.adapter.webapi.annotation.CurrentUserId
-import com.didit.adapter.webapi.annotation.RequireAuth
+import com.didit.adapter.webapi.auth.annotation.CurrentUserId
+import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.auth.dto.NicknameCheckResponse
 import com.didit.adapter.webapi.auth.dto.OnboardingRequest
 import com.didit.adapter.webapi.auth.dto.UpdateProfileRequest

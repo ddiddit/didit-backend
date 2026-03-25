@@ -1,4 +1,4 @@
-package com.didit.adapter.webapi.annotation
+package com.didit.adapter.webapi.auth.annotation
 
 @Target(AnnotationTarget.VALUE_PARAMETER)
 @Retention(AnnotationRetention.RUNTIME)

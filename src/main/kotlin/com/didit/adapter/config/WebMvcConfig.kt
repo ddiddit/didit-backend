@@ -1,6 +1,6 @@
 package com.didit.adapter.config
 
-import com.didit.adapter.webapi.resolver.CurrentUserIdResolver
+import com.didit.adapter.webapi.auth.resolver.CurrentUserIdResolver
 import org.springframework.context.annotation.Configuration
 import org.springframework.web.method.support.HandlerMethodArgumentResolver
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer
