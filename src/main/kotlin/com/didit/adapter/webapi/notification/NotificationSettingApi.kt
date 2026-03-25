@@ -40,15 +40,6 @@ class NotificationSettingApi(
     }
 
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PutMapping("/marketing-consent")
-    fun updateMarketingConsent(
-        @RequestHeader("X-User-Id") userId: UUID,
-        @RequestBody request: UpdateConsentRequest,
-    ) {
-        notificationSettingModifier.updateMarketingConsent(userId, request.consent)
-    }
-
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping("/night-push-consent")
     fun updateNightPushConsent(
         @RequestHeader("X-User-Id") userId: UUID,

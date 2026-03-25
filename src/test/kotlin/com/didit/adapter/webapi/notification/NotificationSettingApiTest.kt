@@ -52,7 +52,6 @@ class NotificationSettingApiTest : RestDocsSupport() {
                     responseFields(
                         fieldWithPath("data.enabled").type(JsonFieldType.BOOLEAN).description("회고 작성 알림 ON/OFF"),
                         fieldWithPath("data.reminderTime").type(JsonFieldType.STRING).description("알림 시간"),
-                        fieldWithPath("data.marketingConsent").type(JsonFieldType.BOOLEAN).description("마케팅 수신 동의"),
                         fieldWithPath("data.nightPushConsent").type(JsonFieldType.BOOLEAN).description("야간 푸시 동의"),
                     ),
                 ),
@@ -85,32 +84,6 @@ class NotificationSettingApiTest : RestDocsSupport() {
                     requestFields(
                         fieldWithPath("enabled").type(JsonFieldType.BOOLEAN).description("회고 작성 알림 ON/OFF"),
                         fieldWithPath("reminderTime").type(JsonFieldType.STRING).description("알림 시간"),
-                    ),
-                ),
-            )
-    }
-
-    @Test
-    fun `마케팅 동의 수정`() {
-        val request = UpdateConsentRequest(consent = true)
-
-        mockMvc
-            .perform(
-                put("/api/v1/notification-settings/marketing-consent")
-                    .header("X-User-Id", UUID.randomUUID().toString())
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(request)),
-            ).andExpect(status().isNoContent)
-            .andDo(
-                document(
-                    "notification-setting/marketing-consent",
-                    ApiDocumentUtils.getDocumentRequest(),
-                    ApiDocumentUtils.getDocumentResponse(),
-                    requestHeaders(
-                        headerWithName("X-User-Id").description("사용자 ID"),
-                    ),
-                    requestFields(
-                        fieldWithPath("consent").type(JsonFieldType.BOOLEAN).description("마케팅 수신 동의 여부"),
                     ),
                 ),
             )

@@ -6,7 +6,6 @@ import java.time.LocalTime
 data class NotificationSettingResponse(
     val enabled: Boolean,
     val reminderTime: LocalTime,
-    val marketingConsent: Boolean,
     val nightPushConsent: Boolean,
 ) {
     companion object {
@@ -14,7 +13,6 @@ data class NotificationSettingResponse(
             NotificationSettingResponse(
                 enabled = setting.enabled,
                 reminderTime = setting.reminderTime,
-                marketingConsent = setting.marketingConsent,
                 nightPushConsent = setting.nightPushConsent,
             )
     }

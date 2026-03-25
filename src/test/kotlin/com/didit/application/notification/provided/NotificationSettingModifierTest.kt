@@ -23,15 +23,6 @@ class NotificationSettingModifierTest {
     }
 
     @Test
-    fun `updateMarketingConsent`() {
-        val userId = UUID.randomUUID()
-
-        notificationSettingModifier.updateMarketingConsent(userId, true)
-
-        verify(notificationSettingModifier).updateMarketingConsent(userId, true)
-    }
-
-    @Test
     fun `updateNightPushConsent`() {
         val userId = UUID.randomUUID()
 

@@ -15,8 +15,6 @@ class NotificationSetting(
     @Column(columnDefinition = "BINARY(16)")
     val userId: UUID,
     @Column(nullable = false)
-    var marketingConsent: Boolean = false,
-    @Column(nullable = false)
     var nightPushConsent: Boolean = false,
     @Column(nullable = false)
     var enabled: Boolean = false,
@@ -34,10 +32,6 @@ class NotificationSetting(
 
         this.enabled = enabled
         this.reminderTime = reminderTime
-    }
-
-    fun updateMarketingConsent(consent: Boolean) {
-        this.marketingConsent = consent
     }
 
     fun updateNightPushConsent(consent: Boolean) {

@@ -10,11 +10,6 @@ interface NotificationSettingModifier {
         reminderTime: LocalTime,
     )
 
-    fun updateMarketingConsent(
-        userId: UUID,
-        consent: Boolean,
-    )
-
     fun updateNightPushConsent(
         userId: UUID,
         consent: Boolean,

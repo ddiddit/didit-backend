@@ -14,7 +14,6 @@ class NotificationSettingTest {
 
         assertThat(setting.userId).isEqualTo(userId)
         assertThat(setting.enabled).isFalse()
-        assertThat(setting.marketingConsent).isFalse()
         assertThat(setting.nightPushConsent).isFalse()
         assertThat(setting.reminderTime).isEqualTo(LocalTime.of(20, 0))
     }

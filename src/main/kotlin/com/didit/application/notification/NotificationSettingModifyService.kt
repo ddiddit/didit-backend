@@ -23,16 +23,6 @@ class NotificationSettingModifyService(
     }
 
     @Transactional
-    override fun updateMarketingConsent(
-        userId: UUID,
-        consent: Boolean,
-    ) {
-        val setting = notificationSettingFinder.findByUserId(userId)
-
-        setting.updateMarketingConsent(consent)
-    }
-
-    @Transactional
     override fun updateNightPushConsent(
         userId: UUID,
         consent: Boolean,
