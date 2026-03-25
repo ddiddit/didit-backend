@@ -10,6 +10,11 @@ interface UserRepository : Repository<User, UUID> {
 
     fun existsByNickname(nickname: String): Boolean
 
+    fun existsByNicknameAndIdNot(
+        nickname: String,
+        userId: UUID,
+    ): Boolean
+
     fun findById(id: UUID): User?
 
     fun findByProviderAndProviderId(
