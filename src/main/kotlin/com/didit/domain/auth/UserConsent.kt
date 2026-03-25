@@ -1,6 +1,5 @@
 package com.didit.domain.auth
 
-import com.didit.domain.shared.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
@@ -24,7 +23,7 @@ class UserConsent(
     var marketingAgreedAt: LocalDateTime? = null,
     @Column(name = "marketing_revoked_at")
     var marketingRevokedAt: LocalDateTime? = null,
-) : BaseEntity() {
+) {
     fun updateMarketing(
         agreed: Boolean,
         now: LocalDateTime = LocalDateTime.now(),
