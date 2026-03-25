@@ -70,4 +70,32 @@ class UserRepositoryTest : RepositoryTestSupport() {
 
         assertThat(exists).isFalse()
     }
+
+    @Test
+    fun `existsByNicknameAndIdNot - 다른 유저가 같은 닉네임 사용 중`() {
+        val user = userRepository.save(UserFixture.createOnboarded())
+        val otherUser = userRepository.save(UserFixture.createOnboarded(providerId = "kakao-9999"))
+
+        val exists = userRepository.existsByNicknameAndIdNot(user.nickname!!, otherUser.id)
+
+        assertThat(exists).isTrue()
+    }
+
+    @Test
+    fun `existsByNicknameAndIdNot - 본인 닉네임은 중복 아님`() {
+        val user = userRepository.save(UserFixture.createOnboarded())
+
+        val exists = userRepository.existsByNicknameAndIdNot(user.nickname!!, user.id)
+
+        assertThat(exists).isFalse()
+    }
+
+    @Test
+    fun `existsByNicknameAndIdNot - 닉네임 없음`() {
+        val user = userRepository.save(UserFixture.createOnboarded())
+
+        val exists = userRepository.existsByNicknameAndIdNot("없는닉네임", user.id)
+
+        assertThat(exists).isFalse()
+    }
 }

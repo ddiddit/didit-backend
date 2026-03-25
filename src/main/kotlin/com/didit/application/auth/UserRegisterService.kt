@@ -41,7 +41,7 @@ class UserRegisterService(
         nickname: String,
         job: Job,
     ) {
-        if (userRepository.existsByNickname(nickname)) throw DuplicateNicknameException()
+        if (userRepository.existsByNicknameAndIdNot(nickname, userId)) throw DuplicateNicknameException()
 
         val user = userFinder.findByIdOrThrow(userId)
         user.updateProfile(nickname = nickname, job = job)
