@@ -4,7 +4,6 @@ import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.auth.dto.NicknameCheckResponse
 import com.didit.adapter.webapi.auth.dto.OnboardingRequest
-import com.didit.adapter.webapi.auth.dto.UpdateMarketingConsentRequest
 import com.didit.adapter.webapi.auth.dto.UpdateProfileRequest
 import com.didit.adapter.webapi.auth.dto.UserProfileResponse
 import com.didit.adapter.webapi.response.SuccessResponse
@@ -57,7 +56,6 @@ class UserApi(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<UserProfileResponse> {
         val user = userFinder.findByIdOrThrow(userId)
-
         return SuccessResponse.of(UserProfileResponse.from(user))
     }
 
@@ -72,19 +70,6 @@ class UserApi(
             userId = userId,
             nickname = request.nickname,
             job = request.job,
-        )
-    }
-
-    @RequireAuth
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PatchMapping("/marketing-consent")
-    fun updateMarketingConsent(
-        @CurrentUserId userId: UUID,
-        @RequestBody request: UpdateMarketingConsentRequest,
-    ) {
-        userRegister.updateMarketingConsent(
-            userId = userId,
-            agreed = request.agreed,
         )
     }
 }
