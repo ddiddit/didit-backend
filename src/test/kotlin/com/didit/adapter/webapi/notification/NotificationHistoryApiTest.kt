@@ -15,7 +15,10 @@ import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
+import org.springframework.restdocs.request.RequestDocumentation.pathParameters
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.util.UUID
 
 class NotificationHistoryApiTest : AuthenticatedRestDocsSupport() {
     private val notificationHistoryFinder: NotificationHistoryFinder = mock(NotificationHistoryFinder::class.java)
@@ -58,6 +61,25 @@ class NotificationHistoryApiTest : AuthenticatedRestDocsSupport() {
                     "notification-history/read-all",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
+                ),
+            )
+    }
+
+    @Test
+    fun `알림 개별 읽음 처리`() {
+        val notificationId = UUID.randomUUID()
+
+        mockMvc
+            .perform(put("/api/v1/notification-histories/{notificationId}/read", notificationId))
+            .andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "notification-history/read",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("notificationId").description("알림 ID"),
+                    ),
                 ),
             )
     }
