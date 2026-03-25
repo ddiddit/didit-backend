@@ -33,3 +33,14 @@ include::{snippets}/user/update-profile/request-fields.adoc[]
 === Response
 
 include::{snippets}/user/update-profile/http-response.adoc[]
+
+== 마케팅 정보 수신 동의 수정
+
+=== Request
+
+include::{snippets}/user/marketing-consent/http-request.adoc[]
+include::{snippets}/user/marketing-consent/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/user/marketing-consent/http-response.adoc[]

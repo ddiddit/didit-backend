@@ -4,16 +4,20 @@ import com.didit.domain.notification.NotificationSetting
 import java.time.LocalTime
 
 data class NotificationSettingResponse(
+    val marketingAgreed: Boolean,
+    val nightPushConsent: Boolean,
     val enabled: Boolean,
     val reminderTime: LocalTime,
-    val nightPushConsent: Boolean,
 ) {
     companion object {
-        fun from(setting: NotificationSetting): NotificationSettingResponse =
-            NotificationSettingResponse(
-                enabled = setting.enabled,
-                reminderTime = setting.reminderTime,
-                nightPushConsent = setting.nightPushConsent,
-            )
+        fun of(
+            setting: NotificationSetting,
+            marketingAgreed: Boolean,
+        ) = NotificationSettingResponse(
+            marketingAgreed = marketingAgreed,
+            nightPushConsent = setting.nightPushConsent,
+            enabled = setting.enabled,
+            reminderTime = setting.reminderTime,
+        )
     }
 }

@@ -6,6 +6,7 @@ import com.didit.adapter.webapi.notification.dto.NotificationSettingResponse
 import com.didit.adapter.webapi.notification.dto.UpdateConsentRequest
 import com.didit.adapter.webapi.notification.dto.UpdateNotificationSettingRequest
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.auth.provided.UserFinder
 import com.didit.application.notification.provided.NotificationSettingFinder
 import com.didit.application.notification.provided.NotificationSettingModifier
 import org.springframework.http.HttpStatus
@@ -22,6 +23,7 @@ import java.util.UUID
 class NotificationSettingApi(
     private val notificationSettingFinder: NotificationSettingFinder,
     private val notificationSettingModifier: NotificationSettingModifier,
+    private val userFinder: UserFinder,
 ) {
     @RequireAuth
     @GetMapping
@@ -29,7 +31,13 @@ class NotificationSettingApi(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<NotificationSettingResponse> {
         val setting = notificationSettingFinder.findByUserId(userId)
-        return SuccessResponse.of(NotificationSettingResponse.from(setting))
+        val user = userFinder.findByIdOrThrow(userId)
+        return SuccessResponse.of(
+            NotificationSettingResponse.of(
+                setting = setting,
+                marketingAgreed = user.marketingAgreed,
+            ),
+        )
     }
 
     @RequireAuth

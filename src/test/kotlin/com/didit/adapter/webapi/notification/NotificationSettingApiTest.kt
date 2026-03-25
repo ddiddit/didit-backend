@@ -2,10 +2,13 @@ package com.didit.adapter.webapi.notification
 
 import com.didit.adapter.webapi.notification.dto.UpdateConsentRequest
 import com.didit.adapter.webapi.notification.dto.UpdateNotificationSettingRequest
+import com.didit.application.auth.provided.UserFinder
 import com.didit.application.notification.provided.NotificationSettingFinder
 import com.didit.application.notification.provided.NotificationSettingModifier
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
+import com.didit.domain.auth.Provider
+import com.didit.domain.auth.User
 import com.didit.domain.notification.NotificationSetting
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -24,13 +27,22 @@ import java.time.LocalTime
 class NotificationSettingApiTest : AuthenticatedRestDocsSupport() {
     private val notificationSettingFinder: NotificationSettingFinder = mock(NotificationSettingFinder::class.java)
     private val notificationSettingModifier: NotificationSettingModifier = mock(NotificationSettingModifier::class.java)
+    private val userFinder: UserFinder = mock(UserFinder::class.java)
 
-    override fun initController() = NotificationSettingApi(notificationSettingFinder, notificationSettingModifier)
+    override fun initController() = NotificationSettingApi(notificationSettingFinder, notificationSettingModifier, userFinder)
 
     @Test
     fun `알림 설정 조회`() {
         val setting = NotificationSetting.create(userId)
+        val user =
+            User(
+                id = userId,
+                provider = Provider.KAKAO,
+                providerId = "kakao-provider-id",
+            ).also { it.createConsent(marketingAgreed = false) }
+
         whenever(notificationSettingFinder.findByUserId(userId)).thenReturn(setting)
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
 
         mockMvc
             .perform(get("/api/v1/notification-settings"))
@@ -41,9 +53,10 @@ class NotificationSettingApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     responseFields(
+                        fieldWithPath("data.marketingAgreed").type(JsonFieldType.BOOLEAN).description("마케팅 정보 수신 동의"),
+                        fieldWithPath("data.nightPushConsent").type(JsonFieldType.BOOLEAN).description("야간 푸시 동의"),
                         fieldWithPath("data.enabled").type(JsonFieldType.BOOLEAN).description("회고 작성 알림 ON/OFF"),
                         fieldWithPath("data.reminderTime").type(JsonFieldType.STRING).description("알림 시간"),
-                        fieldWithPath("data.nightPushConsent").type(JsonFieldType.BOOLEAN).description("야간 푸시 동의"),
                     ),
                 ),
             )

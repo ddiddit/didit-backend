@@ -17,4 +17,9 @@ interface UserRegister {
         nickname: String,
         job: Job,
     )
+
+    fun updateMarketingConsent(
+        userId: UUID,
+        agreed: Boolean,
+    )
 }
