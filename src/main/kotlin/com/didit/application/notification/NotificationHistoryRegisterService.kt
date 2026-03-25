@@ -1,5 +1,6 @@
 package com.didit.application.notification
 
+import com.didit.application.notification.exception.NotificationHistoryNotFoundException
 import com.didit.application.notification.provided.NotificationHistoryRegister
 import com.didit.application.notification.required.NotificationHistoryRepository
 import com.didit.domain.notification.NotificationHistory
@@ -11,7 +12,7 @@ import java.util.UUID
 
 @Transactional(readOnly = true)
 @Service
-class NotificationHistoryModifyService(
+class NotificationHistoryRegisterService(
     private val notificationHistoryRepository: NotificationHistoryRepository,
 ) : NotificationHistoryRegister {
     @Transactional
@@ -25,5 +26,16 @@ class NotificationHistoryModifyService(
                 userId = userId,
                 createdAt = LocalDateTime.now().minusDays(30),
             ).forEach { it.read() }
+    }
+
+    @Transactional
+    override fun read(
+        notificationId: UUID,
+        userId: UUID,
+    ) {
+        val notification =
+            notificationHistoryRepository.findByIdAndUserId(notificationId, userId)
+                ?: throw NotificationHistoryNotFoundException(notificationId, userId)
+        notification.read()
     }
 }

@@ -8,4 +8,9 @@ interface NotificationHistoryRegister {
     fun save(request: NotificationHistoryCreateRequest): NotificationHistory
 
     fun readAll(userId: UUID)
+
+    fun read(
+        notificationId: UUID,
+        userId: UUID,
+    )
 }

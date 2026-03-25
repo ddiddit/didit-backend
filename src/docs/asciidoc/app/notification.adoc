@@ -21,6 +21,17 @@ include::{snippets}/notification-history/read-all/http-request.adoc[]
 
 include::{snippets}/notification-history/read-all/http-response.adoc[]
 
+== 알림 개별 읽음 처리
+
+=== Request
+
+include::{snippets}/notification-history/read/http-request.adoc[]
+include::{snippets}/notification-history/read/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/notification-history/read/http-response.adoc[]
+
 == 알림 설정 조회
 
 === Request
