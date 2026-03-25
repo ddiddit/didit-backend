@@ -4,32 +4,15 @@ spring:
       enabled: true
       lifecycle-management: start_only
 
-  datasource:
-    url: jdbc:mysql://127.0.0.1:3309/didit?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
-    username: didit
-    password: didit0304
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
+
     show-sql: true
     open-in-view: false
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.MySQLDialect
 
   flyway:
-    enabled: true
-    baseline-on-migrate: true
-
-clova:
-  studio:
-    base-url: https://clovastudio.stream.ntruss.com
-    api-key: ${CLOVA_API_KEY:test-api-key}
-    request-id: ${CLOVA_REQUEST_ID:didit-retrospect-local}
-    model: HCX-005
+    enabled: false
 
 firebase:
-  enabled: false
+  service-account-path: src/main/resources/firebase/firebase-service-account.json

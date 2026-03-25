@@ -12,18 +12,6 @@ include::{snippets}/notification-history/find-all/request-headers.adoc[]
 include::{snippets}/notification-history/find-all/http-response.adoc[]
 include::{snippets}/notification-history/find-all/response-fields.adoc[]
 
-== 알림 개별 읽음 처리
-
-=== Request
-
-include::{snippets}/notification-history/read/http-request.adoc[]
-include::{snippets}/notification-history/read/request-headers.adoc[]
-include::{snippets}/notification-history/read/path-parameters.adoc[]
-
-=== Response
-
-include::{snippets}/notification-history/read/http-response.adoc[]
-
 == 알림 전체 읽음 처리
 
 === Request

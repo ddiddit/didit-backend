@@ -119,11 +119,6 @@ jobs:
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
             DISCORD_WEBHOOK_URL=${{ secrets.DISCORD_WEBHOOK_URL }}
-            JWT_SECRET=${{secrets.JWT_SECRET}}
-            GOOGLE_CLIENT_ID=${{secrets.GOOGLE_CLIENT_ID}}
-            APPLE_CLIENT_ID=${{secrets.APPLE_CLIENT_ID}}
-            KAKAO_CLIENT_ID=${{secrets.KAKAO_CLIENT_ID}}
-            KAKAO_CLIENT_SECRET=${{secrets.KAKAO_CLIENT_SECRET}}
             ENVEOF
 
             echo "DEPLOYER=${{ github.actor }}" >> deploy/dev/.env

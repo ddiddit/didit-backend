@@ -27,16 +27,6 @@ class NotificationHistoryRegisterTest {
     }
 
     @Test
-    fun `read`() {
-        val id = UUID.randomUUID()
-        val userId = UUID.randomUUID()
-
-        notificationHistoryRegister.read(id, userId)
-
-        verify(notificationHistoryRegister).read(id, userId)
-    }
-
-    @Test
     fun `readAll`() {
         val userId = UUID.randomUUID()
 
