@@ -7,8 +7,6 @@ import com.didit.application.notification.provided.NotificationSettingFinder
 import com.didit.application.notification.provided.NotificationSettingModifier
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
-import com.didit.domain.auth.Provider
-import com.didit.domain.auth.User
 import com.didit.domain.notification.NotificationSetting
 import com.didit.support.UserFixture
 import org.junit.jupiter.api.Test
