@@ -1,5 +1,7 @@
 package com.didit.adapter.webapi.notification
 
+import com.didit.adapter.webapi.auth.annotation.CurrentUserId
+import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.notification.dto.DeviceTokenRequest
 import com.didit.application.notification.provided.DeviceTokenRegister
 import com.didit.domain.notification.DeviceTokenRegisterRequest
@@ -8,7 +10,6 @@ import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -20,10 +21,11 @@ import java.util.UUID
 class DeviceTokenApi(
     private val deviceTokenRegister: DeviceTokenRegister,
 ) {
+    @RequireAuth
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
     fun register(
-        @RequestHeader("X-User-Id") userId: UUID,
+        @CurrentUserId userId: UUID,
         @RequestBody request: DeviceTokenRequest,
     ) {
         deviceTokenRegister.register(
@@ -35,10 +37,11 @@ class DeviceTokenApi(
         )
     }
 
+    @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping
     fun delete(
-        @RequestHeader("X-User-Id") userId: UUID,
+        @CurrentUserId userId: UUID,
         @RequestParam deviceType: DeviceType,
     ) {
         deviceTokenRegister.delete(userId, deviceType)

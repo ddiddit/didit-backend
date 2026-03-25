@@ -5,7 +5,6 @@
 === Request
 
 include::{snippets}/device-token/register/http-request.adoc[]
-include::{snippets}/device-token/register/request-headers.adoc[]
 include::{snippets}/device-token/register/request-fields.adoc[]
 
 === Response
@@ -17,7 +16,6 @@ include::{snippets}/device-token/register/http-response.adoc[]
 === Request
 
 include::{snippets}/device-token/delete/http-request.adoc[]
-include::{snippets}/device-token/delete/request-headers.adoc[]
 include::{snippets}/device-token/delete/query-parameters.adoc[]
 
 === Response

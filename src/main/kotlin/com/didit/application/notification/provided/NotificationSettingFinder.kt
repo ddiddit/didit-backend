@@ -7,5 +7,7 @@ import java.util.UUID
 interface NotificationSettingFinder {
     fun findByUserId(userId: UUID): NotificationSetting
 
+    fun findByUserIdOrNull(userId: UUID): NotificationSetting?
+
     fun findAllByReminderTime(reminderTime: LocalTime): List<NotificationSetting>
 }

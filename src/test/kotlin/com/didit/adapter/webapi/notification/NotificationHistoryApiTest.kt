@@ -3,14 +3,12 @@ package com.didit.adapter.webapi.notification
 import com.didit.application.notification.provided.NotificationHistoryFinder
 import com.didit.application.notification.provided.NotificationHistoryRegister
 import com.didit.docs.ApiDocumentUtils
-import com.didit.docs.RestDocsSupport
+import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.notification.NotificationHistory
 import com.didit.support.NotificationHistoryFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
-import org.springframework.restdocs.headers.HeaderDocumentation.headerWithName
-import org.springframework.restdocs.headers.HeaderDocumentation.requestHeaders
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.put
@@ -18,9 +16,8 @@ import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import java.util.UUID
 
-class NotificationHistoryApiTest : RestDocsSupport() {
+class NotificationHistoryApiTest : AuthenticatedRestDocsSupport() {
     private val notificationHistoryFinder: NotificationHistoryFinder = mock(NotificationHistoryFinder::class.java)
     private val notificationHistoryRegister: NotificationHistoryRegister = mock(NotificationHistoryRegister::class.java)
 
@@ -28,26 +25,17 @@ class NotificationHistoryApiTest : RestDocsSupport() {
 
     @Test
     fun `알림 히스토리 조회`() {
-        val userId = UUID.randomUUID()
-        val histories =
-            listOf(
-                NotificationHistory.create(NotificationHistoryFixture.createRequest(userId)),
-            )
+        val histories = listOf(NotificationHistory.create(NotificationHistoryFixture.createRequest(userId)))
         whenever(notificationHistoryFinder.findAllByUserId(userId)).thenReturn(histories)
 
         mockMvc
-            .perform(
-                get("/api/v1/notification-histories")
-                    .header("X-User-Id", userId.toString()),
-            ).andExpect(status().isOk)
+            .perform(get("/api/v1/notification-histories"))
+            .andExpect(status().isOk)
             .andDo(
                 document(
                     "notification-history/find-all",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
-                    requestHeaders(
-                        headerWithName("X-User-Id").description("사용자 ID"),
-                    ),
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("알림 ID"),
                         fieldWithPath("data[].type").type(JsonFieldType.STRING).description("알림 타입"),
@@ -63,18 +51,13 @@ class NotificationHistoryApiTest : RestDocsSupport() {
     @Test
     fun `알림 전체 읽음 처리`() {
         mockMvc
-            .perform(
-                put("/api/v1/notification-histories/read")
-                    .header("X-User-Id", UUID.randomUUID().toString()),
-            ).andExpect(status().isNoContent)
+            .perform(put("/api/v1/notification-histories/read"))
+            .andExpect(status().isNoContent)
             .andDo(
                 document(
                     "notification-history/read-all",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
-                    requestHeaders(
-                        headerWithName("X-User-Id").description("사용자 ID"),
-                    ),
                 ),
             )
     }

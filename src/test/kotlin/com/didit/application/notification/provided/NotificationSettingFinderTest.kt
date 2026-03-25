@@ -29,6 +29,30 @@ class NotificationSettingFinderTest {
     }
 
     @Test
+    fun `findByUserIdOrNull - 존재하는 경우`() {
+        val userId = UUID.randomUUID()
+        val setting = NotificationSetting.create(userId)
+        whenever(notificationSettingFinder.findByUserIdOrNull(userId)).thenReturn(setting)
+
+        val found = notificationSettingFinder.findByUserIdOrNull(userId)
+
+        verify(notificationSettingFinder).findByUserIdOrNull(userId)
+        assertThat(found).isNotNull
+        assertThat(found!!.userId).isEqualTo(userId)
+    }
+
+    @Test
+    fun `findByUserIdOrNull - 존재하지 않는 경우`() {
+        val userId = UUID.randomUUID()
+        whenever(notificationSettingFinder.findByUserIdOrNull(userId)).thenReturn(null)
+
+        val found = notificationSettingFinder.findByUserIdOrNull(userId)
+
+        verify(notificationSettingFinder).findByUserIdOrNull(userId)
+        assertThat(found).isNull()
+    }
+
+    @Test
     fun `findAllByReminderTime`() {
         val settings =
             listOf(
