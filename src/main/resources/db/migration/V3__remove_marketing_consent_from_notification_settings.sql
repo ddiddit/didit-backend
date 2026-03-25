@@ -1,0 +1,2 @@
+ALTER TABLE notification_settings
+DROP COLUMN marketing_consent;

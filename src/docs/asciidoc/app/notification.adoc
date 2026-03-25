@@ -47,10 +47,6 @@ include::{snippets}/notification-setting/update/request-fields.adoc[]
 
 include::{snippets}/notification-setting/update/http-response.adoc[]
 
-=== Response
-
-include::{snippets}/notification-setting/marketing-consent/http-response.adoc[]
-
 == 야간 푸시 동의 수정
 
 === Request
