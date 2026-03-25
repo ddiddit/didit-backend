@@ -114,7 +114,6 @@ jobs:
             chmod +x deploy/shared/*.sh
 
             cat > deploy/dev/.env << 'ENVEOF'
-            SPRING_PROFILES_ACTIVE=dev
             DB_USER=${{ secrets.DB_USER }}
             DB_PASSWORD=${{ secrets.DB_PASSWORD }}
             DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
