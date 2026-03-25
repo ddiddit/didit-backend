@@ -18,7 +18,7 @@ class UserRepositoryTest : RepositoryTestSupport() {
         val saved = userRepository.save(user)
 
         assertThat(saved.provider).isEqualTo(Provider.KAKAO)
-        assertThat(saved.providerId).isEqualTo("kakao-123")
+        assertThat(saved.providerId).isEqualTo("kakao-0325")
     }
 
     @Test
@@ -42,7 +42,7 @@ class UserRepositoryTest : RepositoryTestSupport() {
     fun `findByProviderAndProviderId`() {
         val user = userRepository.save(UserFixture.create())
 
-        val found = userRepository.findByProviderAndProviderId(Provider.KAKAO, "kakao-123")
+        val found = userRepository.findByProviderAndProviderId(Provider.KAKAO, "kakao-0325")
 
         assertThat(found).isNotNull
         assertThat(found?.id).isEqualTo(user.id)
