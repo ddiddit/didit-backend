@@ -7,9 +7,8 @@ import com.didit.application.notification.provided.NotificationSettingFinder
 import com.didit.application.notification.provided.NotificationSettingModifier
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
-import com.didit.domain.auth.Provider
-import com.didit.domain.auth.User
 import com.didit.domain.notification.NotificationSetting
+import com.didit.support.UserFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
@@ -34,12 +33,7 @@ class NotificationSettingApiTest : AuthenticatedRestDocsSupport() {
     @Test
     fun `알림 설정 조회`() {
         val setting = NotificationSetting.create(userId)
-        val user =
-            User(
-                id = userId,
-                provider = Provider.KAKAO,
-                providerId = "kakao-provider-id",
-            ).also { it.createConsent(marketingAgreed = false) }
+        val user = UserFixture.createOnboardedWithConsent()
 
         whenever(notificationSettingFinder.findByUserId(userId)).thenReturn(setting)
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)

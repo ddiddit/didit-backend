@@ -23,6 +23,17 @@ include::{snippets}/user/onboarding/request-fields.adoc[]
 
 include::{snippets}/user/onboarding/http-response.adoc[]
 
+== 프로필 조회
+
+=== Request
+
+include::{snippets}/user/profile/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/user/profile/http-response.adoc[]
+include::{snippets}/user/profile/response-fields.adoc[]
+
 == 프로필 수정
 
 === Request

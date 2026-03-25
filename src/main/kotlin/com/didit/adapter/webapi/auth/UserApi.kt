@@ -6,6 +6,7 @@ import com.didit.adapter.webapi.auth.dto.NicknameCheckResponse
 import com.didit.adapter.webapi.auth.dto.OnboardingRequest
 import com.didit.adapter.webapi.auth.dto.UpdateMarketingConsentRequest
 import com.didit.adapter.webapi.auth.dto.UpdateProfileRequest
+import com.didit.adapter.webapi.auth.dto.UserProfileResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
@@ -48,6 +49,16 @@ class UserApi(
             marketingAgreed = request.marketingAgreed,
             nightPushAgreed = request.nightPushAgreed,
         )
+    }
+
+    @RequireAuth
+    @GetMapping("/profile")
+    fun getProfile(
+        @CurrentUserId userId: UUID,
+    ): SuccessResponse<UserProfileResponse> {
+        val user = userFinder.findByIdOrThrow(userId)
+
+        return SuccessResponse.of(UserProfileResponse.from(user))
     }
 
     @RequireAuth

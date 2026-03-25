@@ -5,6 +5,7 @@ import com.didit.application.auth.provided.UserRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.auth.Job
+import com.didit.support.UserFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
@@ -77,6 +78,29 @@ class UserApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("job").type(JsonFieldType.STRING).description("직무 (DEVELOPER, PLANNER, DESIGNER)"),
                         fieldWithPath("marketingAgreed").type(JsonFieldType.BOOLEAN).description("마케팅 정보 수신 동의"),
                         fieldWithPath("nightPushAgreed").type(JsonFieldType.BOOLEAN).description("야간 푸시 수신 동의"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `프로필 조회`() {
+        val user = UserFixture.createOnboarded()
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+
+        mockMvc
+            .perform(get("/api/v1/users/profile"))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "user/profile",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data.nickname").type(JsonFieldType.STRING).description("닉네임"),
+                        fieldWithPath("data.job").type(JsonFieldType.STRING).description("직무 (DEVELOPER, PLANNER, DESIGNER)"),
+                        fieldWithPath("data.email").type(JsonFieldType.STRING).description("이메일"),
+                        fieldWithPath("data.provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자 (KAKAO, GOOGLE, APPLE)"),
                     ),
                 ),
             )

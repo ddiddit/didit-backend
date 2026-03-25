@@ -31,6 +31,17 @@ object UserFixture {
     ) = create(provider, providerId, email).apply {
         completeOnboarding(nickname = nickname, job = job)
     }
+
+    fun createOnboardedWithConsent(
+        provider: Provider = Provider.KAKAO,
+        providerId: String = "kakao-0325",
+        email: String? = "test@kakao.com",
+        nickname: String = "디딧유저",
+        job: Job = Job.DEVELOPER,
+        marketingAgreed: Boolean = false,
+    ) = createOnboarded(provider, providerId, email, nickname, job).apply {
+        createConsent(marketingAgreed = marketingAgreed)
+    }
 }
 
 object UserConsentFixture {
