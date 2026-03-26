@@ -19,3 +19,13 @@ firebase:
 
 jwt:
   secret: /jc2w58FPaFaRr9aOAudmWLTlf8rgeD6e5pKU2Hz3Dw=
+
+admin:
+  cors:
+    allowed-origins: http://localhost:5173
+  initial:
+    username: ${ADMIN_INITIAL_USERNAME}
+    password: ${ADMIN_INITIAL_PASSWORD}
+  invite:
+    base-url: http://localhost:5173
+    expiry-hours: 48
