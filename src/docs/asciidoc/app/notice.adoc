@@ -21,5 +21,4 @@ include::{snippets}/notice/detail/path-parameters.adoc[]
 === Response
 
 include::{snippets}/notice/detail/http-response.adoc[]
-include::{snippets}/notice/detail/response-body.adoc[]
 include::{snippets}/notice/detail/response-fields.adoc[]
