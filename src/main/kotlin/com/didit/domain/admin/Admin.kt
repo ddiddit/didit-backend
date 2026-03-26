@@ -25,7 +25,25 @@ class Admin(
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     val position: AdminPosition? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var status: AdminStatus = AdminStatus.PENDING,
 ) : BaseEntity() {
+    val isActive: Boolean get() = status == AdminStatus.ACTIVE
+    val isPending: Boolean get() = status == AdminStatus.PENDING
+
+    fun approve() {
+        check(isPending) { "대기 중인 어드민이 아닙니다." }
+
+        status = AdminStatus.ACTIVE
+    }
+
+    fun reject() {
+        check(isPending) { "대기 중인 어드민이 아닙니다." }
+
+        status = AdminStatus.REJECTED
+    }
+
     companion object {
         fun createSuperAdmin(
             email: String,
@@ -34,6 +52,7 @@ class Admin(
             email = email,
             password = encodedPassword,
             role = AdminRole.SUPER_ADMIN,
+            status = AdminStatus.ACTIVE,
         )
 
         fun register(request: AdminRegisterRequest) =
@@ -42,6 +61,7 @@ class Admin(
                 password = request.encodedPassword,
                 role = AdminRole.ADMIN,
                 position = request.position,
+                status = AdminStatus.PENDING,
             )
     }
 }
