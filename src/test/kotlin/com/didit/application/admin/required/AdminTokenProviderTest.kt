@@ -1,5 +1,6 @@
 package com.didit.application.admin.required
 
+import com.didit.domain.admin.AdminRole
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -16,14 +17,25 @@ class AdminTokenProviderTest {
     lateinit var adminTokenProvider: AdminTokenProvider
 
     @Test
-    fun `generateAccessToken`() {
+    fun `generateAccessToken - ADMIN`() {
         val adminId = UUID.randomUUID()
-        whenever(adminTokenProvider.generateAccessToken(adminId)).thenReturn("access-token")
+        whenever(adminTokenProvider.generateAccessToken(adminId, AdminRole.ADMIN)).thenReturn("access-token")
 
-        val token = adminTokenProvider.generateAccessToken(adminId)
+        val token = adminTokenProvider.generateAccessToken(adminId, AdminRole.ADMIN)
 
-        verify(adminTokenProvider).generateAccessToken(adminId)
+        verify(adminTokenProvider).generateAccessToken(adminId, AdminRole.ADMIN)
         assertThat(token).isEqualTo("access-token")
+    }
+
+    @Test
+    fun `generateAccessToken - SUPER_ADMIN`() {
+        val adminId = UUID.randomUUID()
+        whenever(adminTokenProvider.generateAccessToken(adminId, AdminRole.SUPER_ADMIN)).thenReturn("super-access-token")
+
+        val token = adminTokenProvider.generateAccessToken(adminId, AdminRole.SUPER_ADMIN)
+
+        verify(adminTokenProvider).generateAccessToken(adminId, AdminRole.SUPER_ADMIN)
+        assertThat(token).isEqualTo("super-access-token")
     }
 
     @Test

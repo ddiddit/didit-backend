@@ -1,0 +1,35 @@
+= 인증 API
+
+== 어드민 로그인
+
+=== Request
+
+include::{snippets}/admin/auth/login/http-request.adoc[]
+include::{snippets}/admin/auth/login/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/admin/auth/login/http-response.adoc[]
+include::{snippets}/admin/auth/login/response-fields.adoc[]
+
+== 토큰 재발급
+
+=== Request
+
+include::{snippets}/admin/auth/refresh/http-request.adoc[]
+include::{snippets}/admin/auth/refresh/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/admin/auth/refresh/http-response.adoc[]
+include::{snippets}/admin/auth/refresh/response-fields.adoc[]
+
+== 로그아웃
+
+=== Request
+
+include::{snippets}/admin/auth/logout/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/admin/auth/logout/http-response.adoc[]

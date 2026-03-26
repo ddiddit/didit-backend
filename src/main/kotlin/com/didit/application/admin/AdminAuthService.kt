@@ -43,7 +43,7 @@ class AdminAuthService(
         )
 
         return AdminTokenResponse(
-            accessToken = adminTokenProvider.generateAccessToken(admin.id),
+            accessToken = adminTokenProvider.generateAccessToken(admin.id, admin.role),
             refreshToken = newRefreshToken,
         )
     }
@@ -67,7 +67,7 @@ class AdminAuthService(
         adminRefreshTokenRepository.save(storedToken)
 
         return AdminRefreshResponse(
-            accessToken = adminTokenProvider.generateAccessToken(admin.id),
+            accessToken = adminTokenProvider.generateAccessToken(admin.id, admin.role),
             refreshToken = newRefreshToken,
         )
     }
