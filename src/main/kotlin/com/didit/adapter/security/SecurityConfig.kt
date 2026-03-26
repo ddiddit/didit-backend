@@ -30,6 +30,7 @@ class SecurityConfig(
                         "/docs/**",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
+                        "/api/v1/notification-histories/**",
                         "/api/v1/users/nickname/check",
                     ).permitAll()
                     .anyRequest()
