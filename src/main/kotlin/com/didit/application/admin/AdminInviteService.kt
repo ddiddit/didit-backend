@@ -55,11 +55,6 @@ class AdminInviteService(
             to = email,
             subject = "[didit] 관리자 초대",
             body = buildInviteEmailBody(invite.token),
-            inlineImages =
-                mapOf(
-                    "logo" to ClassPathResource("static/images/logo.png"),
-                    "character" to ClassPathResource("static/images/character.png"),
-                ),
         )
     }
 
