@@ -22,6 +22,6 @@ jwt:
 
 admin:
   cors:
-    allowed-origins: http://localhost:5173
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
   invite:
     base-url: http://localhost:5173

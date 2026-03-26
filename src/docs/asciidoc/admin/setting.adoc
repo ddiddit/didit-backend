@@ -1,0 +1,12 @@
+= 앱 설정 API
+
+== 앱 설정 수정
+
+=== Request
+
+include::{snippets}/app-config/update/http-request.adoc[]
+include::{snippets}/app-config/update/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/app-config/update/http-response.adoc[]

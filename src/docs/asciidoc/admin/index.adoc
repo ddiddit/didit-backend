@@ -11,6 +11,6 @@ endif::[]
 :sectlinks:
 
 include::../shared/overview.adoc[]
-
+include::setting.adoc[]
 include::auth.adoc[]
 include::management.adoc[]

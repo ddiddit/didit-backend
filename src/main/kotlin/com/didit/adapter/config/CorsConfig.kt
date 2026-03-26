@@ -9,7 +9,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 @Configuration
 class CorsConfig(
-    @param:Value("\${cors.allowed-origins}") private val allowedOrigins: String,
+    @param:Value("\${admin.cors.allowed-origins}") private val allowedOrigins: String,
 ) {
     @Bean
     fun corsConfigurationSource(): CorsConfigurationSource {
@@ -21,6 +21,7 @@ class CorsConfig(
 
         val source = UrlBasedCorsConfigurationSource()
         source.registerCorsConfiguration("/api/v1/admin/**", config)
+        source.registerCorsConfiguration("/api/v1/app/**", config)
         return source
     }
 }

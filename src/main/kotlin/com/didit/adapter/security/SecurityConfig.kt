@@ -35,6 +35,7 @@ class SecurityConfig(
                     .requestMatchers(
                         "/actuator/health",
                         "/docs/**",
+                        "/api/v1/app/config",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
                         "/api/v1/notification-histories/**",
