@@ -5,7 +5,7 @@ import org.springframework.data.repository.Repository
 import java.util.UUID
 
 interface AppConfigRepository : Repository<AppConfig, UUID> {
-    fun findFirst(): AppConfig?
+    fun findFirstBy(): AppConfig?
 
     fun save(appConfig: AppConfig): AppConfig
 }

@@ -1,6 +1,5 @@
 package com.didit.domain.app
 
-import com.didit.domain.shared.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.Id
@@ -19,7 +18,7 @@ class AppConfig(
     var maintenanceMessage: String? = null,
     @Column(nullable = false, length = 20)
     var minimumVersion: String = "0.0.0",
-) : BaseEntity() {
+) {
     fun update(request: AppConfigUpdateRequest) {
         maintenanceMode = request.maintenanceMode
         maintenanceMessage = request.maintenanceMessage

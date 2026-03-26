@@ -25,7 +25,7 @@ class AppConfigRepositoryTest : RepositoryTestSupport() {
     fun `findFirst`() {
         appConfigRepository.save(AppConfig())
 
-        val found = appConfigRepository.findFirst()
+        val found = appConfigRepository.findFirstBy()
 
         assertThat(found).isNotNull
         assertThat(found?.maintenanceMode).isFalse()
@@ -33,7 +33,7 @@ class AppConfigRepositoryTest : RepositoryTestSupport() {
 
     @Test
     fun `findFirst - not found`() {
-        val found = appConfigRepository.findFirst()
+        val found = appConfigRepository.findFirstBy()
 
         assertThat(found).isNull()
     }

@@ -12,11 +12,11 @@ import org.springframework.transaction.annotation.Transactional
 class AppConfigService(
     private val appConfigRepository: AppConfigRepository,
 ) : AppConfigManager {
-    override fun getAppConfig(): AppConfig = appConfigRepository.findFirst() ?: AppConfig()
+    override fun getAppConfig(): AppConfig = appConfigRepository.findFirstBy() ?: AppConfig()
 
     @Transactional
     override fun updateAppConfig(request: AppConfigUpdateRequest): AppConfig {
-        val config = appConfigRepository.findFirst() ?: AppConfig()
+        val config = appConfigRepository.findFirstBy() ?: AppConfig()
         config.update(request)
         return appConfigRepository.save(config)
     }
