@@ -6,7 +6,6 @@ import com.didit.adapter.webapi.notification.dto.NotificationHistoryResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.notification.provided.NotificationHistoryFinder
 import com.didit.application.notification.provided.NotificationHistoryRegister
-import com.didit.application.notification.required.EmailSender
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -21,7 +20,6 @@ import java.util.UUID
 class NotificationHistoryApi(
     private val notificationHistoryFinder: NotificationHistoryFinder,
     private val notificationHistoryRegister: NotificationHistoryRegister,
-    private val emailSender: EmailSender,
 ) {
     @RequireAuth
     @GetMapping
