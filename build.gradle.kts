@@ -28,6 +28,7 @@ repositories {
 
 val snippetsDir = file("build/generated-snippets")
 val appDocsOutDir = layout.buildDirectory.dir("docs/app")
+val adminDocsOutDir = layout.buildDirectory.dir("docs/admin")
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -125,10 +126,33 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {
     setOutputDir(appDocsOutDir.get().asFile)
 }
 
+tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorAdmin") {
+    group = "documentation"
+    description = "Generate Admin API docs"
+
+    inputs.dir(snippetsDir)
+    dependsOn(tasks.test)
+    configurations("asciidoctorExt")
+    baseDirFollowsSourceFile()
+
+    attributes(mapOf("snippets" to snippetsDir.absolutePath))
+
+    setSourceDir(file("src/docs/asciidoc/admin"))
+
+    sources {
+        include("index.adoc")
+    }
+
+    setOutputDir(adminDocsOutDir.get().asFile)
+}
+
 tasks.bootJar {
-    dependsOn(tasks.named("asciidoctorApp"))
+    dependsOn(tasks.named("asciidoctorApp"), tasks.named("asciidoctorAdmin"))
 
     from(appDocsOutDir.get().asFile) {
         into("static/docs/app")
+    }
+    from(adminDocsOutDir.get().asFile) {
+        into("static/docs/admin")
     }
 }
