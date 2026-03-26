@@ -19,3 +19,9 @@ firebase:
 
 jwt:
   secret: /jc2w58FPaFaRr9aOAudmWLTlf8rgeD6e5pKU2Hz3Dw=
+
+admin:
+  cors:
+    allowed-origins: http://localhost:5173
+  invite:
+    base-url: http://localhost:5173

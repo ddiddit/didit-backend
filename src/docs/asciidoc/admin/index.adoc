@@ -1,0 +1,16 @@
+ifndef::snippets[]
+:snippets: ../../build/generated-snippets
+endif::[]
+= Didit Admin API Docs
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toc-title: 목차
+:toclevels: 2
+:sectlinks:
+
+include::../shared/overview.adoc[]
+
+include::auth.adoc[]
+include::management.adoc[]

@@ -1,6 +1,6 @@
-package com.didit.adapter.webapi.auth.filter
+package com.didit.adapter.webapi.admin.filter
 
-import com.didit.adapter.security.JwtTokenParser
+import com.didit.adapter.security.AdminJwtTokenParser
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -11,10 +11,10 @@ import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
 @Component
-class JwtAuthenticationFilter(
-    private val jwtTokenParser: JwtTokenParser,
+class AdminJwtAuthenticationFilter(
+    private val adminJwtTokenParser: AdminJwtTokenParser,
 ) : OncePerRequestFilter() {
-    override fun shouldNotFilter(request: HttpServletRequest): Boolean = request.requestURI.startsWith("/api/v1/admin")
+    override fun shouldNotFilter(request: HttpServletRequest): Boolean = !request.requestURI.startsWith("/api/v1/admin")
 
     override fun doFilterInternal(
         request: HttpServletRequest,
@@ -27,16 +27,19 @@ class JwtAuthenticationFilter(
 
     private fun authenticate(request: HttpServletRequest) {
         val token = extractToken(request) ?: return
-        val userId = jwtTokenParser.getUserId(token) ?: return
-        setAuthentication(userId.toString())
+        val (adminId, role) = adminJwtTokenParser.getAdminIdAndRole(token) ?: return
+        setAuthentication(adminId.toString(), role)
     }
 
-    private fun setAuthentication(userId: String) {
+    private fun setAuthentication(
+        adminId: String,
+        role: String,
+    ) {
         SecurityContextHolder.getContext().authentication =
             UsernamePasswordAuthenticationToken(
-                userId,
+                adminId,
                 null,
-                listOf(SimpleGrantedAuthority("ROLE_USER")),
+                listOf(SimpleGrantedAuthority("ROLE_$role")),
             )
     }
 
