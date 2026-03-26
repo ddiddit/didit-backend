@@ -34,6 +34,7 @@ class NoticeApiTest : AuthenticatedRestDocsSupport() {
                     title = "공지사항 제목",
                     content = "공지사항 내용",
                     status = NoticeStatus.PUBLISHED,
+                    adminId = UUID.randomUUID(),
                     sendPush = false,
                     deletedAt = null,
                 ),
@@ -67,6 +68,7 @@ class NoticeApiTest : AuthenticatedRestDocsSupport() {
                 title = "공지사항 제목",
                 content = "공지사항 내용",
                 status = NoticeStatus.PUBLISHED,
+                adminId = UUID.randomUUID(),
                 sendPush = false,
                 deletedAt = null,
             )
