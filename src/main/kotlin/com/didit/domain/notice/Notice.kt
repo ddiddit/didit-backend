@@ -10,22 +10,24 @@ import jakarta.persistence.Table
 import java.time.LocalDateTime
 import java.util.UUID
 
-@Entity
 @Table(name = "notices")
+@Entity
 class Notice(
     @Id
     @Column(columnDefinition = "BINARY(16)")
     val id: UUID,
-    @Column(name = "title", nullable = false, length = 255)
+    @Column(nullable = false, length = 255)
     var title: String,
-    @Column(name = "content", nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, columnDefinition = "TEXT")
     var content: String,
     @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false)
+    @Column(nullable = false)
     var status: NoticeStatus = NoticeStatus.DRAFT,
-    @Column(name = "send_push", nullable = false)
+    @Column(nullable = false, columnDefinition = "BINARY(16)")
+    val adminId: UUID,
+    @Column(nullable = false)
     var sendPush: Boolean = false,
-    @Column(name = "deleted_at")
+    @Column
     var deletedAt: LocalDateTime? = null,
 ) : BaseEntity() {
     fun isPublished(): Boolean = status == NoticeStatus.PUBLISHED && deletedAt == null
