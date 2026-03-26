@@ -1,8 +1,14 @@
 package com.didit.application.admin.exception
 
 import com.didit.application.common.exception.BusinessException
+import java.util.UUID
 
-class AdminNotFoundException : BusinessException(AdminErrorCode.ADMIN_NOT_FOUND)
+class AdminNotFoundException(
+    adminId: UUID? = null,
+) : BusinessException(
+        AdminErrorCode.ADMIN_NOT_FOUND,
+        adminId?.let { "adminId: $it" } ?: AdminErrorCode.ADMIN_NOT_FOUND.detail,
+    )
 
 class AdminNotActiveException : BusinessException(AdminErrorCode.ADMIN_NOT_ACTIVE)
 
