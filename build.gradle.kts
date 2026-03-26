@@ -10,7 +10,7 @@ plugins {
 
 group = "com.didit"
 version = "0.0.1-SNAPSHOT"
-description = "Didit backend service"
+description = "didit backend service"
 
 java {
     toolchain {
