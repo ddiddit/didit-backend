@@ -1,5 +1,6 @@
 package com.didit.application.admin.required
 
+import com.didit.domain.admin.AdminRole
 import com.didit.support.AdminFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -14,6 +15,25 @@ import java.util.UUID
 class AdminRepositoryTest {
     @Mock
     lateinit var adminRepository: AdminRepository
+
+    @Test
+    fun `existsByRole - exists`() {
+        whenever(adminRepository.existsByRole(AdminRole.SUPER_ADMIN)).thenReturn(true)
+
+        val exists = adminRepository.existsByRole(AdminRole.SUPER_ADMIN)
+
+        verify(adminRepository).existsByRole(AdminRole.SUPER_ADMIN)
+        assertThat(exists).isTrue()
+    }
+
+    @Test
+    fun `existsByRole - not exists`() {
+        whenever(adminRepository.existsByRole(AdminRole.SUPER_ADMIN)).thenReturn(false)
+
+        val exists = adminRepository.existsByRole(AdminRole.SUPER_ADMIN)
+
+        assertThat(exists).isFalse()
+    }
 
     @Test
     fun `save`() {
