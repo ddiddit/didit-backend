@@ -119,6 +119,8 @@ jobs:
             DB_ROOT_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}
             DISCORD_WEBHOOK_URL=${{ secrets.DISCORD_WEBHOOK_URL }}
             JWT_SECRET=${{ secrets.DEV_JWT_SECRET }}
+            GMAIL_USERNAME=${{ secrets.GMAIL_USERNAME }}
+            GMAIL_APP_PASSWORD=${{ secrets.GMAIL_APP_PASSWORD }}
             ENVEOF
 
             echo "DEPLOYER=${{ github.actor }}" >> deploy/dev/.env
