@@ -53,7 +53,7 @@ class AdminInviteService(
 
         emailSender.send(
             to = email,
-            subject = "[Didit] 관리자 초대",
+            subject = "[didit] 관리자 초대",
             body = buildInviteEmailBody(invite.token),
         )
     }

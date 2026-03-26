@@ -1,4 +1,4 @@
-= Didit App API Docs
+= didit App API Docs
 :doctype: book
 :icons: font
 :source-highlighter: highlightjs

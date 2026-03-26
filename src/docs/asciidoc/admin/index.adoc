@@ -1,7 +1,7 @@
 ifndef::snippets[]
 :snippets: ../../build/generated-snippets
 endif::[]
-= Didit Admin API Docs
+= didit Admin API Docs
 :doctype: book
 :icons: font
 :source-highlighter: highlightjs
