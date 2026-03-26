@@ -42,3 +42,10 @@ oauth:
 jwt:
   access-token-expiry-ms: 3600000
   refresh-token-expiry-days: 14
+
+admin:
+  initial:
+    username: ${ADMIN_INITIAL_USERNAME}
+    password: ${ADMIN_INITIAL_PASSWORD}
+  invite:
+    expiry-hours: 48

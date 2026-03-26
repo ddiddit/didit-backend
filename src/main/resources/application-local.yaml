@@ -23,9 +23,5 @@ jwt:
 admin:
   cors:
     allowed-origins: http://localhost:5173
-  initial:
-    username: ${ADMIN_INITIAL_USERNAME}
-    password: ${ADMIN_INITIAL_PASSWORD}
   invite:
     base-url: http://localhost:5173
-    expiry-hours: 48
