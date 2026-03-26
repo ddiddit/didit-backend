@@ -1,6 +1,7 @@
 package com.didit.adapter.security
 
 import com.didit.application.admin.required.AdminTokenProvider
+import com.didit.domain.admin.AdminPosition
 import com.didit.domain.admin.AdminRole
 import io.jsonwebtoken.Jwts
 import io.jsonwebtoken.security.Keys
@@ -24,11 +25,13 @@ class AdminJwtTokenProvider(
     override fun generateAccessToken(
         adminId: UUID,
         role: AdminRole,
+        position: AdminPosition?,
     ): String =
         Jwts
             .builder()
             .subject(adminId.toString())
             .claim("role", role.name)
+            .claim("position", position?.name)
             .issuedAt(Date())
             .expiration(Date(System.currentTimeMillis() + accessTokenExpiryMs))
             .signWith(key)
