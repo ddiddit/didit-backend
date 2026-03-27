@@ -31,4 +31,45 @@ class Notice(
     var deletedAt: LocalDateTime? = null,
 ) : BaseEntity() {
     fun isPublished(): Boolean = status == NoticeStatus.PUBLISHED && deletedAt == null
+
+    companion object {
+        fun create(
+            title: String,
+            content: String,
+            status: NoticeStatus,
+            sendPush: Boolean,
+            adminId: UUID,
+        ): Notice {
+            require(title.isNotBlank()) { "제목은 비어 있을 수 없습니다." }
+            require(content.isNotBlank()) { "내용은 비어 있을 수 없습니다." }
+            return Notice(
+                id = UUID.randomUUID(),
+                title = title,
+                content = content,
+                status = status,
+                sendPush = sendPush,
+                adminId = adminId,
+                deletedAt = null,
+            )
+        }
+    }
+
+    fun update(
+        title: String,
+        content: String,
+        status: NoticeStatus,
+        sendPush: Boolean,
+    ) {
+        require(title.isNotBlank()) { "제목은 비어 있을 수 없습니다." }
+        require(content.isNotBlank()) { "내용은 비어 있을 수 없습니다." }
+
+        this.title = title
+        this.content = content
+        this.status = status
+        this.sendPush = sendPush
+    }
+
+    fun delete() {
+        this.deletedAt = LocalDateTime.now()
+    }
 }

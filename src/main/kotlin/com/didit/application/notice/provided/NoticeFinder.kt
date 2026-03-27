@@ -7,4 +7,8 @@ interface NoticeFinder {
     fun findAll(): List<Notice>
 
     fun findById(noticeId: UUID): Notice
+
+    fun findAllForAdmin(): List<Notice>
+
+    fun findByIdForAdmin(noticeId: UUID): Notice
 }

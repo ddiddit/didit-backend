@@ -12,4 +12,10 @@ interface NoticeRepository : Repository<Notice, UUID> {
         noticeId: UUID,
         status: NoticeStatus,
     ): Notice?
+
+    fun save(notice: Notice): Notice
+
+    fun findAllByDeletedAtIsNullOrderByCreatedAtDesc(): List<Notice>
+
+    fun findByIdAndDeletedAtIsNull(noticeId: UUID): Notice?
 }

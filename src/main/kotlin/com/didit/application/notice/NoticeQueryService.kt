@@ -25,4 +25,15 @@ class NoticeQueryService(
 
         return notice
     }
+
+    override fun findAllForAdmin(): List<Notice> {
+        val notices =
+            noticeRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc()
+        return notices
+    }
+
+    override fun findByIdForAdmin(noticeId: UUID): Notice {
+        val notice = noticeRepository.findByIdAndDeletedAtIsNull(noticeId) ?: throw NoticeNotFoundException(noticeId)
+        return notice
+    }
 }
