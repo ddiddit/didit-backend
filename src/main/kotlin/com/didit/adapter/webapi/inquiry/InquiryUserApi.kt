@@ -4,6 +4,7 @@ import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.inquiry.dto.InquiryRequest
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.inquiry.dto.RegisterInquiryCommand
 import com.didit.application.inquiry.provided.InquiryInfoFinder
 import com.didit.application.inquiry.provided.InquiryRegister
 import org.springframework.http.HttpStatus
@@ -34,6 +35,14 @@ class InquiryUserApi(
         @CurrentUserId userId: UUID,
         @RequestBody request: InquiryRequest,
     ) {
-        inquiryRegister.register(userId, request)
+        inquiryRegister.register(
+            RegisterInquiryCommand(
+                userId = userId,
+                type = request.type,
+                typeEtc = request.typeEtc,
+                content = request.content,
+                isAgreed = request.isAgreed,
+            ),
+        )
     }
 }
