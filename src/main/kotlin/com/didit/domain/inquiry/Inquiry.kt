@@ -29,6 +29,9 @@ class Inquiry(
     val content: String,
     @Column(nullable = false)
     val isAgreed: Boolean = false,
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    var status: InquiryStatus = InquiryStatus.PENDING,
     @Column(columnDefinition = "BINARY(16)")
     val adminId: UUID? = null,
     @Column
