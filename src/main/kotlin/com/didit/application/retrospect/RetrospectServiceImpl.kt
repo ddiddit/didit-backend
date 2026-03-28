@@ -35,12 +35,13 @@ class RetrospectServiceImpl(
     @Transactional
     override fun startRetrospective(userId: UUID): StartRetrospectiveResponse {
         val user = userFinder.findByIdOrThrow(userId)
-        
+
         val existingRetrospective = retrospectiveRepository.findByUserId(userId)
         if (existingRetrospective != null && !existingRetrospective.isCompleted) {
-            val currentQuestion = COMMON_QUESTIONS[existingRetrospective.currentQuestionNumber]
-                ?: throw IllegalStateException("잘못된 질문 번호입니다.")
-            
+            val currentQuestion =
+                COMMON_QUESTIONS[existingRetrospective.currentQuestionNumber]
+                    ?: throw IllegalStateException("잘못된 질문 번호입니다.")
+
             return StartRetrospectiveResponse(
                 retrospectiveId = existingRetrospective.id.toString(),
                 questionNumber = existingRetrospective.currentQuestionNumber,
@@ -51,14 +52,15 @@ class RetrospectServiceImpl(
 
         val retrospective = Retrospective.create(userId, user.job ?: Job.DEVELOPER)
         val firstQuestion = COMMON_QUESTIONS[retrospective.currentQuestionNumber]!!
-        
-        val questionMessage = ChatMessage.createQuestion(
-            retrospective = retrospective,
-            questionNumber = retrospective.currentQuestionNumber,
-            content = firstQuestion,
-        )
+
+        val questionMessage =
+            ChatMessage.createQuestion(
+                retrospective = retrospective,
+                questionNumber = retrospective.currentQuestionNumber,
+                content = firstQuestion,
+            )
         retrospective.addChatMessage(questionMessage)
-        
+
         val savedRetrospective = retrospectiveRepository.save(retrospective)
 
         return StartRetrospectiveResponse(
@@ -99,11 +101,12 @@ class RetrospectServiceImpl(
                 retrospective.moveToNextQuestion()
                 val nextQuestion = COMMON_QUESTIONS[retrospective.currentQuestionNumber]!!
 
-                val nextQuestionMessage = ChatMessage.createQuestion(
-                    retrospective = retrospective,
-                    questionNumber = retrospective.currentQuestionNumber,
-                    content = nextQuestion,
-                )
+                val nextQuestionMessage =
+                    ChatMessage.createQuestion(
+                        retrospective = retrospective,
+                        questionNumber = retrospective.currentQuestionNumber,
+                        content = nextQuestion,
+                    )
                 retrospective.addChatMessage(nextQuestionMessage)
                 retrospectiveRepository.save(retrospective)
 
@@ -123,12 +126,13 @@ class RetrospectServiceImpl(
 
                 retrospective.moveToNextQuestion()
 
-                val deepQuestionMessage = ChatMessage.createQuestion(
-                    retrospective = retrospective,
-                    questionNumber = 4,
-                    content = deepQuestion,
-                    isDeepQuestion = true,
-                )
+                val deepQuestionMessage =
+                    ChatMessage.createQuestion(
+                        retrospective = retrospective,
+                        questionNumber = 4,
+                        content = deepQuestion,
+                        isDeepQuestion = true,
+                    )
                 retrospective.addChatMessage(deepQuestionMessage)
                 retrospectiveRepository.save(retrospective)
 
@@ -148,10 +152,11 @@ class RetrospectServiceImpl(
                 val allAnswers = retrospective.getAllAnswers()
                 val summary = aiClient.generateSummary(retrospective.userJob, allAnswers)
 
-                val retrospectiveSummary = RetrospectiveSummary.create(
-                    retrospective = retrospective,
-                    summaryContent = summary,
-                )
+                val retrospectiveSummary =
+                    RetrospectiveSummary.create(
+                        retrospective = retrospective,
+                        summaryContent = summary,
+                    )
                 retrospectiveSummaryRepository.save(retrospectiveSummary)
 
                 SubmitAnswerResponse(

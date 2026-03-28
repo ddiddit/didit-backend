@@ -8,9 +8,10 @@ object ClovaPrompts {
         answers: List<String>,
     ): String {
         val formattedAnswers =
-            answers.mapIndexed { index, answer ->
-                "답변 ${index + 1}: $answer"
-            }.joinToString("\n")
+            answers
+                .mapIndexed { index, answer ->
+                    "답변 ${index + 1}: $answer"
+                }.joinToString("\n")
 
         val jobSpecificContext =
             when (job) {
@@ -74,9 +75,10 @@ object ClovaPrompts {
         allAnswers: List<String>,
     ): String {
         val formattedAnswers =
-            allAnswers.mapIndexed { index, answer ->
-                "답변 ${index + 1}: $answer"
-            }.joinToString("\n")
+            allAnswers
+                .mapIndexed { index, answer ->
+                    "답변 ${index + 1}: $answer"
+                }.joinToString("\n")
 
         val jobSpecificContext =
             when (job) {
