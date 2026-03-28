@@ -29,10 +29,12 @@ class Inquiry(
     val content: String,
     @Column(nullable = false)
     val isAgreed: Boolean = false,
-    @Column
-    val adminAnswer: String? = null,
     @Column(columnDefinition = "BINARY(16)")
     val adminId: UUID? = null,
+    @Column
+    val adminAnswer: String? = null,
+    @Column
+    val answeredAt: LocalDateTime? = null,
     @Column
     val deletedAt: LocalDateTime? = null,
 ) : BaseEntity() {
