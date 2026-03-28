@@ -1,5 +1,6 @@
 package com.didit.application.inquiry.provided
 
+import com.didit.domain.inquiry.Inquiry
 import java.util.UUID
 
 interface InquiryModifier {
@@ -14,8 +15,8 @@ interface InquiryModifier {
         adminId: UUID,
         answer: String,
     ): Inquiry
-  
-  fun delete(
+
+    fun delete(
         inquiryId: UUID,
         userId: UUID,
     )

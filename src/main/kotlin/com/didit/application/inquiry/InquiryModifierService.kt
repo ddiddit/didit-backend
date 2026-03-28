@@ -14,13 +14,6 @@ class InquiryModifierService(
     private val inquiryRepository: InquiryRepository,
 ) : InquiryModifier {
     @Transactional
-    override fun delete(
-        inquiryId: UUID,
-        userId: UUID,
-    ) {
-        val inquiry = inquiryRepository.findById(inquiryId) ?: throw IllegalArgumentException("해당 문의를 찾을 수 없습니다.")
-
-        inquiry.delete(userId)
     override fun answer(
         inquiryId: UUID,
         adminId: UUID,
@@ -42,5 +35,15 @@ class InquiryModifierService(
 
         inquiry.updateAnswer(answer, adminId)
         return inquiryRepository.save(inquiry)
+    }
+
+    @Transactional
+    override fun delete(
+        inquiryId: UUID,
+        userId: UUID,
+    ) {
+        val inquiry = inquiryRepository.findById(inquiryId) ?: throw IllegalArgumentException("해당 문의를 찾을 수 없습니다.")
+
+        inquiry.delete(userId)
     }
 }
