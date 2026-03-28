@@ -11,5 +11,5 @@ interface InquiryRepository : Repository<Inquiry, UUID> {
 
     fun findById(inquiryId: UUID): Inquiry?
 
-    fun fundAllByOrderByCreatedAtDesc(): List<Inquiry>
+    fun findAllByOrderByCreatedAtDesc(): List<Inquiry>
 }

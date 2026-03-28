@@ -20,7 +20,7 @@ class InquiryFinderService(
     }
 
     override fun findAll(): List<Inquiry> {
-        val inquiries = inquiryRepository.fundAllByOrderByCreatedAtDesc()
+        val inquiries = inquiryRepository.findAllByOrderByCreatedAtDesc()
         return inquiries
     }
 
