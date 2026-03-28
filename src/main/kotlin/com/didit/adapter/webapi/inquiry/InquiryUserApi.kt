@@ -4,9 +4,9 @@ import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.inquiry.dto.InquiryRequest
 import com.didit.adapter.webapi.response.SuccessResponse
-import com.didit.application.inquiry.dto.RegisterInquiryCommand
 import com.didit.application.inquiry.provided.InquiryInfoFinder
 import com.didit.application.inquiry.provided.InquiryRegister
+import com.didit.domain.inquiry.InquiryRegisterRequest
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
@@ -36,13 +36,15 @@ class InquiryUserApi(
         @RequestBody request: InquiryRequest,
     ) {
         inquiryRegister.register(
-            RegisterInquiryCommand(
+            InquiryRegisterRequest(
                 userId = userId,
+                email = "",
                 type = request.type,
                 typeEtc = request.typeEtc,
                 content = request.content,
                 isAgreed = request.isAgreed,
             ),
+            userId,
         )
     }
 }

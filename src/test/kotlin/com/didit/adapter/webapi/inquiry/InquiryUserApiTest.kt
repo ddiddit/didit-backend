@@ -65,7 +65,7 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
                 isAgreed = true,
             )
 
-        whenever(inquiryRegister.register(any()))
+        whenever(inquiryRegister.register(any(), any()))
             .thenReturn(mock())
 
         mockMvc

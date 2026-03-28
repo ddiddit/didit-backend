@@ -48,11 +48,15 @@ class Inquiry(
     }
 
     companion object {
-        fun register(request: InquiryRegisterRequest): Inquiry =
+        fun register(
+            request: InquiryRegisterRequest,
+            userId: UUID,
+            email: String?,
+        ): Inquiry =
             Inquiry(
                 id = UUID.randomUUID(),
-                userId = request.userId,
-                email = request.email,
+                userId = userId,
+                email = email!!,
                 type = request.type,
                 typeEtc = request.typeEtc,
                 content = request.content,
