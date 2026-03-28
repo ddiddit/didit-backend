@@ -2,8 +2,10 @@ package com.didit.adapter.webapi.inquiry
 
 import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
+import com.didit.adapter.webapi.inquiry.dto.InquiryListResponse
 import com.didit.adapter.webapi.inquiry.dto.InquiryRequest
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.inquiry.provided.InquiryFinder
 import com.didit.application.inquiry.provided.InquiryInfoFinder
 import com.didit.application.inquiry.provided.InquiryRegister
 import com.didit.domain.inquiry.InquiryRegisterRequest
@@ -21,6 +23,7 @@ import java.util.UUID
 class InquiryUserApi(
     private val inquiryInfoFinder: InquiryInfoFinder,
     private val inquiryRegister: InquiryRegister,
+    private val inquiryFinder: InquiryFinder,
 ) {
     @RequireAuth
     @GetMapping
@@ -46,5 +49,15 @@ class InquiryUserApi(
             ),
             userId,
         )
+    }
+
+    @RequireAuth
+    @GetMapping("/list")
+    fun findAll(
+        @CurrentUserId userId: UUID,
+    ): SuccessResponse<List<InquiryListResponse>> {
+        val inquiries = inquiryFinder.findAll(userId)
+
+        return SuccessResponse.of(inquiries.map { InquiryListResponse.from(it) })
     }
 }

@@ -1,0 +1,20 @@
+package com.didit.application.inquiry
+
+import com.didit.application.inquiry.provided.InquiryFinder
+import com.didit.application.inquiry.required.InquiryRepository
+import com.didit.domain.inquiry.Inquiry
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import java.util.UUID
+
+@Transactional(readOnly = true)
+@Service
+class InquiryFinderService(
+    private val inquiryRepository: InquiryRepository,
+) : InquiryFinder {
+    override fun findAll(userId: UUID): List<Inquiry> {
+        val inquiries = inquiryRepository.findAllByUserId(userId)
+
+        return inquiries
+    }
+}
