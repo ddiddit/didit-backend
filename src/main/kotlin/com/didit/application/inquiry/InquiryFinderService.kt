@@ -1,5 +1,6 @@
 package com.didit.application.inquiry
 
+import com.didit.application.inquiry.exception.InquiryNotFoundException
 import com.didit.application.inquiry.provided.InquiryFinder
 import com.didit.application.inquiry.required.InquiryRepository
 import com.didit.domain.inquiry.Inquiry
@@ -16,5 +17,10 @@ class InquiryFinderService(
         val inquiries = inquiryRepository.findAllByUserId(userId)
 
         return inquiries
+    }
+
+    override fun findById(id: UUID): Inquiry {
+        val inquiry = inquiryRepository.findById(id) ?: throw InquiryNotFoundException()
+        return inquiry
     }
 }
