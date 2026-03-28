@@ -33,13 +33,13 @@ class Inquiry(
     @Enumerated(EnumType.STRING)
     var status: InquiryStatus = InquiryStatus.PENDING,
     @Column(columnDefinition = "BINARY(16)")
-    val adminId: UUID? = null,
+    var adminId: UUID? = null,
     @Column
-    val adminAnswer: String? = null,
+    var adminAnswer: String? = null,
     @Column
-    val answeredAt: LocalDateTime? = null,
+    var answeredAt: LocalDateTime? = null,
     @Column
-    val deletedAt: LocalDateTime? = null,
+    var deletedAt: LocalDateTime? = null,
 ) : BaseEntity() {
     fun isAnswered(): Boolean = adminAnswer != null
 
@@ -65,5 +65,28 @@ class Inquiry(
                 content = request.content,
                 isAgreed = request.isAgreed,
             )
+    }
+
+    fun answer(
+        adminId: UUID,
+        answer: String,
+    ) {
+        require(status != InquiryStatus.ANSWERED) { "이미 답변이 완료된 문의입니다." }
+
+        this.adminId = adminId
+        this.adminAnswer = answer
+        this.status = InquiryStatus.ANSWERED
+        this.answeredAt = LocalDateTime.now()
+    }
+
+    fun updateAnswer(
+        answer: String,
+        adminId: UUID,
+    ) {
+        require(status == InquiryStatus.ANSWERED) { "답변이 미완료된 문의는 답변 수정이 불가능합니다." }
+        require(this.adminId == adminId) { "해당 문의 답변에 권한이 없습니다." }
+
+        this.adminAnswer = answer
+        this.answeredAt = LocalDateTime.now()
     }
 }
