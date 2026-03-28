@@ -1,0 +1,27 @@
+= 관리자 문의 API
+
+== 관리자 문의 답변 등록
+
+=== Request
+
+include::{snippets}/inquiry/admin/answer/http-request.adoc[]
+include::{snippets}/inquiry/admin/answer/path-parameters.adoc[]
+include::{snippets}/inquiry/admin/answer/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/inquiry/admin/answer/http-response.adoc[]
+include::{snippets}/inquiry/admin/answer/response-fields.adoc[]
+
+== 관리자 문의 답변 수정
+
+=== Request
+
+include::{snippets}/inquiry/admin/answer-update/http-request.adoc[]
+include::{snippets}/inquiry/admin/answer-update/path-parameters.adoc[]
+include::{snippets}/inquiry/admin/answer-update/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/inquiry/admin/answer-update/http-response.adoc[]
+include::{snippets}/inquiry/admin/answer-update/response-fields.adoc[]
