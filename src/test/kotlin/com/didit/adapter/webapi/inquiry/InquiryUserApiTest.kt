@@ -5,7 +5,6 @@ import com.didit.application.inquiry.provided.InquiryInfoFinder
 import com.didit.application.inquiry.provided.InquiryRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
-import com.didit.domain.inquiry.Inquiry
 import com.didit.domain.inquiry.InquiryType
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -66,19 +65,8 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
                 isAgreed = true,
             )
 
-        val inquiry =
-            Inquiry(
-                id = UUID.randomUUID(),
-                userId = UUID.randomUUID(),
-                email = "test@email.com",
-                type = InquiryType.USAGE,
-                typeEtc = null,
-                content = "문의 내용입니다.",
-                isAgreed = true,
-            )
-
         whenever(inquiryRegister.register(any(), any()))
-            .thenReturn(inquiry)
+            .thenReturn(mock())
 
         mockMvc
             .perform(
