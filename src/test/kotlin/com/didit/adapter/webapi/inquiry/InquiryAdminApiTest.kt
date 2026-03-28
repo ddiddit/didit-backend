@@ -169,13 +169,13 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data[].email").type(JsonFieldType.STRING).description("문의자 이메일"),
                         fieldWithPath("data[].type")
                             .type(JsonFieldType.STRING)
-                            .description("문의 유형"),
+                            .description("문의 유형(USAGE, BUG, IMPROVEMENT, ETC)"),
                         fieldWithPath("data[].content")
                             .type(JsonFieldType.STRING)
                             .description("문의 내용"),
                         fieldWithPath("data[].status")
                             .type(JsonFieldType.STRING)
-                            .description("문의 상태"),
+                            .description("문의 상태(PENDING, ANSWERED)"),
                         fieldWithPath("data[].createdAt")
                             .type(JsonFieldType.STRING)
                             .description("생성 시간"),
