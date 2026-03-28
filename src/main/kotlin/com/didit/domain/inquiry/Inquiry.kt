@@ -42,8 +42,8 @@ class Inquiry(
 
     init {
         require(isAgreed) { "개인정보 수집 동의는 필수입니다." }
-        if (type == InquiryType.ETC && typeEtc.isNullOrBlank()) {
-            throw IllegalArgumentException("기타 유형은 추가 입력이 필요합니다.")
+        if (type == InquiryType.ETC) {
+            require(!typeEtc.isNullOrBlank()) { "기타 유형은 추가 입력이 필요합니다." }
         }
     }
 
