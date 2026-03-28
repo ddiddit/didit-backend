@@ -2,6 +2,7 @@ package com.didit.adapter.webapi.inquiry
 
 import com.didit.adapter.webapi.admin.annotation.CurrentAdminId
 import com.didit.adapter.webapi.admin.annotation.RequireAdmin
+import com.didit.adapter.webapi.inquiry.dto.InquiryAdminListResponse
 import com.didit.adapter.webapi.inquiry.dto.InquiryAnswerRequest
 import com.didit.adapter.webapi.inquiry.dto.InquiryResponse
 import com.didit.adapter.webapi.response.SuccessResponse
@@ -43,6 +44,16 @@ class InquiryAdminApi(
     ): SuccessResponse<InquiryResponse> {
         val inquiry = inquiryModifier.updateAnswer(inquiryId, adminId, request.answer)
         return SuccessResponse.of(InquiryResponse.of(inquiry))
+    }
+
+    @RequireAdmin
+    @GetMapping
+    fun findAll(
+        @CurrentAdminId adminId: UUID,
+    ): SuccessResponse<List<InquiryAdminListResponse>> {
+        val inquiries = inquiryFinder.findAll()
+
+        return SuccessResponse.of(inquiries.map { InquiryAdminListResponse.from(it) })
     }
 
     @RequireAdmin

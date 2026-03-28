@@ -1,5 +1,17 @@
 = 관리자 문의 API
 
+== 관리자 문의 상세 조회
+
+=== Request
+
+include::{snippets}/inquiry/admin/detail/http-request.adoc[]
+include::{snippets}/inquiry/admin/detail/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/inquiry/admin/detail/http-response.adoc[]
+include::{snippets}/inquiry/admin/detail/response-fields.adoc[]
+
 == 관리자 문의 답변 등록
 
 === Request
@@ -25,15 +37,3 @@ include::{snippets}/inquiry/admin/answer-update/request-fields.adoc[]
 
 include::{snippets}/inquiry/admin/answer-update/http-response.adoc[]
 include::{snippets}/inquiry/admin/answer-update/response-fields.adoc[]
-
-== 관리자 문의 상세 조회
-
-=== Request
-
-include::{snippets}/inquiry/admin/detail/http-request.adoc[]
-include::{snippets}/inquiry/admin/detail/path-parameters.adoc[]
-
-=== Response
-
-include::{snippets}/inquiry/admin/detail/http-response.adoc[]
-include::{snippets}/inquiry/admin/detail/response-fields.adoc[]

@@ -148,6 +148,43 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
     }
 
     @Test
+    fun `관리자 문의 목록 조회`() {
+        val inquiries = listOf(createInquiry(), createInquiry())
+
+        whenever(inquiryFinder.findAll())
+            .thenReturn(inquiries)
+
+        mockMvc
+            .perform(
+                get("/api/v1/admin/inquiries")
+                    .accept(MediaType.APPLICATION_JSON),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "inquiry/admin/list",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("문의 ID"),
+                        fieldWithPath("data[].email").type(JsonFieldType.STRING).description("문의자 이메일"),
+                        fieldWithPath("data[].type")
+                            .type(JsonFieldType.STRING)
+                            .description("문의 유형"),
+                        fieldWithPath("data[].content")
+                            .type(JsonFieldType.STRING)
+                            .description("문의 내용"),
+                        fieldWithPath("data[].status")
+                            .type(JsonFieldType.STRING)
+                            .description("문의 상태"),
+                        fieldWithPath("data[].createdAt")
+                            .type(JsonFieldType.STRING)
+                            .description("생성 시간"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
     fun `관리자 문의 상세 조회`() {
         val inquiryId = UUID.randomUUID()
         val inquiry = createInquiry()
