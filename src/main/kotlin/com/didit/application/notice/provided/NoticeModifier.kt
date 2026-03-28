@@ -1,12 +1,13 @@
 package com.didit.application.notice.provided
 
 import com.didit.domain.notice.Notice
-import com.didit.domain.notice.NoticeModifyRequest
+import com.didit.domain.notice.NoticeRegisterRequest
 import java.util.UUID
 
 interface NoticeModifier {
     fun modify(
-        request: NoticeModifyRequest,
+        request: NoticeRegisterRequest,
+        noticeId: UUID,
         adminId: UUID,
     ): Notice
 

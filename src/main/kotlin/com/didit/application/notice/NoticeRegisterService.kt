@@ -19,11 +19,8 @@ class NoticeRegisterService(
         adminId: UUID,
     ): Notice {
         val notice =
-            Notice.create(
-                title = request.title,
-                content = request.content,
-                status = request.status,
-                sendPush = request.sendPush,
+            Notice.register(
+                request,
                 adminId = adminId,
             )
         return noticeRepository.save(notice)

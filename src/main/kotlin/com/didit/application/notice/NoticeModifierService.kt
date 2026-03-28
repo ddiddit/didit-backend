@@ -5,7 +5,7 @@ import com.didit.application.notice.exception.NoticeNotFoundException
 import com.didit.application.notice.provided.NoticeModifier
 import com.didit.application.notice.required.NoticeRepository
 import com.didit.domain.notice.Notice
-import com.didit.domain.notice.NoticeModifyRequest
+import com.didit.domain.notice.NoticeRegisterRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -17,22 +17,16 @@ class NoticeModifierService(
 ) : NoticeModifier {
     @Transactional
     override fun modify(
-        request: NoticeModifyRequest,
+        request: NoticeRegisterRequest,
+        noticeId: UUID,
         adminId: UUID,
     ): Notice {
         val notice =
-            noticeRepository.findByIdAndDeletedAtIsNull(request.noticeId)
-                ?: throw NoticeNotFoundException(request.noticeId)
+            noticeRepository.findByIdAndDeletedAtIsNull(noticeId)
+                ?: throw NoticeNotFoundException(noticeId)
 
-        if (notice.adminId != adminId) {
-            throw NoticeForbiddenException()
-        }
-        notice.update(
-            title = request.title,
-            content = request.content,
-            status = request.status,
-            sendPush = request.sendPush,
-        )
+        validateAdmin(notice, adminId)
+        notice.update(request)
         return notice
     }
 
@@ -45,9 +39,16 @@ class NoticeModifierService(
             noticeRepository.findByIdAndDeletedAtIsNull(noticeId)
                 ?: throw NoticeNotFoundException(noticeId)
 
+        validateAdmin(notice, adminId)
+        notice.delete()
+    }
+
+    private fun validateAdmin(
+        notice: Notice,
+        adminId: UUID,
+    ) {
         if (notice.adminId != adminId) {
             throw NoticeForbiddenException()
         }
-        notice.delete()
     }
 }

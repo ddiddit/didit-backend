@@ -4,13 +4,10 @@ import com.didit.adapter.webapi.admin.annotation.CurrentAdminId
 import com.didit.adapter.webapi.admin.annotation.RequireAdmin
 import com.didit.adapter.webapi.notice.dto.NoticeAdminDetailResponse
 import com.didit.adapter.webapi.notice.dto.NoticeAdminListResponse
-import com.didit.adapter.webapi.notice.dto.NoticeCreateRequest
-import com.didit.adapter.webapi.notice.dto.NoticeUpdateRequest
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.notice.provided.NoticeFinder
 import com.didit.application.notice.provided.NoticeModifier
 import com.didit.application.notice.provided.NoticeRegister
-import com.didit.domain.notice.NoticeModifyRequest
 import com.didit.domain.notice.NoticeRegisterRequest
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -52,9 +49,9 @@ class NoticeAdminApi(
 
     @RequireAdmin
     @PostMapping
-    fun create(
+    fun register(
         @CurrentAdminId adminId: UUID,
-        @RequestBody request: NoticeCreateRequest,
+        @RequestBody request: NoticeRegisterRequest,
     ): SuccessResponse<NoticeAdminDetailResponse> {
         val notice =
             noticeRegister.register(
@@ -75,17 +72,17 @@ class NoticeAdminApi(
     fun update(
         @CurrentAdminId adminId: UUID,
         @PathVariable noticeId: UUID,
-        @RequestBody request: NoticeUpdateRequest,
+        @RequestBody request: NoticeRegisterRequest,
     ): SuccessResponse<NoticeAdminDetailResponse> {
         val notice =
             noticeModifier.modify(
-                NoticeModifyRequest(
-                    noticeId = noticeId,
+                NoticeRegisterRequest(
                     title = request.title,
                     content = request.content,
                     status = request.status,
                     sendPush = request.sendPush,
                 ),
+                noticeId = noticeId,
                 adminId = adminId,
             )
         return SuccessResponse.of(NoticeAdminDetailResponse.of(notice))

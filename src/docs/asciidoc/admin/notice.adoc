@@ -27,13 +27,13 @@ include::{snippets}/admin-notice/detail/response-fields.adoc[]
 
 === Request
 
-include::{snippets}/admin-notice/create/http-request.adoc[]
-include::{snippets}/admin-notice/create/request-fields.adoc[]
+include::{snippets}/admin-notice/register/http-request.adoc[]
+include::{snippets}/admin-notice/register/request-fields.adoc[]
 
 === Response
 
-include::{snippets}/admin-notice/create/http-response.adoc[]
-include::{snippets}/admin-notice/create/response-fields.adoc[]
+include::{snippets}/admin-notice/register/http-response.adoc[]
+include::{snippets}/admin-notice/register/response-fields.adoc[]
 
 == 공지사항 수정
 

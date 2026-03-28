@@ -155,7 +155,7 @@ class NoticeAdminApiTest : AdminAuthenticatedRestDocsSupport() {
             ).andExpect(status().isOk)
             .andDo(
                 document(
-                    "admin-notice/create",
+                    "admin-notice/register",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
@@ -196,7 +196,7 @@ class NoticeAdminApiTest : AdminAuthenticatedRestDocsSupport() {
                 ReflectionTestUtils.setField(this, "updatedAt", now)
             }
 
-        whenever(noticeModifier.modify(any(), any())).thenReturn(notice)
+        whenever(noticeModifier.modify(any(), any(), any())).thenReturn(notice)
 
         val request =
             mapOf(
