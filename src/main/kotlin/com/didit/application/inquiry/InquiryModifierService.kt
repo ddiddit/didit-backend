@@ -42,7 +42,7 @@ class InquiryModifierService(
         inquiryId: UUID,
         userId: UUID,
     ) {
-        val inquiry = inquiryRepository.findById(inquiryId) ?: throw IllegalArgumentException("해당 문의를 찾을 수 없습니다.")
+        val inquiry = inquiryRepository.findById(inquiryId) ?: throw InquiryNotFoundException()
 
         inquiry.delete(userId)
     }
