@@ -22,3 +22,15 @@ include::{snippets}/inquiry/user/register/request-fields.adoc[]
 === Response
 
 include::{snippets}/inquiry/user/register/http-response.adoc[]
+
+
+== 문의 리스트 조회
+
+=== Request
+
+include::{snippets}/inquiry/user/list/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/inquiry/user/list/http-response.adoc[]
+include::{snippets}/inquiry/user/list/response-fields.adoc[]

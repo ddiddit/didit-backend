@@ -153,13 +153,13 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data[].type")
                             .type(JsonFieldType.STRING)
-                            .description("문의 유형"),
+                            .description("문의 유형(USAGE, BUG, IMPROVEMENT, ETC)"),
                         fieldWithPath("data[].content")
                             .type(JsonFieldType.STRING)
                             .description("문의 내용"),
                         fieldWithPath("data[].status")
                             .type(JsonFieldType.STRING)
-                            .description("답변 상태"),
+                            .description("답변 상태(PENDING, ANSWERED)"),
                         fieldWithPath("data[].adminAnswer")
                             .type(JsonFieldType.STRING)
                             .optional()
