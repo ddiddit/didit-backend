@@ -43,6 +43,12 @@ jwt:
   access-token-expiry-ms: 3600000
   refresh-token-expiry-days: 14
 
+clova:
+  api:
+    api-key: ${CLOVA_API_KEY}
+    api-gw-key: ${CLOVA_API_GW_KEY}
+    request-id: ${CLOVA_REQUEST_ID}
+
 admin:
   initial:
     username: ${ADMIN_INITIAL_USERNAME}
