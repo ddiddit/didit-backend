@@ -1,5 +1,6 @@
 package com.didit.application.inquiry
 
+import com.didit.application.inquiry.exception.InquiryNotFoundException
 import com.didit.application.inquiry.provided.InquiryModifier
 import com.didit.application.inquiry.required.InquiryRepository
 import com.didit.domain.inquiry.Inquiry
@@ -18,7 +19,7 @@ class InquiryModifierService(
         adminId: UUID,
         answer: String,
     ): Inquiry {
-        val inquiry = inquiryRepository.findById(inquiryId) ?: throw IllegalStateException("해당 문의를 찾을 수 없습니다.")
+        val inquiry = inquiryRepository.findById(inquiryId) ?: throw InquiryNotFoundException()
 
         inquiry.answer(adminId, answer)
         return inquiryRepository.save(inquiry)
@@ -30,7 +31,7 @@ class InquiryModifierService(
         adminId: UUID,
         answer: String,
     ): Inquiry {
-        val inquiry = inquiryRepository.findById(inquiryId) ?: throw IllegalStateException("해당 문의를 찾을 수 없습니다.")
+        val inquiry = inquiryRepository.findById(inquiryId) ?: throw InquiryNotFoundException()
 
         inquiry.updateAnswer(answer, adminId)
         return inquiryRepository.save(inquiry)
