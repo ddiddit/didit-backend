@@ -179,7 +179,6 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
     @Test
     @WithMockUser
     fun `문의 삭제`() {
-        val userId = UUID.randomUUID()
         val inquiryId = UUID.randomUUID()
 
         mockMvc
