@@ -102,11 +102,12 @@ jobs:
         uses: appleboy/ssh-action@v0.1.6
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
+          FLYWAY_REPAIR: true
         with:
           host: ${{ secrets.DEV_HOST }}
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
-          envs: COMMIT_MSG
+          envs: COMMIT_MSG, FLYWAY_REPAIR
           script: |
             cd /home/didit-dev/didit
 
