@@ -5,7 +5,6 @@ services:
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      FLYWAY_REPAIR: ${FLYWAY_REPAIR}
     networks:
       - didit-network
     env_file:
