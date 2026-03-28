@@ -8,8 +8,7 @@ import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectService
 import com.didit.application.retrospect.RetrospectQueryService
 import jakarta.validation.Valid
-import org.springframework.security.core.annotation.AuthenticationPrincipal
-import org.springframework.security.core.userdetails.UserDetails
+import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -24,38 +23,35 @@ class RetrospectController(
     private val retrospectQueryService: RetrospectQueryService,
 ) {
     @PostMapping("/start")
-    fun startRetrospective(
-        @AuthenticationPrincipal userDetails: UserDetails,
-    ): SuccessResponse<StartRetrospectiveResponse> {
-        val userId = UUID.fromString(userDetails.username)
+    fun startRetrospective(): SuccessResponse<StartRetrospectiveResponse> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val userId = UUID.fromString(authentication?.name ?: throw IllegalArgumentException("인증된 사용자가 아닙니다."))
         val response = retrospectService.startRetrospective(userId)
         return SuccessResponse.of(response)
     }
 
     @PostMapping("/answer")
     fun submitAnswer(
-        @AuthenticationPrincipal userDetails: UserDetails,
         @Valid @RequestBody request: SubmitAnswerRequest,
     ): SuccessResponse<SubmitAnswerResponse> {
-        val userId = UUID.fromString(userDetails.username)
+        val authentication = SecurityContextHolder.getContext().authentication
+        val userId = UUID.fromString(authentication?.name ?: throw IllegalArgumentException("인증된 사용자가 아닙니다."))
         val response = retrospectService.submitAnswer(userId, request.answer)
         return SuccessResponse.of(response)
     }
 
     @GetMapping
-    fun getRetrospective(
-        @AuthenticationPrincipal userDetails: UserDetails,
-    ): SuccessResponse<GetRetrospectiveResponse> {
-        val userId = UUID.fromString(userDetails.username)
+    fun getRetrospective(): SuccessResponse<GetRetrospectiveResponse> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val userId = UUID.fromString(authentication?.name ?: throw IllegalArgumentException("인증된 사용자가 아닙니다."))
         val response = retrospectQueryService.getRetrospective(userId)
         return SuccessResponse.of(response)
     }
 
     @GetMapping("/complete")
-    fun completeRetrospective(
-        @AuthenticationPrincipal userDetails: UserDetails,
-    ): SuccessResponse<CompleteRetrospectiveResponse> {
-        val userId = UUID.fromString(userDetails.username)
+    fun completeRetrospective(): SuccessResponse<CompleteRetrospectiveResponse> {
+        val authentication = SecurityContextHolder.getContext().authentication
+        val userId = UUID.fromString(authentication?.name ?: throw IllegalArgumentException("인증된 사용자가 아닙니다."))
         val response = retrospectQueryService.completeRetrospective(userId)
         return SuccessResponse.of(response)
     }

@@ -9,21 +9,15 @@ import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.web.reactive.function.client.WebClient
 import org.springframework.web.reactive.function.client.bodyToMono
-import java.time.Instant
-import java.util.Base64
-import javax.crypto.Mac
-import javax.crypto.spec.SecretKeySpec
 
 @Component
 class ClovaClient(
     private val webClient: WebClient,
     @Value("\${clova.api.api-key}") private val apiKey: String,
-    @Value("\${clova.api.api-gw-key}") private val apiGwKey: String,
     @Value("\${clova.api.request-id}") private val requestId: String,
 ) : AIClient {
     companion object {
-        private const val CLOVA_API_URL = "https://clovastudio.apigw.ntruss.com/testapp/v1/completions/LK-D"
-        private const val ALGORITHM = "HmacSHA256"
+        private const val CLOVA_API_URL = "https://clovastudio.stream.ntruss.com/v1/chat-completions/HCX-003"
     }
 
     override fun generateDeepQuestion(
@@ -43,9 +37,6 @@ class ClovaClient(
     }
 
     private fun callClova(prompt: String): String {
-        val timestamp = Instant.now().epochSecond.toString()
-        val signature = generateSignature(timestamp)
-
         val request =
             ClovaRequest(
                 messages =
@@ -57,32 +48,23 @@ class ClovaClient(
                 temperature = 0.7,
                 topP = 0.8,
                 repeatPenalty = 5.0,
+                topK = 0,
+                includeAiFilters = false,
             )
 
         return webClient
             .post()
             .uri(CLOVA_API_URL)
             .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            .header("X-NCP-CLOVASTUDIO-API-KEY", apiKey)
-            .header("X-NCP-APIGW-API-KEY", apiGwKey)
+            .header("Authorization", "Bearer $apiKey")
             .header("X-NCP-CLOVASTUDIO-REQUEST-ID", requestId)
-            .header("X-NCP-CLOVASTUDIO-TIMESTAMP", timestamp)
-            .header("X-NCP-CLOVASTUDIO-SIGNATURE", signature)
+            .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
             .bodyValue(request)
             .retrieve()
             .bodyToMono<ClovaResponse>()
-            .map { it.result.output.text }
+            .map { it.result.message.content }
             .block()
             ?: throw RuntimeException("Clova 응답을 받지 못했습니다.")
-    }
-
-    private fun generateSignature(timestamp: String): String {
-        val secretKey = SecretKeySpec(apiGwKey.toByteArray(), ALGORITHM)
-        val mac = Mac.getInstance(ALGORITHM)
-        mac.init(secretKey)
-
-        val message = "$timestamp.$requestId"
-        return Base64.getEncoder().encodeToString(mac.doFinal(message.toByteArray()))
     }
 }
 
@@ -92,6 +74,8 @@ data class ClovaRequest(
     val temperature: Double,
     val topP: Double,
     val repeatPenalty: Double,
+    val topK: Int = 0,
+    val includeAiFilters: Boolean = false,
 )
 
 data class ClovaMessage(
@@ -104,9 +88,8 @@ data class ClovaResponse(
 )
 
 data class ClovaResult(
-    val output: ClovaOutput,
-)
-
-data class ClovaOutput(
-    val text: String,
+    val message: ClovaMessage,
+    val stopReason: String,
+    val inputLength: Int,
+    val outputLength: Int,
 )
