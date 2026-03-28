@@ -41,7 +41,12 @@ class Inquiry(
     @Column
     var deletedAt: LocalDateTime? = null,
 ) : BaseEntity() {
-    fun isAnswered(): Boolean = adminAnswer != null
+    fun delete(requestUserId: UUID) {
+        require(this.userId == requestUserId) { "삭제 권한이 없습니다." }
+        require(this.deletedAt == null) { "이미 삭제된 문의입니다." }
+
+        this.deletedAt = LocalDateTime.now()
+    }
 
     init {
         require(isAgreed) { "개인정보 수집 동의는 필수입니다." }

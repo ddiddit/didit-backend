@@ -2,13 +2,18 @@ package com.didit.adapter.webapi.inquiry
 
 import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
+import com.didit.adapter.webapi.inquiry.dto.InquiryListResponse
 import com.didit.adapter.webapi.inquiry.dto.InquiryRequest
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.inquiry.provided.InquiryFinder
 import com.didit.application.inquiry.provided.InquiryInfoFinder
+import com.didit.application.inquiry.provided.InquiryModifier
 import com.didit.application.inquiry.provided.InquiryRegister
 import com.didit.domain.inquiry.InquiryRegisterRequest
 import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -21,6 +26,8 @@ import java.util.UUID
 class InquiryUserApi(
     private val inquiryInfoFinder: InquiryInfoFinder,
     private val inquiryRegister: InquiryRegister,
+    private val inquiryFinder: InquiryFinder,
+    private val inquiryModifier: InquiryModifier,
 ) {
     @RequireAuth
     @GetMapping
@@ -46,5 +53,25 @@ class InquiryUserApi(
             ),
             userId,
         )
+    }
+
+    @RequireAuth
+    @GetMapping("/list")
+    fun findAll(
+        @CurrentUserId userId: UUID,
+    ): SuccessResponse<List<InquiryListResponse>> {
+        val inquiries = inquiryFinder.findAll(userId)
+
+        return SuccessResponse.of(inquiries.map { InquiryListResponse.from(it) })
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/{inquiryId}")
+    fun delete(
+        @CurrentUserId userId: UUID,
+        @PathVariable inquiryId: UUID,
+    ) {
+        inquiryModifier.delete(userId, inquiryId)
     }
 }

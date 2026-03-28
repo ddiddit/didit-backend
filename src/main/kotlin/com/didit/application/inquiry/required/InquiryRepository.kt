@@ -7,5 +7,7 @@ import java.util.UUID
 interface InquiryRepository : Repository<Inquiry, UUID> {
     fun save(inquiry: Inquiry): Inquiry
 
-    fun findById(id: UUID): Inquiry?
+    fun findAllByUserId(userId: UUID): List<Inquiry>
+
+    fun findById(inquiryId: UUID): Inquiry?
 }
