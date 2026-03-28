@@ -3,6 +3,7 @@ package com.didit.adapter.webapi.inquiry
 import com.didit.adapter.webapi.inquiry.dto.InquiryRequest
 import com.didit.application.inquiry.provided.InquiryFinder
 import com.didit.application.inquiry.provided.InquiryInfoFinder
+import com.didit.application.inquiry.provided.InquiryModifier
 import com.didit.application.inquiry.provided.InquiryRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
@@ -19,6 +20,8 @@ import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
+import org.springframework.restdocs.request.RequestDocumentation.pathParameters
 import org.springframework.security.test.context.support.WithMockUser
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -30,8 +33,9 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
     private val inquiryInfoFinder: InquiryInfoFinder = mock(InquiryInfoFinder::class.java)
     private val inquiryRegister: InquiryRegister = mock(InquiryRegister::class.java)
     private val inquiryFinder: InquiryFinder = mock(InquiryFinder::class.java)
+    private val inquiryModifier: InquiryModifier = mock(InquiryModifier::class.java)
 
-    override fun initController() = InquiryUserApi(inquiryInfoFinder, inquiryRegister, inquiryFinder)
+    override fun initController() = InquiryUserApi(inquiryInfoFinder, inquiryRegister, inquiryFinder, inquiryModifier)
 
     @Test
     @WithMockUser
@@ -167,6 +171,27 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data[].createdAt")
                             .type(JsonFieldType.STRING)
                             .description("생성일"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    @WithMockUser
+    fun `문의 삭제`() {
+        val userId = UUID.randomUUID()
+        val inquiryId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                delete("/api/v1/inquiry/{inquiryId}", inquiryId),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "inquiry/user/delete",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    pathParameters(
+                        parameterWithName("inquiryId").description("문의 ID"),
                     ),
                 ),
             )

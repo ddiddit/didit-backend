@@ -8,4 +8,6 @@ interface InquiryRepository : Repository<Inquiry, UUID> {
     fun save(inquiry: Inquiry): Inquiry
 
     fun findAllByUserId(userId: UUID): List<Inquiry>
+
+    fun findById(inquiryId: UUID): Inquiry?
 }
