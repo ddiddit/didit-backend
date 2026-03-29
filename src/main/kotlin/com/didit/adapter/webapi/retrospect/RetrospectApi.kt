@@ -8,6 +8,7 @@ import com.didit.adapter.webapi.retrospect.dto.CompleteRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.DailyRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveDetailResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
+import com.didit.adapter.webapi.retrospect.dto.RetrospectiveSearchResponse
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
@@ -198,5 +199,15 @@ class RetrospectApi(
         val retrospectives = retrospectiveFinder.findByUserIdAndDate(userId, date)
 
         return SuccessResponse.of(retrospectives.map { DailyRetrospectiveResponse.from(it) })
+    }
+
+    @RequireAuth
+    @GetMapping("/search")
+    fun search(
+        @CurrentUserId userId: UUID,
+        @RequestParam keyword: String,
+    ): SuccessResponse<List<RetrospectiveSearchResponse>> {
+        val retrospectives = retrospectiveFinder.searchByTitle(userId, keyword)
+        return SuccessResponse.of(retrospectives.map { RetrospectiveSearchResponse.from(it) })
     }
 }

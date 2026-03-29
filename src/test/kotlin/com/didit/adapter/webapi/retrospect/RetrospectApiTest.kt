@@ -465,4 +465,32 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                 ),
             )
     }
+
+    @Test
+    fun `회고 제목 검색`() {
+        val retros = listOf(retrospectiveWithQ1(), retrospectiveWithQ1())
+        whenever(retrospectiveFinder.searchByTitle(userId, "회고")).thenReturn(retros)
+
+        mockMvc
+            .perform(
+                get("/api/v1/retrospectives/search")
+                    .param("keyword", "회고"),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/search",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data[].feedback")
+                            .type(JsonFieldType.STRING)
+                            .description("AI 피드백 한 줄")
+                            .optional(),
+                        fieldWithPath("data[].createdAt").type(JsonFieldType.STRING).description("생성 시간").optional(),
+                    ),
+                ),
+            )
+    }
 }

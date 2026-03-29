@@ -113,4 +113,9 @@ class RetrospectQueryService(
             content = deepQuestion?.content,
         )
     }
+
+    override fun searchByTitle(
+        userId: UUID,
+        keyword: String,
+    ): List<Retrospective> = retrospectiveRepository.searchByUserIdAndTitle(userId, keyword)
 }

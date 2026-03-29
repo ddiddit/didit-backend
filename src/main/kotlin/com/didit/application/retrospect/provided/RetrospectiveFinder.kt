@@ -42,4 +42,9 @@ interface RetrospectiveFinder {
         retrospectiveId: UUID,
         userId: UUID,
     ): DeepQuestionResponse
+
+    fun searchByTitle(
+        userId: UUID,
+        keyword: String,
+    ): List<Retrospective>
 }

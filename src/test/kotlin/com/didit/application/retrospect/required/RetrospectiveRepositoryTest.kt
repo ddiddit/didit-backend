@@ -180,4 +180,33 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         assertThat(found).hasSize(1)
         assertThat(found[0].title).isEqualTo("완료된 회고")
     }
+
+    @Test
+    fun `searchByUserIdAndTitle`() {
+        retrospectiveRepository.save(
+            Retrospective.create(userId).apply {
+                updateTitle("오늘 회고")
+            },
+        )
+
+        retrospectiveRepository.save(
+            Retrospective.create(userId).apply {
+                updateTitle("회고 정리")
+            },
+        )
+        retrospectiveRepository.save(
+            Retrospective.create(UUID.randomUUID()).apply {
+                updateTitle("오늘 회고")
+            },
+        )
+        retrospectiveRepository.save(
+            Retrospective.create(userId).apply {
+                updateTitle("회고 삭제됨")
+                softDelete()
+            },
+        )
+        val result = retrospectiveRepository.searchByUserIdAndTitle(userId, "회고")
+        assertThat(result).hasSize(2)
+        assertThat(result.map { it.title }).containsExactly("회고 정리", "오늘 회고")
+    }
 }
