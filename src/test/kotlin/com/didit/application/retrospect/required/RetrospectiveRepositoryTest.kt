@@ -45,7 +45,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     @Test
     fun `findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc - 삭제된 회고는 제외된다`() {
         val retro1 = retrospectiveRepository.save(Retrospective.create(userId))
-        val retro2 = retrospectiveRepository.save(Retrospective.create(userId).apply { softDelete() })
+        retrospectiveRepository.save(Retrospective.create(userId).apply { softDelete() })
 
         val found = retrospectiveRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
 
@@ -54,12 +54,12 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `countByUserIdAndCreatedAtBetweenAndDeletedAtIsNull - 오늘 생성된 회고 수를 반환한다`() {
+    fun `countByUserIdAndCreatedAtBetween - 삭제된 회고도 카운트에 포함된다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
-        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(Retrospective.create(userId).apply { softDelete() })
 
         val count =
-            retrospectiveRepository.countByUserIdAndCreatedAtBetweenAndDeletedAtIsNull(
+            retrospectiveRepository.countByUserIdAndCreatedAtBetween(
                 userId = userId,
                 from = LocalDateTime.now().toLocalDate().atStartOfDay(),
                 to = LocalDateTime.now().toLocalDate().atTime(23, 59, 59),

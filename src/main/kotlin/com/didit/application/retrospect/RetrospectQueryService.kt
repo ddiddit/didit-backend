@@ -28,7 +28,7 @@ class RetrospectQueryService(
         userId: UUID,
         date: LocalDate,
     ): Int =
-        retrospectiveRepository.countByUserIdAndCreatedAtBetweenAndDeletedAtIsNull(
+        retrospectiveRepository.countByUserIdAndCreatedAtBetween(
             userId = userId,
             from = date.atStartOfDay(),
             to = date.atTime(23, 59, 59),

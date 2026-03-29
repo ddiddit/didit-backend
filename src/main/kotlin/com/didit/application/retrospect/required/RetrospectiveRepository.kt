@@ -15,7 +15,7 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
 
     fun findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId: UUID): List<Retrospective>
 
-    fun countByUserIdAndCreatedAtBetweenAndDeletedAtIsNull(
+    fun countByUserIdAndCreatedAtBetween(
         userId: UUID,
         from: LocalDateTime,
         to: LocalDateTime,

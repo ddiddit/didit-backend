@@ -9,12 +9,14 @@ import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
+import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -132,5 +134,16 @@ class RetrospectApi(
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
 
         return SuccessResponse.of(RetrospectiveDetailResponse.from(retrospective))
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping("/{retrospectiveId}/title")
+    fun updateTitle(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+        @RequestBody request: UpdateTitleRequest,
+    ) {
+        retrospectiveRegister.updateTitle(retrospectiveId, userId, request.title)
     }
 }

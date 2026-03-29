@@ -1,6 +1,6 @@
-// RetrospectiveTest.kt
 package com.didit.domain.retrospect
 
+import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import java.util.UUID
@@ -134,5 +134,22 @@ class RetrospectiveTest {
         retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1))
 
         assertFalse(retro.canAddDeepQuestion())
+    }
+
+    @Test
+    fun `updateTitle - 제목이 정상적으로 변경된다`() {
+        val retro = retrospective()
+
+        retro.updateTitle("새로운 제목")
+        assertThat(retro.title).isEqualTo("새로운 제목")
+    }
+
+    @Test
+    fun `updateTitle - 빈 제목이면 예외가 발생한다`() {
+        val retro = retrospective()
+
+        assertThrows<IllegalArgumentException> {
+            retro.updateTitle("")
+        }
     }
 }

@@ -37,6 +37,12 @@ interface RetrospectiveRegister {
         userId: UUID,
     ): Retrospective
 
+    fun updateTitle(
+        retrospectiveId: UUID,
+        userId: UUID,
+        title: String,
+    )
+
     fun delete(
         retrospectiveId: UUID,
         userId: UUID,

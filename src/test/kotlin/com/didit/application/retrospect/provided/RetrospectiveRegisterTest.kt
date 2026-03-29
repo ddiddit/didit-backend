@@ -123,6 +123,13 @@ class RetrospectiveRegisterTest {
     }
 
     @Test
+    fun `updateTitle - 제목을 수정한다`() {
+        retrospectiveRegister.updateTitle(retrospectiveId, userId, "수정된 제목")
+
+        verify(retrospectiveRegister).updateTitle(retrospectiveId, userId, "수정된 제목")
+    }
+
+    @Test
     fun `delete - 회고를 삭제한다`() {
         retrospectiveRegister.delete(retrospectiveId, userId)
 

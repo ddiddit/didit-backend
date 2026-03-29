@@ -60,6 +60,18 @@ include::{snippets}/retrospect/save/request-fields.adoc[]
 include::{snippets}/retrospect/save/http-response.adoc[]
 include::{snippets}/retrospect/save/response-fields.adoc[]
 
+== 회고 제목 수정
+
+=== Request
+
+include::{snippets}/retrospect/update-title/http-request.adoc[]
+include::{snippets}/retrospect/update-title/path-parameters.adoc[]
+include::{snippets}/retrospect/update-title/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/update-title/http-response.adoc[]
+
 == 회고 다시 시작
 
 === Request

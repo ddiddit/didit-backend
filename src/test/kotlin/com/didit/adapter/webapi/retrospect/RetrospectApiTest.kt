@@ -1,7 +1,9 @@
+// RetrospectApiTest.kt
 package com.didit.adapter.webapi.retrospect
 
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
+import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
@@ -19,6 +21,7 @@ import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.patch
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
@@ -219,6 +222,31 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
                         fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
                         fieldWithPath("data.createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `회고 제목 수정`() {
+        val request = UpdateTitleRequest(title = "수정된 회고 제목")
+
+        mockMvc
+            .perform(
+                patch("/api/v1/retrospectives/{retrospectiveId}/title", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "retrospect/update-title",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    requestFields(
+                        fieldWithPath("title").type(JsonFieldType.STRING).description("수정할 제목"),
                     ),
                 ),
             )
