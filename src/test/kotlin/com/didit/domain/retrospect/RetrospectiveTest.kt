@@ -92,9 +92,9 @@ class RetrospectiveTest {
     @Test
     fun `getAnswersUpToQ3 - Q4_DEEP 답변과 스킵된 답변은 제외된다`() {
         val retro = retrospective()
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1))
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q2 답변", QuestionType.Q2))
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q3 답변", QuestionType.Q3))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1, InputType.TEXT))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q2 답변", QuestionType.Q2, InputType.TEXT))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q3 답변", QuestionType.Q3, InputType.TEXT))
         retro.addMessage(ChatMessage.skippedAnswer(retro, QuestionType.Q4_DEEP))
 
         val answers = retro.getAnswersUpToQ3()
@@ -123,9 +123,9 @@ class RetrospectiveTest {
     @Test
     fun `canAddDeepQuestion - Q1~Q3 답변이 모두 있고 심화 질문이 없으면 true를 반환한다`() {
         val retro = retrospective()
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1))
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q2 답변", QuestionType.Q2))
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q3 답변", QuestionType.Q3))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1, InputType.TEXT))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q2 답변", QuestionType.Q2, InputType.TEXT))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q3 답변", QuestionType.Q3, InputType.TEXT))
 
         assertTrue(retro.canAddDeepQuestion())
     }
@@ -133,9 +133,9 @@ class RetrospectiveTest {
     @Test
     fun `canAddDeepQuestion - Q1~Q3 답변이 있어도 심화 질문이 이미 있으면 false를 반환한다`() {
         val retro = retrospective()
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1))
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q2 답변", QuestionType.Q2))
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q3 답변", QuestionType.Q3))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1, InputType.TEXT))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q2 답변", QuestionType.Q2, InputType.TEXT))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q3 답변", QuestionType.Q3, InputType.TEXT))
         retro.addMessage(ChatMessage.question(retro, "심화 질문", QuestionType.Q4_DEEP))
 
         assertFalse(retro.canAddDeepQuestion())
@@ -144,7 +144,7 @@ class RetrospectiveTest {
     @Test
     fun `canAddDeepQuestion - Q1~Q3 답변이 모두 없으면 false를 반환한다`() {
         val retro = retrospective()
-        retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1, InputType.TEXT))
 
         assertFalse(retro.canAddDeepQuestion())
     }
