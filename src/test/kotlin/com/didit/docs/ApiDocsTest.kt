@@ -1,6 +1,6 @@
 package com.didit.docs
 
-import com.didit.support.TestController
+import com.didit.support.TestApi
 import org.junit.jupiter.api.Test
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
@@ -12,7 +12,7 @@ import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 
 class ApiDocsTest : RestDocsSupport() {
-    override fun initController() = TestController()
+    override fun initController() = TestApi()
 
     @Test
     fun `데이터 성공 응답 문서화`() {

@@ -1,0 +1,12 @@
+= 홈 API
+
+== 홈 조회
+
+=== Request
+
+include::{snippets}/home/get/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/home/get/http-response.adoc[]
+include::{snippets}/home/get/response-fields.adoc[]
