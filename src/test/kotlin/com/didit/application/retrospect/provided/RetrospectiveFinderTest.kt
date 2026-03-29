@@ -61,4 +61,36 @@ class RetrospectiveFinderTest {
         verify(retrospectiveFinder).countByUserIdAndDate(userId, LocalDate.now())
         assertThat(count).isEqualTo(2)
     }
+
+    @Test
+    fun `findRecentByUserId - 최근 회고 목록을 반환한다`() {
+        val retros = listOf(Retrospective.create(userId), Retrospective.create(userId))
+        whenever(retrospectiveFinder.findRecentByUserId(userId, 5)).thenReturn(retros)
+
+        val found = retrospectiveFinder.findRecentByUserId(userId, 5)
+
+        verify(retrospectiveFinder).findRecentByUserId(userId, 5)
+        assertThat(found).hasSize(2)
+    }
+
+    @Test
+    fun `findLatestCompletedByUserId - 가장 최근 완료된 회고를 반환한다`() {
+        val retro = Retrospective.create(userId)
+        whenever(retrospectiveFinder.findLatestCompletedByUserId(userId)).thenReturn(retro)
+
+        val found = retrospectiveFinder.findLatestCompletedByUserId(userId)
+
+        verify(retrospectiveFinder).findLatestCompletedByUserId(userId)
+        assertThat(found).isNotNull
+    }
+
+    @Test
+    fun `findLatestCompletedByUserId - 완료된 회고가 없으면 null을 반환한다`() {
+        whenever(retrospectiveFinder.findLatestCompletedByUserId(userId)).thenReturn(null)
+
+        val found = retrospectiveFinder.findLatestCompletedByUserId(userId)
+
+        verify(retrospectiveFinder).findLatestCompletedByUserId(userId)
+        assertThat(found).isNull()
+    }
 }

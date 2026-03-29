@@ -7,6 +7,7 @@ import com.didit.support.RepositoryTestSupport
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.data.domain.PageRequest
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -88,5 +89,51 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
             )
 
         assertThat(count).isEqualTo(2)
+    }
+
+    @Test
+    fun `findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc - limit만큼만 반환한다`() {
+        repeat(5) { retrospectiveRepository.save(Retrospective.create(userId)) }
+
+        val found =
+            retrospectiveRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+                userId = userId,
+                pageable = PageRequest.of(0, 5),
+            )
+
+        assertThat(found).hasSize(5)
+    }
+
+    @Test
+    fun `findFirstByUserIdAndStatusAndDeletedAtIsNull - 가장 최근 완료된 회고를 반환한다`() {
+        retrospectiveRepository.save(Retrospective.create(userId)) // PENDING
+        retrospectiveRepository.save(
+            Retrospective.create(userId).apply {
+                startProgress()
+                complete(
+                    title = "완료된 회고",
+                    summary =
+                        RetrospectiveSummary(
+                            feedback = "피드백",
+                            insight = "",
+                            doneWork = "",
+                            blockedPoint = "",
+                            solutionProcess = "",
+                            lessonLearned = "",
+                        ),
+                    inputTokens = 0,
+                    outputTokens = 0,
+                )
+            },
+        )
+
+        val found =
+            retrospectiveRepository.findFirstByUserIdAndStatusAndDeletedAtIsNull(
+                userId = userId,
+                status = RetroStatus.COMPLETED,
+            )
+
+        assertThat(found).isNotNull
+        assertThat(found!!.title).isEqualTo("완료된 회고")
     }
 }

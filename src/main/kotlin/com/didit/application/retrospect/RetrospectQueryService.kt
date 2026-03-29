@@ -5,6 +5,7 @@ import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -24,6 +25,21 @@ class RetrospectQueryService(
 
     override fun findAllByUserId(userId: UUID): List<Retrospective> =
         retrospectiveRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
+
+    override fun findRecentByUserId(
+        userId: UUID,
+        limit: Int,
+    ): List<Retrospective> =
+        retrospectiveRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            userId = userId,
+            pageable = PageRequest.of(0, limit),
+        )
+
+    override fun findLatestCompletedByUserId(userId: UUID): Retrospective? =
+        retrospectiveRepository.findFirstByUserIdAndStatusAndDeletedAtIsNull(
+            userId = userId,
+            status = RetroStatus.COMPLETED,
+        )
 
     override fun countByUserIdAndDate(
         userId: UUID,
