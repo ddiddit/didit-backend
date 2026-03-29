@@ -23,6 +23,11 @@ include::{snippets}/response/success-data/response-fields.adoc[]
 
 생성(201) 및 삭제(204) 등 응답 바디가 없는 경우 빈 응답을 반환합니다.
 
+==== 페이지네이션 응답
+
+include::{snippets}/response/success-page/http-response.adoc[]
+include::{snippets}/response/success-page/response-fields.adoc[]
+
 === 에러 응답 구조
 
 모든 에러 응답은 RFC 9457 ProblemDetail 형식을 따릅니다.

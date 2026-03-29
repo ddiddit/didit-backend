@@ -1,5 +1,6 @@
 package com.didit.support
 
+import com.didit.adapter.webapi.response.PageResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.common.exception.BusinessException
 import com.didit.application.common.exception.ErrorCode
@@ -13,9 +14,18 @@ import org.springframework.web.bind.annotation.RestController
 
 @RequestMapping("/test")
 @RestController
-class TestController {
+class TestApi {
     @GetMapping("/success-data")
     fun successData(): SuccessResponse<Map<String, String>> = SuccessResponse.of(mapOf("id" to "1", "name" to "테스트"))
+
+    @GetMapping("/success-page")
+    fun successPage(): PageResponse<Map<String, String>> =
+        PageResponse.of(
+            data = listOf(mapOf("id" to "1", "name" to "테스트")),
+            page = 0,
+            size = 10,
+            totalElements = 1,
+        )
 
     @GetMapping("/business-error")
     fun businessError(): String = throw BusinessException(ErrorCode.INVALID_REQUEST)
