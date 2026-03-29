@@ -58,7 +58,13 @@ class RetrospectApi(
         @PathVariable retrospectiveId: UUID,
         @RequestBody request: SubmitAnswerRequest,
     ): SuccessResponse<SubmitAnswerResponse> {
-        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, request.content)
+        val result =
+            retrospectiveRegister.submitAnswer(
+                retrospectiveId = retrospectiveId,
+                userId = userId,
+                content = request.content,
+                inputType = request.inputType,
+            )
 
         return SuccessResponse.of(result)
     }
