@@ -39,7 +39,8 @@ CREATE TABLE retrospective_summaries (
     summary_content TEXT NOT NULL,
     generated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
     FOREIGN KEY (retrospective_id) REFERENCES retrospectives(id) ON DELETE CASCADE,
     INDEX idx_retrospective_id (retrospective_id)
 );
