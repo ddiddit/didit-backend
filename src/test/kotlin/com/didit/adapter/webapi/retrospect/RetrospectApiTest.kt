@@ -231,7 +231,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
                         fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
                         fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
-                        fieldWithPath("data.createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                        fieldWithPath("data.completedAt").type(JsonFieldType.NULL).description("완료 시간"),
                     ),
                 ),
             )
@@ -322,7 +322,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data[].projectId").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
                         fieldWithPath("data[].feedback").type(JsonFieldType.STRING).description("AI 피드백 한 줄").optional(),
-                        fieldWithPath("data[].createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                        fieldWithPath("data[].completedAt").type(JsonFieldType.NULL).description("완료 시간"),
                     ),
                 ),
             )
@@ -356,7 +356,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
                         fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
                         fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
-                        fieldWithPath("data.createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                        fieldWithPath("data.completedAt").type(JsonFieldType.NULL).description("완료 시간"),
                     ),
                 ),
             )
@@ -435,7 +435,8 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data[].createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                        fieldWithPath("data[].feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
+                        fieldWithPath("data[].completedAt").type(JsonFieldType.NULL).description("완료 시간"),
                     ),
                 ),
             )

@@ -9,7 +9,7 @@ data class RetrospectiveListItemResponse(
     val title: String?,
     val projectId: UUID?,
     val feedback: String?,
-    val createdAt: LocalDateTime?,
+    val completedAt: LocalDateTime?,
 ) {
     companion object {
         fun from(retrospective: Retrospective): RetrospectiveListItemResponse =
@@ -18,7 +18,7 @@ data class RetrospectiveListItemResponse(
                 title = retrospective.title,
                 projectId = retrospective.projectId,
                 feedback = retrospective.summary?.feedback,
-                createdAt = retrospective.createdAt,
+                completedAt = retrospective.updatedAt,
             )
     }
 }

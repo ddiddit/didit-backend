@@ -1,4 +1,3 @@
-// dto/RetrospectiveDetailResponse.kt
 package com.didit.adapter.webapi.retrospect.dto
 
 import com.didit.domain.retrospect.RetroStatus
@@ -12,7 +11,7 @@ data class RetrospectiveDetailResponse(
     val projectId: UUID?,
     val status: RetroStatus,
     val summary: SummaryResponse?,
-    val createdAt: LocalDateTime?,
+    val completedAt: LocalDateTime?,
 ) {
     data class SummaryResponse(
         val feedback: String,
@@ -41,7 +40,7 @@ data class RetrospectiveDetailResponse(
                             lessonLearned = it.lessonLearned,
                         )
                     },
-                createdAt = retrospective.createdAt,
+                completedAt = retrospective.updatedAt,
             )
     }
 }
