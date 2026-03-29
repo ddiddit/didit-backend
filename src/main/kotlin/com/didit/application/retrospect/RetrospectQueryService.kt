@@ -51,4 +51,31 @@ class RetrospectQueryService(
             from = date.atStartOfDay(),
             to = date.atTime(23, 59, 59),
         )
+
+    override fun findByUserIdAndYearMonth(
+        userId: UUID,
+        year: Int,
+        month: Int,
+    ): List<Retrospective> {
+        val from = LocalDate.of(year, month, 1).atStartOfDay()
+        val to = LocalDate.of(year, month, 1).plusMonths(1).atStartOfDay()
+
+        return retrospectiveRepository
+            .findByUserIdAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+                userId = userId,
+                from = from,
+                to = to,
+            )
+    }
+
+    override fun findByUserIdAndDate(
+        userId: UUID,
+        date: LocalDate,
+    ): List<Retrospective> =
+        retrospectiveRepository
+            .findByUserIdAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+                userId = userId,
+                from = date.atStartOfDay(),
+                to = date.atTime(23, 59, 59),
+            )
 }

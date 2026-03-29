@@ -35,6 +35,30 @@ class ApiDocsTest : RestDocsSupport() {
     }
 
     @Test
+    fun `페이지네이션 성공 응답 문서화`() {
+        mockMvc
+            .perform(get("/test/success-page"))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "response/success-page",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data").type(JsonFieldType.ARRAY).description("응답 데이터"),
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("ID"),
+                        fieldWithPath("data[].name").type(JsonFieldType.STRING).description("이름"),
+                        fieldWithPath("page").type(JsonFieldType.NUMBER).description("현재 페이지 (0부터 시작)"),
+                        fieldWithPath("size").type(JsonFieldType.NUMBER).description("페이지 크기"),
+                        fieldWithPath("totalElements").type(JsonFieldType.NUMBER).description("전체 데이터 수"),
+                        fieldWithPath("totalPages").type(JsonFieldType.NUMBER).description("전체 페이지 수"),
+                        fieldWithPath("hasNext").type(JsonFieldType.BOOLEAN).description("다음 페이지 존재 여부"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
     fun `비즈니스 예외 응답 문서화`() {
         mockMvc
             .perform(get("/test/business-error"))

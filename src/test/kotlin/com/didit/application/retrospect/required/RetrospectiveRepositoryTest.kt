@@ -136,4 +136,28 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         assertThat(found).isNotNull
         assertThat(found!!.title).isEqualTo("완료된 회고")
     }
+
+    @Test
+    fun `findByUserIdAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc - 월별 회고를 반환한다`() {
+        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(Retrospective.create(userId).apply { softDelete() })
+
+        val from =
+            LocalDateTime
+                .now()
+                .toLocalDate()
+                .withDayOfMonth(1)
+                .atStartOfDay()
+        val to = from.plusMonths(1)
+
+        val found =
+            retrospectiveRepository
+                .findByUserIdAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+                    userId = userId,
+                    from = from,
+                    to = to,
+                )
+
+        assertThat(found).hasSize(1)
+    }
 }

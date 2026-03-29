@@ -3,7 +3,9 @@ package com.didit.adapter.webapi.retrospect
 import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.adapter.webapi.retrospect.dto.CalendarResponse
 import com.didit.adapter.webapi.retrospect.dto.CompleteRetrospectiveResponse
+import com.didit.adapter.webapi.retrospect.dto.DailyRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveDetailResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
@@ -21,8 +23,10 @@ import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDate
 import java.util.UUID
 
 @RequestMapping("/api/v1/retrospectives")
@@ -155,5 +159,28 @@ class RetrospectApi(
         @PathVariable retrospectiveId: UUID,
     ) {
         retrospectiveRegister.exit(retrospectiveId, userId)
+    }
+
+    @RequireAuth
+    @GetMapping("/calendar")
+    fun getCalendar(
+        @CurrentUserId userId: UUID,
+        @RequestParam year: Int,
+        @RequestParam month: Int,
+    ): SuccessResponse<CalendarResponse> {
+        val retrospectives = retrospectiveFinder.findByUserIdAndYearMonth(userId, year, month)
+
+        return SuccessResponse.of(CalendarResponse.of(year, month, retrospectives))
+    }
+
+    @RequireAuth
+    @GetMapping("/calendar/daily")
+    fun getDailyRetrospectives(
+        @CurrentUserId userId: UUID,
+        @RequestParam date: LocalDate,
+    ): SuccessResponse<List<DailyRetrospectiveResponse>> {
+        val retrospectives = retrospectiveFinder.findByUserIdAndDate(userId, date)
+
+        return SuccessResponse.of(retrospectives.map { DailyRetrospectiveResponse.from(it) })
     }
 }

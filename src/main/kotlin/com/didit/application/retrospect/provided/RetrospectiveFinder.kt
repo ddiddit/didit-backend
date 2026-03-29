@@ -23,4 +23,15 @@ interface RetrospectiveFinder {
         userId: UUID,
         date: LocalDate,
     ): Int
+
+    fun findByUserIdAndYearMonth(
+        userId: UUID,
+        year: Int,
+        month: Int,
+    ): List<Retrospective>
+
+    fun findByUserIdAndDate(
+        userId: UUID,
+        date: LocalDate,
+    ): List<Retrospective>
 }

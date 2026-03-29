@@ -93,4 +93,27 @@ class RetrospectiveFinderTest {
         verify(retrospectiveFinder).findLatestCompletedByUserId(userId)
         assertThat(found).isNull()
     }
+
+    @Test
+    fun `findByUserIdAndYearMonth - 월별 회고 목록을 반환한다`() {
+        val retros = listOf(Retrospective.create(userId), Retrospective.create(userId))
+        whenever(retrospectiveFinder.findByUserIdAndYearMonth(userId, 2026, 3)).thenReturn(retros)
+
+        val found = retrospectiveFinder.findByUserIdAndYearMonth(userId, 2026, 3)
+
+        verify(retrospectiveFinder).findByUserIdAndYearMonth(userId, 2026, 3)
+        assertThat(found).hasSize(2)
+    }
+
+    @Test
+    fun `findByUserIdAndDate - 날짜별 회고 목록을 반환한다`() {
+        val retros = listOf(Retrospective.create(userId))
+        val date = LocalDate.of(2026, 3, 10)
+        whenever(retrospectiveFinder.findByUserIdAndDate(userId, date)).thenReturn(retros)
+
+        val found = retrospectiveFinder.findByUserIdAndDate(userId, date)
+
+        verify(retrospectiveFinder).findByUserIdAndDate(userId, date)
+        assertThat(found).hasSize(1)
+    }
 }

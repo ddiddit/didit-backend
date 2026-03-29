@@ -29,7 +29,9 @@ import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.pathParameters
+import org.springframework.restdocs.request.RequestDocumentation.queryParameters
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.LocalDate
 import java.util.UUID
 
 class RetrospectApiTest : AuthenticatedRestDocsSupport() {
@@ -372,6 +374,68 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentResponse(),
                     pathParameters(
                         parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `월별 캘린더 조회`() {
+        val retro = retrospectiveWithQ1()
+        whenever(retrospectiveFinder.findByUserIdAndYearMonth(userId, 2026, 3))
+            .thenReturn(listOf(retro))
+
+        mockMvc
+            .perform(
+                get("/api/v1/retrospectives/calendar")
+                    .param("year", "2026")
+                    .param("month", "3"),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/calendar",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    queryParameters(
+                        parameterWithName("year").description("년도"),
+                        parameterWithName("month").description("월"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.year").type(JsonFieldType.NUMBER).description("년도"),
+                        fieldWithPath("data.month").type(JsonFieldType.NUMBER).description("월"),
+                        fieldWithPath("data.days").type(JsonFieldType.ARRAY).description("회고 작성 날짜 목록"),
+                        fieldWithPath("data.days[].date").type(JsonFieldType.STRING).description("날짜"),
+                        fieldWithPath("data.days[].count").type(JsonFieldType.NUMBER).description("회고 횟수"),
+                        fieldWithPath("data.weeklyCount").type(JsonFieldType.NUMBER).description("이번 주 회고 횟수"),
+                        fieldWithPath("data.isWeeklyGoalAchieved").type(JsonFieldType.BOOLEAN).description("주간 목표 달성 여부 (3회 이상)"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `날짜별 회고 목록 조회`() {
+        val retro = retrospectiveWithQ1()
+        whenever(retrospectiveFinder.findByUserIdAndDate(userId, LocalDate.of(2026, 3, 10)))
+            .thenReturn(listOf(retro))
+
+        mockMvc
+            .perform(
+                get("/api/v1/retrospectives/calendar/daily")
+                    .param("date", "2026-03-10"),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/calendar-daily",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    queryParameters(
+                        parameterWithName("date").description("날짜 (yyyy-MM-dd)"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data[].createdAt").type(JsonFieldType.NULL).description("생성 시간"),
                     ),
                 ),
             )
