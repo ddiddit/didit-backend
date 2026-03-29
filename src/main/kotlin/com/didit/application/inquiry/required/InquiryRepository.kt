@@ -10,4 +10,6 @@ interface InquiryRepository : Repository<Inquiry, UUID> {
     fun findAllByUserId(userId: UUID): List<Inquiry>
 
     fun findById(inquiryId: UUID): Inquiry?
+
+    fun findAllByOrderByCreatedAtDesc(): List<Inquiry>
 }
