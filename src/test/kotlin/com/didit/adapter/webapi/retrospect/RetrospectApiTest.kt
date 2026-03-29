@@ -1,4 +1,3 @@
-// RetrospectApiTest.kt
 package com.didit.adapter.webapi.retrospect
 
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
@@ -16,6 +15,7 @@ import com.didit.domain.retrospect.Retrospective
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
@@ -183,7 +183,15 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
             )
         val retro = retrospectiveWithQ1()
-        whenever(retrospectiveRegister.save(any(), any(), any(), any(), any())).thenReturn(retro)
+        whenever(
+            retrospectiveRegister.save(
+                retrospectiveId = any(),
+                userId = any(),
+                title = any(),
+                projectId = anyOrNull(),
+                summary = any(),
+            ),
+        ).thenReturn(retro)
 
         mockMvc
             .perform(
