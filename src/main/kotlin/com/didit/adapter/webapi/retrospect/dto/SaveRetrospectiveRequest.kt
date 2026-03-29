@@ -1,11 +1,9 @@
 package com.didit.adapter.webapi.retrospect.dto
 
 import com.didit.application.retrospect.dto.AISummaryResponse
-import java.util.UUID
 
 data class SaveRetrospectiveRequest(
     val title: String,
-    val projectId: UUID? = null,
     val summary: SummaryRequest,
 ) {
     data class SummaryRequest(

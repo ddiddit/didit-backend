@@ -7,7 +7,6 @@ import java.util.UUID
 data class RetrospectiveListItemResponse(
     val id: UUID,
     val title: String?,
-    val projectId: UUID?,
     val feedback: String?,
     val completedAt: LocalDateTime?,
 ) {
@@ -16,7 +15,6 @@ data class RetrospectiveListItemResponse(
             RetrospectiveListItemResponse(
                 id = retrospective.id,
                 title = retrospective.title,
-                projectId = retrospective.projectId,
                 feedback = retrospective.summary?.feedback,
                 completedAt = retrospective.updatedAt,
             )

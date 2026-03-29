@@ -22,8 +22,6 @@ class Retrospective(
     val id: UUID = UUID.randomUUID(),
     @Column(nullable = false, columnDefinition = "BINARY(16)")
     val userId: UUID,
-    @Column(columnDefinition = "BINARY(16)")
-    val projectId: UUID? = null,
     @Column(nullable = true, length = 255)
     var title: String? = null,
     @Enumerated(EnumType.STRING)

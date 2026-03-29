@@ -8,7 +8,6 @@ import java.util.UUID
 data class RetrospectiveDetailResponse(
     val id: UUID,
     val title: String?,
-    val projectId: UUID?,
     val status: RetroStatus,
     val summary: SummaryResponse?,
     val completedAt: LocalDateTime?,
@@ -27,7 +26,6 @@ data class RetrospectiveDetailResponse(
             RetrospectiveDetailResponse(
                 id = retrospective.id,
                 title = retrospective.title,
-                projectId = retrospective.projectId,
                 status = retrospective.status,
                 summary =
                     retrospective.summary?.let {
