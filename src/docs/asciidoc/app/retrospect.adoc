@@ -164,3 +164,14 @@ include::{snippets}/retrospect/find-by-id/path-parameters.adoc[]
 
 include::{snippets}/retrospect/find-by-id/http-response.adoc[]
 include::{snippets}/retrospect/find-by-id/response-fields.adoc[]
+
+== 회고 검색
+
+=== Request
+
+include::{snippets}/retrospect/search/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/search/http-response.adoc[]
+include::{snippets}/retrospect/search/response-fields.adoc[]
