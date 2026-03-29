@@ -8,11 +8,13 @@ import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
+import com.didit.application.retrospect.provided.SearchHistoryFinder
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.SearchHistory
 import com.didit.support.RetrospectiveFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -31,6 +33,7 @@ import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.pathParameters
 import org.springframework.restdocs.request.RequestDocumentation.queryParameters
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDate
 import java.util.UUID
@@ -38,8 +41,9 @@ import java.util.UUID
 class RetrospectApiTest : AuthenticatedRestDocsSupport() {
     private val retrospectiveRegister: RetrospectiveRegister = mock(RetrospectiveRegister::class.java)
     private val retrospectiveFinder: RetrospectiveFinder = mock(RetrospectiveFinder::class.java)
+    private val searchHistoryFinder: SearchHistoryFinder = mock(SearchHistoryFinder::class.java)
 
-    override fun initController() = RetrospectApi(retrospectiveRegister, retrospectiveFinder)
+    override fun initController() = RetrospectApi(retrospectiveRegister, retrospectiveFinder, searchHistoryFinder)
 
     private val retrospectiveId = UUID.randomUUID()
 
@@ -114,8 +118,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("content").type(JsonFieldType.STRING).description("답변 내용"),
                     ),
                     responseFields(
-                        fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
-                        fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
+                        fieldWithPath("data.nextQuestionType")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 타입")
+                            .optional(),
+                        fieldWithPath("data.nextQuestionContent")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 내용")
+                            .optional(),
                         fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
                     ),
                 ),
@@ -251,12 +261,24 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
                         fieldWithPath("data.summary").type(JsonFieldType.OBJECT).description("회고 요약").optional(),
-                        fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
+                        fieldWithPath("data.summary.feedback")
+                            .type(JsonFieldType.STRING)
+                            .description("AI 피드백")
+                            .optional(),
                         fieldWithPath("data.summary.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
                         fieldWithPath("data.summary.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
-                        fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
-                        fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
-                        fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
+                        fieldWithPath("data.summary.blockedPoint")
+                            .type(JsonFieldType.STRING)
+                            .description("막힌 지점")
+                            .optional(),
+                        fieldWithPath("data.summary.solutionProcess")
+                            .type(JsonFieldType.STRING)
+                            .description("해결 과정")
+                            .optional(),
+                        fieldWithPath("data.summary.lessonLearned")
+                            .type(JsonFieldType.STRING)
+                            .description("배운 점")
+                            .optional(),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
@@ -346,7 +368,10 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data[].feedback").type(JsonFieldType.STRING).description("AI 피드백 한 줄").optional(),
+                        fieldWithPath("data[].feedback")
+                            .type(JsonFieldType.STRING)
+                            .description("AI 피드백 한 줄")
+                            .optional(),
                         fieldWithPath("data[].completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
@@ -374,12 +399,24 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
                         fieldWithPath("data.summary").type(JsonFieldType.OBJECT).description("회고 요약").optional(),
-                        fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
+                        fieldWithPath("data.summary.feedback")
+                            .type(JsonFieldType.STRING)
+                            .description("AI 피드백")
+                            .optional(),
                         fieldWithPath("data.summary.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
                         fieldWithPath("data.summary.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
-                        fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
-                        fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
-                        fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
+                        fieldWithPath("data.summary.blockedPoint")
+                            .type(JsonFieldType.STRING)
+                            .description("막힌 지점")
+                            .optional(),
+                        fieldWithPath("data.summary.solutionProcess")
+                            .type(JsonFieldType.STRING)
+                            .description("해결 과정")
+                            .optional(),
+                        fieldWithPath("data.summary.lessonLearned")
+                            .type(JsonFieldType.STRING)
+                            .description("배운 점")
+                            .optional(),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
@@ -431,7 +468,9 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.days[].date").type(JsonFieldType.STRING).description("날짜").optional(),
                         fieldWithPath("data.days[].count").type(JsonFieldType.NUMBER).description("회고 횟수").optional(),
                         fieldWithPath("data.weeklyCount").type(JsonFieldType.NUMBER).description("이번 주 회고 횟수"),
-                        fieldWithPath("data.isWeeklyGoalAchieved").type(JsonFieldType.BOOLEAN).description("주간 목표 달성 여부 (3회 이상)"),
+                        fieldWithPath("data.isWeeklyGoalAchieved")
+                            .type(JsonFieldType.BOOLEAN)
+                            .description("주간 목표 달성 여부 (3회 이상)"),
                     ),
                 ),
             )
@@ -492,5 +531,43 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                 ),
             )
+    }
+
+    @Test
+    fun `최근 검색 기록 조회`() {
+        val histories =
+            listOf(
+                SearchHistory.create(UUID.randomUUID(), "회고"),
+                SearchHistory.create(UUID.randomUUID(), "테스트"),
+            )
+
+        whenever(searchHistoryFinder.findRecent(any()))
+            .thenReturn(histories)
+
+        mockMvc
+            .perform(get("/api/v1/retrospectives/search/info"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data[0].keyword").value("회고"))
+            .andExpect(jsonPath("$.data[1].keyword").value("테스트"))
+            .andDo(
+                document(
+                    "retrospect/search-info",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data[].keyword").type(JsonFieldType.STRING).description("검색 키워드 리스트"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `최근 검색 기록 조회 - 데이터 없음`() {
+        whenever(searchHistoryFinder.findRecent(userId))
+            .thenReturn(emptyList())
+
+        mockMvc
+            .perform(get("/api/v1/retrospectives/search/info"))
+            .andExpect(status().isOk)
     }
 }
