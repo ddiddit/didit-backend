@@ -1,6 +1,7 @@
 package com.didit.domain.auth
 
 import com.didit.domain.shared.BaseEntity
+import com.didit.domain.shared.Job
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
 import jakarta.persistence.Entity

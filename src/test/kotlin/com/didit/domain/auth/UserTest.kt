@@ -1,5 +1,6 @@
 package com.didit.domain.auth
 
+import com.didit.domain.shared.Job
 import com.didit.support.UserFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy

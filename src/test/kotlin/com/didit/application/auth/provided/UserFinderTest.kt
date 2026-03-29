@@ -56,4 +56,24 @@ class UserFinderTest {
         verify(userFinder).existsByNickname("없는닉네임")
         assertThat(exists).isFalse()
     }
+
+    @Test
+    fun `getJobByUserId - 유저의 직무를 반환한다`() {
+        val user = UserFixture.createOnboarded()
+        whenever(userFinder.getJobByUserId(user.id)).thenReturn(user.job)
+
+        val job = userFinder.getJobByUserId(user.id)
+
+        verify(userFinder).getJobByUserId(user.id)
+        assertThat(job).isEqualTo(user.job)
+    }
+
+    @Test
+    fun `getJobByUserId - 유저가 없으면 예외가 발생한다`() {
+        val userId = UUID.randomUUID()
+        whenever(userFinder.getJobByUserId(userId)).thenThrow(UserNotFoundException(userId))
+
+        assertThatThrownBy { userFinder.getJobByUserId(userId) }
+            .isInstanceOf(UserNotFoundException::class.java)
+    }
 }

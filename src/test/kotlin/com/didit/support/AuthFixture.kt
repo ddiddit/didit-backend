@@ -1,11 +1,11 @@
 package com.didit.support
 
-import com.didit.domain.auth.Job
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.RefreshToken
 import com.didit.domain.auth.User
 import com.didit.domain.auth.UserConsent
 import com.didit.domain.auth.UserRegisterRequest
+import com.didit.domain.shared.Job
 import java.time.LocalDateTime
 import java.util.UUID
 

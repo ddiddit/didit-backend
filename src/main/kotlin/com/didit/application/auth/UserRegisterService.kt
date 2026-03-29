@@ -5,7 +5,7 @@ import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.notification.provided.NotificationSettingModifier
-import com.didit.domain.auth.Job
+import com.didit.domain.shared.Job
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
