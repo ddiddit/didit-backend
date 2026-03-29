@@ -1,7 +1,11 @@
 package com.didit.adapter.integration.ai
 
+import com.didit.adapter.integration.ai.FeedbackPrompts
+import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.required.AIClient
 import com.didit.domain.shared.Job
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -11,6 +15,7 @@ import org.springframework.web.client.body
 @Component
 class ClovaClient(
     private val restClient: RestClient,
+    private val objectMapper: ObjectMapper,
     @param:Value("\${clova.api.url}") private val apiUrl: String,
     @param:Value("\${clova.api.api-key}") private val apiKey: String,
 ) : AIClient {
@@ -19,18 +24,31 @@ class ClovaClient(
         answers: List<String>,
     ): String {
         val prompt = FeedbackPrompts.buildDeepQuestionPrompt(job, answers)
-        return call(prompt)
+        val response = callClova(prompt)
+        return runCatching {
+            data class DeepQuestionDto(
+                val question: String,
+            )
+            objectMapper.readValue<DeepQuestionDto>(response).question
+        }.getOrElse {
+            throw RuntimeException("심화 질문 파싱에 실패했습니다. response: $response")
+        }
     }
 
-    override fun generateSummary(
+    override fun generateSummaryWithTitle(
         job: Job?,
         allAnswers: List<String>,
-    ): String {
+    ): AISummaryResponse {
         val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers)
-        return call(prompt)
+        val response = callClova(prompt)
+        return runCatching {
+            objectMapper.readValue<AISummaryResponse>(response)
+        }.getOrElse {
+            throw RuntimeException("회고 요약 파싱에 실패했습니다. response: $response")
+        }
     }
 
-    private fun call(prompt: String): String {
+    private fun callClova(prompt: String): String {
         val request =
             ClovaRequest(
                 messages =

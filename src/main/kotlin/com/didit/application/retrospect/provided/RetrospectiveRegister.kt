@@ -1,6 +1,6 @@
-// provided/RetrospectiveRegister.kt
 package com.didit.application.retrospect.provided
 
+import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.domain.retrospect.Retrospective
 import java.util.UUID
@@ -22,8 +22,14 @@ interface RetrospectiveRegister {
     fun complete(
         retrospectiveId: UUID,
         userId: UUID,
+    ): AISummaryResponse
+
+    fun save(
+        retrospectiveId: UUID,
+        userId: UUID,
         title: String,
         projectId: UUID?,
+        summary: AISummaryResponse,
     ): Retrospective
 
     fun restart(

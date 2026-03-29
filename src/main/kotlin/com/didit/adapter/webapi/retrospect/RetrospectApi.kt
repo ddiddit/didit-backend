@@ -1,0 +1,136 @@
+package com.didit.adapter.webapi.retrospect
+
+import com.didit.adapter.webapi.auth.annotation.CurrentUserId
+import com.didit.adapter.webapi.auth.annotation.RequireAuth
+import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.adapter.webapi.retrospect.dto.CompleteRetrospectiveResponse
+import com.didit.adapter.webapi.retrospect.dto.RetrospectiveDetailResponse
+import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
+import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
+import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
+import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
+import com.didit.application.retrospect.dto.SubmitAnswerResponse
+import com.didit.application.retrospect.provided.RetrospectiveFinder
+import com.didit.application.retrospect.provided.RetrospectiveRegister
+import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.ResponseStatus
+import org.springframework.web.bind.annotation.RestController
+import java.util.UUID
+
+@RequestMapping("/api/v1/retrospectives")
+@RestController
+class RetrospectApi(
+    private val retrospectiveRegister: RetrospectiveRegister,
+    private val retrospectiveFinder: RetrospectiveFinder,
+) {
+    @RequireAuth
+    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping
+    fun start(
+        @CurrentUserId userId: UUID,
+    ): SuccessResponse<StartRetrospectiveResponse> {
+        val retrospective = retrospectiveRegister.start(userId)
+
+        return SuccessResponse.of(StartRetrospectiveResponse.from(retrospective))
+    }
+
+    @RequireAuth
+    @PostMapping("/{retrospectiveId}/answers")
+    fun submitAnswer(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+        @RequestBody request: SubmitAnswerRequest,
+    ): SuccessResponse<SubmitAnswerResponse> {
+        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, request.content)
+
+        return SuccessResponse.of(result)
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PostMapping("/{retrospectiveId}/skip")
+    fun skipDeepQuestion(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ) {
+        retrospectiveRegister.skipDeepQuestion(retrospectiveId, userId)
+    }
+
+    @RequireAuth
+    @PostMapping("/{retrospectiveId}/complete")
+    fun complete(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ): SuccessResponse<CompleteRetrospectiveResponse> {
+        val result = retrospectiveRegister.complete(retrospectiveId, userId)
+
+        return SuccessResponse.of(CompleteRetrospectiveResponse.from(result))
+    }
+
+    @RequireAuth
+    @PostMapping("/{retrospectiveId}/save")
+    fun save(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+        @RequestBody request: SaveRetrospectiveRequest,
+    ): SuccessResponse<RetrospectiveDetailResponse> {
+        val retrospective =
+            retrospectiveRegister.save(
+                retrospectiveId = retrospectiveId,
+                userId = userId,
+                title = request.title,
+                projectId = request.projectId,
+                summary = request.toAISummaryResponse(),
+            )
+        return SuccessResponse.of(RetrospectiveDetailResponse.from(retrospective))
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.CREATED)
+    @PostMapping("/{retrospectiveId}/restart")
+    fun restart(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ): SuccessResponse<StartRetrospectiveResponse> {
+        val retrospective = retrospectiveRegister.restart(retrospectiveId, userId)
+
+        return SuccessResponse.of(StartRetrospectiveResponse.from(retrospective))
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/{retrospectiveId}")
+    fun delete(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ) {
+        retrospectiveRegister.delete(retrospectiveId, userId)
+    }
+
+    @RequireAuth
+    @GetMapping
+    fun findAll(
+        @CurrentUserId userId: UUID,
+    ): SuccessResponse<List<RetrospectiveListItemResponse>> {
+        val retrospectives = retrospectiveFinder.findAllByUserId(userId)
+
+        return SuccessResponse.of(retrospectives.map { RetrospectiveListItemResponse.from(it) })
+    }
+
+    @RequireAuth
+    @GetMapping("/{retrospectiveId}")
+    fun findById(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ): SuccessResponse<RetrospectiveDetailResponse> {
+        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+
+        return SuccessResponse.of(RetrospectiveDetailResponse.from(retrospective))
+    }
+}

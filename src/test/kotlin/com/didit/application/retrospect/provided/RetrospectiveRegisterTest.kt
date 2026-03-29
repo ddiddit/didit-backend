@@ -1,5 +1,6 @@
 package com.didit.application.retrospect.provided
 
+import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
@@ -19,6 +20,17 @@ class RetrospectiveRegisterTest {
 
     private val userId = UUID.randomUUID()
     private val retrospectiveId = UUID.randomUUID()
+
+    private fun aiSummaryResponse() =
+        AISummaryResponse(
+            title = "오늘의 회고",
+            feedback = "피드백",
+            insight = "인사이트",
+            doneWork = "한 일",
+            blockedPoint = "막힌 지점",
+            solutionProcess = "해결 과정",
+            lessonLearned = "배운 점",
+        )
 
     @Test
     fun `start - 회고를 시작한다`() {
@@ -75,14 +87,27 @@ class RetrospectiveRegisterTest {
     }
 
     @Test
-    fun `complete - 회고를 완료한다`() {
+    fun `complete - AI 요약과 제목을 반환한다`() {
+        val summary = aiSummaryResponse()
+        whenever(retrospectiveRegister.complete(retrospectiveId, userId)).thenReturn(summary)
+
+        val result = retrospectiveRegister.complete(retrospectiveId, userId)
+
+        verify(retrospectiveRegister).complete(retrospectiveId, userId)
+        assertThat(result.title).isNotBlank()
+        assertThat(result.feedback).isNotBlank()
+    }
+
+    @Test
+    fun `save - 제목과 summary로 회고를 저장한다`() {
         val retro = Retrospective.create(userId)
-        whenever(retrospectiveRegister.complete(retrospectiveId, userId, "오늘의 회고", null))
+        val summary = aiSummaryResponse()
+        whenever(retrospectiveRegister.save(retrospectiveId, userId, "오늘의 회고", null, summary))
             .thenReturn(retro)
 
-        val result = retrospectiveRegister.complete(retrospectiveId, userId, "오늘의 회고", null)
+        val result = retrospectiveRegister.save(retrospectiveId, userId, "오늘의 회고", null, summary)
 
-        verify(retrospectiveRegister).complete(retrospectiveId, userId, "오늘의 회고", null)
+        verify(retrospectiveRegister).save(retrospectiveId, userId, "오늘의 회고", null, summary)
         assertThat(result.userId).isEqualTo(userId)
     }
 

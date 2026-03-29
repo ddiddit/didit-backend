@@ -1,6 +1,7 @@
 package com.didit.application.retrospect
 
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.exception.DailyLimitExceededException
 import com.didit.application.retrospect.exception.RetrospectiveAlreadyCompletedException
@@ -13,8 +14,6 @@ import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,7 +27,6 @@ class RetrospectService(
     private val retrospectiveFinder: RetrospectiveFinder,
     private val aiClient: AIClient,
     private val userFinder: UserFinder,
-    private val objectMapper: ObjectMapper,
 ) : RetrospectiveRegister {
     companion object {
         private const val DAILY_LIMIT = 3
@@ -148,9 +146,7 @@ class RetrospectService(
     override fun complete(
         retrospectiveId: UUID,
         userId: UUID,
-        title: String,
-        projectId: UUID?,
-    ): Retrospective {
+    ): AISummaryResponse {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
         if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
         if (!retrospective.isInProgress()) throw RetrospectiveNotInProgressException(retrospectiveId)
@@ -158,12 +154,31 @@ class RetrospectService(
         val job = userFinder.getJobByUserId(userId)
         val allAnswers = retrospective.getAllAnswers()
 
-        val summaryJson = aiClient.generateSummary(job, allAnswers)
-        val summary = parseSummary(summaryJson)
+        return aiClient.generateSummaryWithTitle(job, allAnswers)
+    }
+
+    @Transactional
+    override fun save(
+        retrospectiveId: UUID,
+        userId: UUID,
+        title: String,
+        projectId: UUID?,
+        summary: AISummaryResponse,
+    ): Retrospective {
+        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+        if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
 
         retrospective.complete(
             title = title,
-            summary = summary,
+            summary =
+                RetrospectiveSummary(
+                    feedback = summary.feedback,
+                    insight = summary.insight,
+                    doneWork = summary.doneWork,
+                    blockedPoint = summary.blockedPoint,
+                    solutionProcess = summary.solutionProcess,
+                    lessonLearned = summary.lessonLearned,
+                ),
             inputTokens = 0,
             outputTokens = 0,
         )
@@ -189,32 +204,5 @@ class RetrospectService(
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
         retrospective.softDelete()
         retrospectiveRepository.save(retrospective)
-    }
-
-    private fun parseSummary(summaryJson: String): RetrospectiveSummary {
-        data class SummaryDto(
-            val aiFeedback: String = "",
-            val insight: String = "",
-            val doneWork: String = "",
-            val blockedPoint: String = "",
-            val solutionProcess: String = "",
-            val lessonLearned: String = "",
-        )
-
-        val dto =
-            runCatching {
-                objectMapper.readValue<SummaryDto>(summaryJson)
-            }.getOrElse {
-                throw RuntimeException("회고 요약 파싱에 실패했습니다. response: $summaryJson")
-            }
-
-        return RetrospectiveSummary(
-            feedback = dto.aiFeedback,
-            insight = dto.insight,
-            doneWork = dto.doneWork,
-            blockedPoint = dto.blockedPoint,
-            solutionProcess = dto.solutionProcess,
-            lessonLearned = dto.lessonLearned,
-        )
     }
 }

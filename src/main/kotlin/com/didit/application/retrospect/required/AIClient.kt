@@ -1,5 +1,6 @@
 package com.didit.application.retrospect.required
 
+import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.domain.shared.Job
 
 interface AIClient {
@@ -8,8 +9,8 @@ interface AIClient {
         answers: List<String>,
     ): String
 
-    fun generateSummary(
+    fun generateSummaryWithTitle(
         job: Job?,
         allAnswers: List<String>,
-    ): String
+    ): AISummaryResponse
 }

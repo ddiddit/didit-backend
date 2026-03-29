@@ -1,5 +1,7 @@
+// required/AIClientTest.kt
 package com.didit.application.retrospect.required
 
+import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.domain.shared.Job
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -27,14 +29,25 @@ class AIClientTest {
     }
 
     @Test
-    fun `generateSummary - 요약을 반환한다`() {
+    fun `generateSummaryWithTitle - 제목과 요약을 반환한다`() {
         val answers = listOf("Q1 답변", "Q2 답변", "Q3 답변", "Q4 답변")
-        whenever(aiClient.generateSummary(Job.DEVELOPER, answers))
-            .thenReturn("{\"aiFeedback\":\"피드백\",\"insight\":\"인사이트\"}")
+        val expected =
+            AISummaryResponse(
+                title = "오늘의 회고",
+                feedback = "피드백",
+                insight = "인사이트",
+                doneWork = "한 일",
+                blockedPoint = "막힌 지점",
+                solutionProcess = "해결 과정",
+                lessonLearned = "배운 점",
+            )
+        whenever(aiClient.generateSummaryWithTitle(Job.DEVELOPER, answers)).thenReturn(expected)
 
-        val result = aiClient.generateSummary(Job.DEVELOPER, answers)
+        val result = aiClient.generateSummaryWithTitle(Job.DEVELOPER, answers)
 
-        verify(aiClient).generateSummary(Job.DEVELOPER, answers)
-        assertThat(result).isNotBlank()
+        verify(aiClient).generateSummaryWithTitle(Job.DEVELOPER, answers)
+        assertThat(result.title).isNotBlank()
+        assertThat(result.feedback).isNotBlank()
+        assertThat(result.insight).isNotBlank()
     }
 }

@@ -1,0 +1,326 @@
+package com.didit.adapter.webapi.retrospect
+
+import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
+import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
+import com.didit.application.retrospect.dto.AISummaryResponse
+import com.didit.application.retrospect.dto.SubmitAnswerResponse
+import com.didit.application.retrospect.provided.RetrospectiveFinder
+import com.didit.application.retrospect.provided.RetrospectiveRegister
+import com.didit.docs.ApiDocumentUtils
+import com.didit.docs.AuthenticatedRestDocsSupport
+import com.didit.domain.retrospect.ChatMessage
+import com.didit.domain.retrospect.QuestionType
+import com.didit.domain.retrospect.Retrospective
+import org.junit.jupiter.api.Test
+import org.mockito.Mockito.mock
+import org.mockito.kotlin.any
+import org.mockito.kotlin.whenever
+import org.springframework.http.MediaType
+import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.delete
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post
+import org.springframework.restdocs.payload.JsonFieldType
+import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
+import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
+import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
+import org.springframework.restdocs.request.RequestDocumentation.pathParameters
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.util.UUID
+
+class RetrospectApiTest : AuthenticatedRestDocsSupport() {
+    private val retrospectiveRegister: RetrospectiveRegister = mock(RetrospectiveRegister::class.java)
+    private val retrospectiveFinder: RetrospectiveFinder = mock(RetrospectiveFinder::class.java)
+
+    override fun initController() = RetrospectApi(retrospectiveRegister, retrospectiveFinder)
+
+    private val retrospectiveId = UUID.randomUUID()
+
+    private fun retrospectiveWithQ1(): Retrospective {
+        val retro = Retrospective.create(userId)
+        retro.addMessage(
+            ChatMessage.question(retro, "오늘 어떤 일을 하셨나요?", QuestionType.Q1),
+        )
+        return retro
+    }
+
+    private fun aiSummaryResponse() =
+        AISummaryResponse(
+            title = "오늘의 회고",
+            feedback = "오늘 작업을 잘 마무리하셨네요.",
+            insight = "문제를 작게 나누는 것이 중요합니다.",
+            doneWork = "로그인 API 연동 작업을 완료했습니다.",
+            blockedPoint = "토큰 만료 처리 로직이 복잡했습니다.",
+            solutionProcess = "공식 문서를 참고하여 해결했습니다.",
+            lessonLearned = "초반에 에러 처리를 설계해두면 편합니다.",
+        )
+
+    @Test
+    fun `회고 시작`() {
+        val retro = retrospectiveWithQ1()
+        whenever(retrospectiveRegister.start(userId)).thenReturn(retro)
+
+        mockMvc
+            .perform(post("/api/v1/retrospectives"))
+            .andExpect(status().isCreated)
+            .andDo(
+                document(
+                    "retrospect/start",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data.retrospectiveId").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data.firstQuestionType").type(JsonFieldType.STRING).description("첫 번째 질문 타입"),
+                        fieldWithPath("data.firstQuestionContent").type(JsonFieldType.STRING).description("첫 번째 질문 내용"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `답변 제출`() {
+        val request = SubmitAnswerRequest(content = "로그인 API 연동 작업을 했습니다.")
+        val response =
+            SubmitAnswerResponse(
+                nextQuestionType = QuestionType.Q2,
+                nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
+                isReadyToComplete = false,
+            )
+        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, request.content))
+            .thenReturn(response)
+
+        mockMvc
+            .perform(
+                post("/api/v1/retrospectives/{retrospectiveId}/answers", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/submit-answer",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    requestFields(
+                        fieldWithPath("content").type(JsonFieldType.STRING).description("답변 내용"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
+                        fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
+                        fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `심화 질문 스킵`() {
+        mockMvc
+            .perform(post("/api/v1/retrospectives/{retrospectiveId}/skip", retrospectiveId))
+            .andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "retrospect/skip",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `회고 완료 - AI 요약 생성`() {
+        val summary = aiSummaryResponse()
+        whenever(retrospectiveRegister.complete(retrospectiveId, userId)).thenReturn(summary)
+
+        mockMvc
+            .perform(post("/api/v1/retrospectives/{retrospectiveId}/complete", retrospectiveId))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/complete",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.title").type(JsonFieldType.STRING).description("AI 생성 제목"),
+                        fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백"),
+                        fieldWithPath("data.summary.insight").type(JsonFieldType.STRING).description("인사이트"),
+                        fieldWithPath("data.summary.doneWork").type(JsonFieldType.STRING).description("한 일"),
+                        fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점"),
+                        fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정"),
+                        fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `회고 저장`() {
+        val summary = aiSummaryResponse()
+        val request =
+            SaveRetrospectiveRequest(
+                title = "오늘의 회고",
+                projectId = null,
+                summary =
+                    SaveRetrospectiveRequest.SummaryRequest(
+                        feedback = summary.feedback,
+                        insight = summary.insight,
+                        doneWork = summary.doneWork,
+                        blockedPoint = summary.blockedPoint,
+                        solutionProcess = summary.solutionProcess,
+                        lessonLearned = summary.lessonLearned,
+                    ),
+            )
+        val retro = retrospectiveWithQ1()
+        whenever(retrospectiveRegister.save(any(), any(), any(), any(), any())).thenReturn(retro)
+
+        mockMvc
+            .perform(
+                post("/api/v1/retrospectives/{retrospectiveId}/save", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/save",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    requestFields(
+                        fieldWithPath("title").type(JsonFieldType.STRING).description("회고 제목"),
+                        fieldWithPath("projectId").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
+                        fieldWithPath("summary.feedback").type(JsonFieldType.STRING).description("AI 피드백"),
+                        fieldWithPath("summary.insight").type(JsonFieldType.STRING).description("인사이트"),
+                        fieldWithPath("summary.doneWork").type(JsonFieldType.STRING).description("한 일"),
+                        fieldWithPath("summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점"),
+                        fieldWithPath("summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정"),
+                        fieldWithPath("summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data.projectId").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
+                        fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
+                        fieldWithPath("data.summary").type(JsonFieldType.OBJECT).description("회고 요약").optional(),
+                        fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
+                        fieldWithPath("data.summary.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
+                        fieldWithPath("data.summary.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
+                        fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
+                        fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
+                        fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
+                        fieldWithPath("data.createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `회고 다시 시작`() {
+        val retro = retrospectiveWithQ1()
+        whenever(retrospectiveRegister.restart(retrospectiveId, userId)).thenReturn(retro)
+
+        mockMvc
+            .perform(post("/api/v1/retrospectives/{retrospectiveId}/restart", retrospectiveId))
+            .andExpect(status().isCreated)
+            .andDo(
+                document(
+                    "retrospect/restart",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.retrospectiveId").type(JsonFieldType.STRING).description("새 회고 ID"),
+                        fieldWithPath("data.firstQuestionType").type(JsonFieldType.STRING).description("첫 번째 질문 타입"),
+                        fieldWithPath("data.firstQuestionContent").type(JsonFieldType.STRING).description("첫 번째 질문 내용"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `회고 삭제`() {
+        mockMvc
+            .perform(delete("/api/v1/retrospectives/{retrospectiveId}", retrospectiveId))
+            .andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "retrospect/delete",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `회고 목록 조회`() {
+        val retros = listOf(retrospectiveWithQ1())
+        whenever(retrospectiveFinder.findAllByUserId(userId)).thenReturn(retros)
+
+        mockMvc
+            .perform(get("/api/v1/retrospectives"))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/find-all",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data[].projectId").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
+                        fieldWithPath("data[].feedback").type(JsonFieldType.STRING).description("AI 피드백 한 줄").optional(),
+                        fieldWithPath("data[].createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `회고 상세 조회`() {
+        val retro = retrospectiveWithQ1()
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        mockMvc
+            .perform(get("/api/v1/retrospectives/{retrospectiveId}", retrospectiveId))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/find-by-id",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data.projectId").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
+                        fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
+                        fieldWithPath("data.summary").type(JsonFieldType.OBJECT).description("회고 요약").optional(),
+                        fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
+                        fieldWithPath("data.summary.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
+                        fieldWithPath("data.summary.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
+                        fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
+                        fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
+                        fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
+                        fieldWithPath("data.createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                    ),
+                ),
+            )
+    }
+}
