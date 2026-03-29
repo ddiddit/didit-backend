@@ -44,7 +44,6 @@ class RetrospectService(
         if (todayCount >= DAILY_LIMIT) throw DailyLimitExceededException(userId)
 
         val retrospective = Retrospective.create(userId)
-
         retrospective.addMessage(
             ChatMessage.question(
                 retrospective = retrospective,
@@ -52,7 +51,6 @@ class RetrospectService(
                 questionType = QuestionType.Q1,
             ),
         )
-
         return retrospectiveRepository.save(retrospective)
     }
 
@@ -63,11 +61,17 @@ class RetrospectService(
         content: String,
     ): SubmitAnswerResponse {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-        if (!retrospective.isInProgress()) throw RetrospectiveNotInProgressException(retrospectiveId)
+        if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
+        if (retrospective.isDeleted()) throw RetrospectiveNotInProgressException(retrospectiveId)
 
         val currentQuestionType =
             retrospective.currentQuestionType()
                 ?: throw RetrospectiveNotInProgressException(retrospectiveId)
+
+        // Q1 첫 답변 시 PENDING → IN_PROGRESS 전환
+        if (retrospective.isPending()) {
+            retrospective.startProgress()
+        }
 
         retrospective.addMessage(
             ChatMessage.userAnswer(
@@ -97,7 +101,6 @@ class RetrospectService(
 
         val nextQuestionType = QuestionType.entries[currentQuestionType.ordinal + 1]
         val nextContent = QUESTION_CONTENTS[nextQuestionType]!!
-
         retrospective.addMessage(
             ChatMessage.question(
                 retrospective = retrospective,
@@ -105,7 +108,6 @@ class RetrospectService(
                 questionType = nextQuestionType,
             ),
         )
-
         return SubmitAnswerResponse(
             nextQuestionType = nextQuestionType,
             nextQuestionContent = nextContent,
@@ -131,7 +133,6 @@ class RetrospectService(
                 questionType = QuestionType.Q4_DEEP,
             ),
         )
-
         retrospectiveRepository.save(retrospective)
     }
 
@@ -149,7 +150,6 @@ class RetrospectService(
                 questionType = QuestionType.Q4_DEEP,
             ),
         )
-
         retrospectiveRepository.save(retrospective)
     }
 
@@ -159,12 +159,10 @@ class RetrospectService(
         userId: UUID,
     ): AISummaryResponse {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-
         if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
         if (!retrospective.isInProgress()) throw RetrospectiveNotInProgressException(retrospectiveId)
 
         val job = userFinder.getJobByUserId(userId)
-
         return aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers())
     }
 
@@ -177,7 +175,6 @@ class RetrospectService(
         summary: AISummaryResponse,
     ): Retrospective {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-
         if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
 
         retrospective.complete(
@@ -194,7 +191,6 @@ class RetrospectService(
             inputTokens = 0,
             outputTokens = 0,
         )
-
         return retrospectiveRepository.save(retrospective)
     }
 
@@ -204,11 +200,8 @@ class RetrospectService(
         userId: UUID,
     ): Retrospective {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-
         retrospective.softDelete()
-
         retrospectiveRepository.save(retrospective)
-
         return start(userId)
     }
 
@@ -219,9 +212,7 @@ class RetrospectService(
         title: String,
     ) {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-
         retrospective.updateTitle(title)
-
         retrospectiveRepository.save(retrospective)
     }
 
@@ -231,9 +222,19 @@ class RetrospectService(
         userId: UUID,
     ) {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-
         retrospective.softDelete()
-
         retrospectiveRepository.save(retrospective)
+    }
+
+    @Transactional
+    override fun exit(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ) {
+        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+        if (retrospective.isPending()) {
+            retrospective.softDelete()
+            retrospectiveRepository.save(retrospective)
+        }
     }
 }

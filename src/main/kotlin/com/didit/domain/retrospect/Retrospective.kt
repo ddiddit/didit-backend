@@ -28,7 +28,7 @@ class Retrospective(
     var title: String? = null,
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    var status: RetroStatus = RetroStatus.IN_PROGRESS,
+    var status: RetroStatus = RetroStatus.PENDING,
     @Column(nullable = false)
     var inputTokens: Int = 0,
     @Column(nullable = false)
@@ -75,6 +75,12 @@ class Retrospective(
 
     fun addMessage(message: ChatMessage) {
         chatMessages.add(message)
+    }
+
+    fun isPending(): Boolean = status == RetroStatus.PENDING
+
+    fun startProgress() {
+        this.status = RetroStatus.IN_PROGRESS
     }
 
     fun complete(

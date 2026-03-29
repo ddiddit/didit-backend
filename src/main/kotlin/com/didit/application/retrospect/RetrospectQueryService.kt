@@ -3,6 +3,7 @@ package com.didit.application.retrospect
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.required.RetrospectiveRepository
+import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -28,8 +29,9 @@ class RetrospectQueryService(
         userId: UUID,
         date: LocalDate,
     ): Int =
-        retrospectiveRepository.countByUserIdAndCreatedAtBetween(
+        retrospectiveRepository.countByUserIdAndStatusNotAndCreatedAtBetween(
             userId = userId,
+            status = RetroStatus.PENDING,
             from = date.atStartOfDay(),
             to = date.atTime(23, 59, 59),
         )

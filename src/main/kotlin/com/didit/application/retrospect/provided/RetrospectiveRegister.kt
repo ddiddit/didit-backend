@@ -47,4 +47,9 @@ interface RetrospectiveRegister {
         retrospectiveId: UUID,
         userId: UUID,
     )
+
+    fun exit(
+        retrospectiveId: UUID,
+        userId: UUID,
+    )
 }

@@ -359,4 +359,21 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                 ),
             )
     }
+
+    @Test
+    fun `회고 나가기`() {
+        mockMvc
+            .perform(post("/api/v1/retrospectives/{retrospectiveId}/exit", retrospectiveId))
+            .andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "retrospect/exit",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                ),
+            )
+    }
 }
