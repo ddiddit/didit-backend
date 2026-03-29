@@ -31,19 +31,6 @@ class ApiControllerAdvice {
             }
     }
 
-    @ExceptionHandler(IllegalArgumentException::class)
-    fun handleIllegalArgumentException(exception: IllegalArgumentException): ProblemDetail {
-        log.warn("[VALIDATION] 잘못된 요청 값 message={}", exception.message)
-
-        return ProblemDetail
-            .forStatusAndDetail(HttpStatus.BAD_REQUEST, exception.message ?: ErrorCode.INVALID_REQUEST.detail)
-            .apply {
-                title = HttpStatus.BAD_REQUEST.reasonPhrase
-                setProperty("timestamp", OffsetDateTime.now().toString())
-                setProperty("code", ErrorCode.INVALID_REQUEST.name)
-            }
-    }
-
     @ExceptionHandler(BusinessException::class)
     fun handleBusinessException(exception: BusinessException): ProblemDetail {
         val errorCode = exception.errorCode
