@@ -138,9 +138,28 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `findByUserIdAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc - 월별 회고를 반환한다`() {
+    fun `findByUserIdAndStatusAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc - COMPLETED 상태만 반환한다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
-        retrospectiveRepository.save(Retrospective.create(userId).apply { softDelete() })
+        retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })
+        retrospectiveRepository.save(
+            Retrospective.create(userId).apply {
+                startProgress()
+                complete(
+                    title = "완료된 회고",
+                    summary =
+                        RetrospectiveSummary(
+                            feedback = "피드백",
+                            insight = "",
+                            doneWork = "",
+                            blockedPoint = "",
+                            solutionProcess = "",
+                            lessonLearned = "",
+                        ),
+                    inputTokens = 0,
+                    outputTokens = 0,
+                )
+            },
+        )
 
         val from =
             LocalDateTime
@@ -152,12 +171,14 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
         val found =
             retrospectiveRepository
-                .findByUserIdAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+                .findByUserIdAndStatusAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
                     userId = userId,
+                    status = RetroStatus.COMPLETED,
                     from = from,
                     to = to,
                 )
 
         assertThat(found).hasSize(1)
+        assertThat(found[0].title).isEqualTo("완료된 회고")
     }
 }
