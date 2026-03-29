@@ -20,7 +20,7 @@ class WithdrawalRecord(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     val reason: WithdrawalReason,
-    @Column(length = 255)
+    @Column(columnDefinition = "TEXT")
     val reasonDetail: String? = null,
 ) : BaseEntity() {
     companion object {
