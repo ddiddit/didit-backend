@@ -4,6 +4,7 @@ import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
 import com.didit.application.retrospect.dto.AISummaryResponse
+import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
@@ -162,6 +163,35 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점"),
                         fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정"),
                         fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `심화 질문 조회`() {
+        val response =
+            DeepQuestionResponse(
+                isReady = true,
+                content = "비슷한 상황이 또 생긴다면 어떻게 하실 것 같나요?",
+            )
+        whenever(retrospectiveFinder.findDeepQuestion(retrospectiveId, userId))
+            .thenReturn(response)
+
+        mockMvc
+            .perform(get("/api/v1/retrospectives/{retrospectiveId}/deep-question", retrospectiveId))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/deep-question",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.isReady").type(JsonFieldType.BOOLEAN).description("심화 질문 생성 완료 여부"),
+                        fieldWithPath("data.content").type(JsonFieldType.STRING).description("심화 질문 내용").optional(),
                     ),
                 ),
             )

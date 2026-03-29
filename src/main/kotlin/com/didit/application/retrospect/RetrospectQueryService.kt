@@ -1,10 +1,13 @@
 package com.didit.application.retrospect
 
+import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.required.RetrospectiveRepository
+import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.Sender
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -79,4 +82,19 @@ class RetrospectQueryService(
                 from = date.atStartOfDay(),
                 to = date.atTime(23, 59, 59),
             )
+
+    override fun findDeepQuestion(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): DeepQuestionResponse {
+        val retrospective = findById(retrospectiveId, userId)
+        val deepQuestion =
+            retrospective.chatMessages
+                .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
+
+        return DeepQuestionResponse(
+            isReady = deepQuestion != null,
+            content = deepQuestion?.content,
+        )
+    }
 }

@@ -12,6 +12,7 @@ import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
+import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
@@ -77,6 +78,16 @@ class RetrospectApi(
         val result = retrospectiveRegister.complete(retrospectiveId, userId)
 
         return SuccessResponse.of(CompleteRetrospectiveResponse.from(result))
+    }
+
+    @RequireAuth
+    @GetMapping("/{retrospectiveId}/deep-question")
+    fun getDeepQuestion(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ): SuccessResponse<DeepQuestionResponse> {
+        val result = retrospectiveFinder.findDeepQuestion(retrospectiveId, userId)
+        return SuccessResponse.of(result)
     }
 
     @RequireAuth
