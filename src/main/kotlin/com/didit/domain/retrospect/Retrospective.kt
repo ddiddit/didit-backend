@@ -37,6 +37,8 @@ class Retrospective(
     var deletedAt: LocalDateTime? = null,
     @OneToMany(mappedBy = "retrospective", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     val chatMessages: MutableList<ChatMessage> = mutableListOf(),
+    @Column
+    var completedAt: LocalDateTime? = null,
 ) : BaseEntity() {
     fun isCompleted(): Boolean = status == RetroStatus.COMPLETED
 
@@ -88,15 +90,18 @@ class Retrospective(
         outputTokens: Int,
     ) {
         require(title.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
+
         this.title = title
         this.summary = summary
         this.inputTokens = inputTokens
         this.outputTokens = outputTokens
         this.status = RetroStatus.COMPLETED
+        this.completedAt = LocalDateTime.now()
     }
 
     fun updateTitle(newTitle: String) {
         require(newTitle.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
+
         this.title = newTitle
     }
 

@@ -63,7 +63,7 @@ class RetrospectQueryService(
         val from = LocalDate.of(year, month, 1).atStartOfDay()
         val to = LocalDate.of(year, month, 1).plusMonths(1).atStartOfDay()
         return retrospectiveRepository
-            .findByUserIdAndStatusAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+            .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
                 userId = userId,
                 status = RetroStatus.COMPLETED,
                 from = from,
@@ -76,7 +76,7 @@ class RetrospectQueryService(
         date: LocalDate,
     ): List<Retrospective> =
         retrospectiveRepository
-            .findByUserIdAndStatusAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+            .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
                 userId = userId,
                 status = RetroStatus.COMPLETED,
                 from = date.atStartOfDay(),

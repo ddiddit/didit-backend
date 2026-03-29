@@ -38,7 +38,7 @@ data class RetrospectiveDetailResponse(
                             lessonLearned = it.lessonLearned,
                         )
                     },
-                completedAt = retrospective.updatedAt,
+                completedAt = retrospective.completedAt,
             )
     }
 }

@@ -35,7 +35,7 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         to: LocalDateTime,
     ): Int
 
-    fun findByUserIdAndStatusAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+    fun findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
         userId: UUID,
         status: RetroStatus,
         from: LocalDateTime,

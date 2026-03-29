@@ -49,7 +49,7 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.recentRetrospectives[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.recentRetrospectives[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.recentRetrospectives[].feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
-                        fieldWithPath("data.recentRetrospectives[].completedAt").type(JsonFieldType.NULL).description("완료 시간"),
+                        fieldWithPath("data.recentRetrospectives[].completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                         fieldWithPath("data.latestFeedback").type(JsonFieldType.STRING).description("최근 AI 피드백").optional(),
                     ),
                 ),

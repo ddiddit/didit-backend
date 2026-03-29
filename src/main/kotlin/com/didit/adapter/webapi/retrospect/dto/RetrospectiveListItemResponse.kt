@@ -16,7 +16,7 @@ data class RetrospectiveListItemResponse(
                 id = retrospective.id,
                 title = retrospective.title,
                 feedback = retrospective.summary?.feedback,
-                completedAt = retrospective.updatedAt,
+                completedAt = retrospective.completedAt,
             )
     }
 }

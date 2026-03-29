@@ -138,9 +138,8 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `findByUserIdAndStatusAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc - COMPLETED 상태만 반환한다`() {
+    fun `findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc - COMPLETED 상태만 반환한다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
-        retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })
         retrospectiveRepository.save(
             Retrospective.create(userId).apply {
                 startProgress()
@@ -171,7 +170,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
         val found =
             retrospectiveRepository
-                .findByUserIdAndStatusAndDeletedAtIsNullAndCreatedAtBetweenOrderByCreatedAtDesc(
+                .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
                     userId = userId,
                     status = RetroStatus.COMPLETED,
                     from = from,
