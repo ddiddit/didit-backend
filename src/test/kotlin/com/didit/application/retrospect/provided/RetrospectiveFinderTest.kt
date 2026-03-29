@@ -145,4 +145,15 @@ class RetrospectiveFinderTest {
         assertThat(found.isReady).isFalse()
         assertThat(found.content).isNull()
     }
+
+    @Test
+    fun `findByUserIdAndCurrentWeek - 이번 주 완료된 회고 목록을 반환한다`() {
+        val retros = listOf(Retrospective.create(userId), Retrospective.create(userId))
+        whenever(retrospectiveFinder.findByUserIdAndCurrentWeek(userId)).thenReturn(retros)
+
+        val found = retrospectiveFinder.findByUserIdAndCurrentWeek(userId)
+
+        verify(retrospectiveFinder).findByUserIdAndCurrentWeek(userId)
+        assertThat(found).hasSize(2)
+    }
 }

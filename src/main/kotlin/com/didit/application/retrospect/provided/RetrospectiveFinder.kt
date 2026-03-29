@@ -36,6 +36,8 @@ interface RetrospectiveFinder {
         date: LocalDate,
     ): List<Retrospective>
 
+    fun findByUserIdAndCurrentWeek(userId: UUID): List<Retrospective>
+
     fun findDeepQuestion(
         retrospectiveId: UUID,
         userId: UUID,

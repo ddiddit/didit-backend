@@ -16,7 +16,10 @@ import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -171,16 +174,19 @@ class RetrospectApi(
         retrospectiveRegister.exit(retrospectiveId, userId)
     }
 
+    @Validated
     @RequireAuth
     @GetMapping("/calendar")
     fun getCalendar(
         @CurrentUserId userId: UUID,
         @RequestParam year: Int,
-        @RequestParam month: Int,
+        @RequestParam @Min(1) @Max(12) month: Int,
     ): SuccessResponse<CalendarResponse> {
         val retrospectives = retrospectiveFinder.findByUserIdAndYearMonth(userId, year, month)
 
-        return SuccessResponse.of(CalendarResponse.of(year, month, retrospectives))
+        val weeklyRetrospectives = retrospectiveFinder.findByUserIdAndCurrentWeek(userId)
+
+        return SuccessResponse.of(CalendarResponse.of(year, month, retrospectives, weeklyRetrospectives))
     }
 
     @RequireAuth

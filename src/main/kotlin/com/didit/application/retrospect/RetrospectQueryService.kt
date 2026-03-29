@@ -11,7 +11,9 @@ import com.didit.domain.retrospect.Sender
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 import java.util.UUID
 
 @Transactional(readOnly = true)
@@ -62,6 +64,7 @@ class RetrospectQueryService(
     ): List<Retrospective> {
         val from = LocalDate.of(year, month, 1).atStartOfDay()
         val to = LocalDate.of(year, month, 1).plusMonths(1).atStartOfDay()
+
         return retrospectiveRepository
             .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
                 userId = userId,
@@ -82,6 +85,19 @@ class RetrospectQueryService(
                 from = date.atStartOfDay(),
                 to = date.atTime(23, 59, 59),
             )
+
+    override fun findByUserIdAndCurrentWeek(userId: UUID): List<Retrospective> {
+        val today = LocalDate.now()
+        val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
+        val weekEnd = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
+        return retrospectiveRepository
+            .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
+                userId = userId,
+                status = RetroStatus.COMPLETED,
+                from = weekStart.atStartOfDay(),
+                to = weekEnd.atTime(23, 59, 59),
+            )
+    }
 
     override fun findDeepQuestion(
         retrospectiveId: UUID,
