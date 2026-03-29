@@ -93,4 +93,19 @@ class RetrospectiveFinderTest {
         verify(retrospectiveFinder).findLatestCompletedByUserId(userId)
         assertThat(found).isNull()
     }
+
+    @Test
+    fun `searchByTitle - 키워드에 해당하는 회고 목록을 반환한다`() {
+        val retros =
+            listOf(
+                Retrospective.create(userId),
+                Retrospective.create(userId),
+            )
+        whenever(retrospectiveFinder.searchByTitle(userId, "회고")).thenReturn(retros)
+
+        val found = retrospectiveFinder.searchByTitle(userId, "회고")
+
+        verify(retrospectiveFinder).searchByTitle(userId, "회고")
+        assertThat(found).hasSize(2)
+    }
 }
