@@ -2,6 +2,7 @@ package com.didit.application.retrospect.provided
 
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import org.assertj.core.api.Assertions.assertThat
@@ -51,12 +52,12 @@ class RetrospectiveRegisterTest {
                 nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
                 isReadyToComplete = false,
             )
-        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, "열심히 했습니다."))
+        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, "열심히 했습니다.", InputType.TEXT))
             .thenReturn(response)
 
-        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, "열심히 했습니다.")
+        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, "열심히 했습니다.", InputType.TEXT)
 
-        verify(retrospectiveRegister).submitAnswer(retrospectiveId, userId, "열심히 했습니다.")
+        verify(retrospectiveRegister).submitAnswer(retrospectiveId, userId, "열심히 했습니다.", InputType.TEXT)
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
         assertThat(result.isReadyToComplete).isFalse()
     }
@@ -69,12 +70,12 @@ class RetrospectiveRegisterTest {
                 nextQuestionContent = null,
                 isReadyToComplete = true,
             )
-        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, "Q4 답변"))
+        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, "Q4 답변", InputType.TEXT))
             .thenReturn(response)
 
-        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, "Q4 답변")
+        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, "Q4 답변", InputType.TEXT)
 
-        verify(retrospectiveRegister).submitAnswer(retrospectiveId, userId, "Q4 답변")
+        verify(retrospectiveRegister).submitAnswer(retrospectiveId, userId, "Q4 답변", InputType.TEXT)
         assertThat(result.isReadyToComplete).isTrue()
         assertThat(result.nextQuestionType).isNull()
     }
