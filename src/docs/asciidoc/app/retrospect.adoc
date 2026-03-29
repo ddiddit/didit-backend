@@ -1,0 +1,46 @@
+= 회고 API
+
+== 회고 시작
+
+=== Request
+
+include::{snippets}/retrospect/start/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/start/http-response.adoc[]
+include::{snippets}/retrospect/start/response-fields.adoc[]
+
+== 답변 제출
+
+=== Request
+
+include::{snippets}/retrospect/answer/http-request.adoc[]
+include::{snippets}/retrospect/answer/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/answer/http-response.adoc[]
+include::{snippets}/retrospect/answer/response-fields.adoc[]
+
+== 회고 조회
+
+=== Request
+
+include::{snippets}/retrospect/get/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/get/http-response.adoc[]
+include::{snippets}/retrospect/get/response-fields.adoc[]
+
+== 회고 완료 조회
+
+=== Request
+
+include::{snippets}/retrospect/complete/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/complete/http-response.adoc[]
+include::{snippets}/retrospect/complete/response-fields.adoc[]
