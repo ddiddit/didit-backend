@@ -4,6 +4,7 @@ import com.didit.domain.retrospect.SearchHistory
 import com.didit.support.RepositoryTestSupport
 import org.assertj.core.api.Assertions.assertThat
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.test.Test
 
@@ -76,18 +77,25 @@ class SearchHistoryRepositoryTest : RepositoryTestSupport() {
 
     @Test
     fun `findAllByUserIdOrderBySearchedAtDesc - 전체 조회 및 정렬`() {
-        val history1 = SearchHistory.create(userId, "A")
-        val history2 = SearchHistory.create(userId, "B")
+        val now = LocalDateTime.now()
 
+        val history1 =
+            SearchHistory.create(userId, "A").apply {
+                this.searchedAt = now.minusSeconds(1)
+            }
+
+        val history2 =
+            SearchHistory.create(userId, "B").apply {
+                this.searchedAt = now
+            }
         searchHistoryRepository.save(history1)
-        Thread.sleep(10)
         searchHistoryRepository.save(history2)
 
         val result = searchHistoryRepository.findAllByUserIdOrderBySearchedAtDesc(userId)
 
         assertThat(result).hasSize(2)
-        assertThat(result[0].keyword).isEqualTo("A")
-        assertThat(result[1].keyword).isEqualTo("B")
+        assertThat(result[0].keyword).isEqualTo("B")
+        assertThat(result[1].keyword).isEqualTo("A")
     }
 
     @Test
