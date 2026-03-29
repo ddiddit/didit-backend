@@ -1,6 +1,5 @@
 package com.didit.adapter.integration.ai
 
-import com.didit.adapter.integration.ai.FeedbackPrompts
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.required.AIClient
 import com.didit.domain.shared.Job
@@ -24,7 +23,7 @@ class ClovaClient(
         answers: List<String>,
     ): String {
         val prompt = FeedbackPrompts.buildDeepQuestionPrompt(job, answers)
-        val response = callClova(prompt)
+        val response = call(prompt)
         return runCatching {
             data class DeepQuestionDto(
                 val question: String,
@@ -40,7 +39,7 @@ class ClovaClient(
         allAnswers: List<String>,
     ): AISummaryResponse {
         val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers)
-        val response = callClova(prompt)
+        val response = call(prompt)
         return runCatching {
             objectMapper.readValue<AISummaryResponse>(response)
         }.getOrElse {
@@ -48,7 +47,7 @@ class ClovaClient(
         }
     }
 
-    private fun callClova(prompt: String): String {
+    private fun call(prompt: String): String {
         val request =
             ClovaRequest(
                 messages =
