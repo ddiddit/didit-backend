@@ -1,6 +1,7 @@
 package com.didit.application.auth.required
 
 import com.didit.application.auth.dto.UserInfo
+import com.didit.application.auth.exception.UnsupportedOAuthProviderException
 import com.didit.domain.auth.Provider
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
