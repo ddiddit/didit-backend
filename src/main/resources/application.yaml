@@ -45,9 +45,8 @@ jwt:
 
 clova:
   api:
+    url: https://clovastudio.stream.ntruss.com/v3/chat-completions/HCX-005
     api-key: ${CLOVA_API_KEY}
-    api-gw-key: ${CLOVA_API_GW_KEY}
-    request-id: ${CLOVA_REQUEST_ID}
 
 admin:
   initial:

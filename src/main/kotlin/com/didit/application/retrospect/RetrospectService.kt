@@ -13,6 +13,8 @@ import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -26,6 +28,7 @@ class RetrospectService(
     private val retrospectiveFinder: RetrospectiveFinder,
     private val aiClient: AIClient,
     private val userFinder: UserFinder,
+    private val objectMapper: ObjectMapper,
 ) : RetrospectiveRegister {
     companion object {
         private const val DAILY_LIMIT = 3
@@ -78,7 +81,7 @@ class RetrospectService(
             generateDeepQuestionAsync(retrospective)
             return SubmitAnswerResponse(
                 nextQuestionType = QuestionType.Q4_DEEP,
-                nextQuestionContent = null, // 비동기 생성 중
+                nextQuestionContent = null,
                 isReadyToComplete = false,
             )
         }
@@ -188,13 +191,30 @@ class RetrospectService(
         retrospectiveRepository.save(retrospective)
     }
 
-    private fun parseSummary(summaryJson: String): RetrospectiveSummary =
-        RetrospectiveSummary(
-            feedback = "",
-            insight = "",
-            doneWork = "",
-            blockedPoint = "",
-            solutionProcess = "",
-            lessonLearned = "",
+    private fun parseSummary(summaryJson: String): RetrospectiveSummary {
+        data class SummaryDto(
+            val aiFeedback: String = "",
+            val insight: String = "",
+            val doneWork: String = "",
+            val blockedPoint: String = "",
+            val solutionProcess: String = "",
+            val lessonLearned: String = "",
         )
+
+        val dto =
+            runCatching {
+                objectMapper.readValue<SummaryDto>(summaryJson)
+            }.getOrElse {
+                throw RuntimeException("회고 요약 파싱에 실패했습니다. response: $summaryJson")
+            }
+
+        return RetrospectiveSummary(
+            feedback = dto.aiFeedback,
+            insight = dto.insight,
+            doneWork = dto.doneWork,
+            blockedPoint = dto.blockedPoint,
+            solutionProcess = dto.solutionProcess,
+            lessonLearned = dto.lessonLearned,
+        )
+    }
 }
