@@ -4,7 +4,9 @@ package com.didit.application.retrospect.required
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.Repository
+import org.springframework.data.repository.query.Param
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -34,4 +36,18 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         from: LocalDateTime,
         to: LocalDateTime,
     ): Int
+
+    @Query(
+        """
+        SELECT r FROM Retrospective r
+        WHERE r.deletedAt IS NULL
+            AND r.userId=:userId
+            AND LOWER(r.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        ORDER BY r.createdAt DESC
+    """,
+    )
+    fun searchByUserIdAndTitle(
+        @Param("userId") userId: UUID,
+        @Param("keyword") keyword: String,
+    ): List<Retrospective>
 }

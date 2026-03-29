@@ -51,4 +51,9 @@ class RetrospectQueryService(
             from = date.atStartOfDay(),
             to = date.atTime(23, 59, 59),
         )
+
+    override fun searchByTitle(
+        userId: UUID,
+        keyword: String,
+    ): List<Retrospective> = retrospectiveRepository.searchByUserIdAndTitle(userId, keyword)
 }

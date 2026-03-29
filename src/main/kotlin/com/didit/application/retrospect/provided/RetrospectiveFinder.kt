@@ -23,4 +23,9 @@ interface RetrospectiveFinder {
         userId: UUID,
         date: LocalDate,
     ): Int
+
+    fun searchByTitle(
+        userId: UUID,
+        keyword: String,
+    ): List<Retrospective>
 }
