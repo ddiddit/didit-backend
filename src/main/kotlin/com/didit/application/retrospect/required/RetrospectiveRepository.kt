@@ -37,6 +37,13 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         to: LocalDateTime,
     ): Int
 
+    fun findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
+        userId: UUID,
+        status: RetroStatus,
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): List<Retrospective>
+
     @Query(
         """
         SELECT r FROM Retrospective r

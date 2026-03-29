@@ -14,7 +14,10 @@ import java.util.UUID
 class UserQueryService(
     private val userRepository: UserRepository,
 ) : UserFinder {
-    override fun findByIdOrThrow(userId: UUID): User = userRepository.findById(userId) ?: throw UserNotFoundException(userId)
+    override fun findByIdOrThrow(userId: UUID): User =
+        userRepository.findById(userId) ?: throw UserNotFoundException(
+            userId,
+        )
 
     override fun existsByNickname(nickname: String): Boolean = userRepository.existsByNickname(nickname)
 

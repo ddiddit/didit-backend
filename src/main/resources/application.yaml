@@ -6,6 +6,10 @@ spring:
   docker:
     compose:
       enabled: false
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
   mail:
     host: smtp.gmail.com
     port: 587
@@ -47,6 +51,10 @@ clova:
   api:
     url: https://clovastudio.stream.ntruss.com/v3/chat-completions/HCX-005
     api-key: ${CLOVA_API_KEY}
+
+  speech:
+    invoke-url: ${CLOVA_SPEECH_INVOKE_URL}
+    secret-key: ${CLOVA_SPEECH_SECRET_KEY}
 
 admin:
   initial:

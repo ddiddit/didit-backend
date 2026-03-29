@@ -3,7 +3,9 @@ package com.didit.adapter.webapi.retrospect
 import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.adapter.webapi.retrospect.dto.CalendarResponse
 import com.didit.adapter.webapi.retrospect.dto.CompleteRetrospectiveResponse
+import com.didit.adapter.webapi.retrospect.dto.DailyRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveDetailResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveSearchResponse
@@ -11,10 +13,14 @@ import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
+import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
+import jakarta.validation.constraints.Max
+import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
+import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
@@ -25,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import java.time.LocalDate
 import java.util.UUID
 
 @RequestMapping("/api/v1/retrospectives")
@@ -78,6 +85,16 @@ class RetrospectApi(
     }
 
     @RequireAuth
+    @GetMapping("/{retrospectiveId}/deep-question")
+    fun getDeepQuestion(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ): SuccessResponse<DeepQuestionResponse> {
+        val result = retrospectiveFinder.findDeepQuestion(retrospectiveId, userId)
+        return SuccessResponse.of(result)
+    }
+
+    @RequireAuth
     @PostMapping("/{retrospectiveId}/save")
     fun save(
         @CurrentUserId userId: UUID,
@@ -89,7 +106,6 @@ class RetrospectApi(
                 retrospectiveId = retrospectiveId,
                 userId = userId,
                 title = request.title,
-                projectId = request.projectId,
                 summary = request.toAISummaryResponse(),
             )
         return SuccessResponse.of(RetrospectiveDetailResponse.from(retrospective))
@@ -157,6 +173,32 @@ class RetrospectApi(
         @PathVariable retrospectiveId: UUID,
     ) {
         retrospectiveRegister.exit(retrospectiveId, userId)
+    }
+
+    @Validated
+    @RequireAuth
+    @GetMapping("/calendar")
+    fun getCalendar(
+        @CurrentUserId userId: UUID,
+        @RequestParam year: Int,
+        @RequestParam @Min(1) @Max(12) month: Int,
+    ): SuccessResponse<CalendarResponse> {
+        val retrospectives = retrospectiveFinder.findByUserIdAndYearMonth(userId, year, month)
+
+        val weeklyRetrospectives = retrospectiveFinder.findByUserIdAndCurrentWeek(userId)
+
+        return SuccessResponse.of(CalendarResponse.of(year, month, retrospectives, weeklyRetrospectives))
+    }
+
+    @RequireAuth
+    @GetMapping("/calendar/daily")
+    fun getDailyRetrospectives(
+        @CurrentUserId userId: UUID,
+        @RequestParam date: LocalDate,
+    ): SuccessResponse<List<DailyRetrospectiveResponse>> {
+        val retrospectives = retrospectiveFinder.findByUserIdAndDate(userId, date)
+
+        return SuccessResponse.of(retrospectives.map { DailyRetrospectiveResponse.from(it) })
     }
 
     @RequireAuth

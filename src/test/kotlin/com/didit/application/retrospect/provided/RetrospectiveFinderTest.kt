@@ -1,5 +1,6 @@
 package com.didit.application.retrospect.provided
 
+import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.domain.retrospect.Retrospective
 import org.assertj.core.api.Assertions.assertThat
@@ -92,6 +93,68 @@ class RetrospectiveFinderTest {
 
         verify(retrospectiveFinder).findLatestCompletedByUserId(userId)
         assertThat(found).isNull()
+    }
+
+    @Test
+    fun `findByUserIdAndYearMonth - 월별 회고 목록을 반환한다`() {
+        val retros = listOf(Retrospective.create(userId), Retrospective.create(userId))
+        whenever(retrospectiveFinder.findByUserIdAndYearMonth(userId, 2026, 3)).thenReturn(retros)
+
+        val found = retrospectiveFinder.findByUserIdAndYearMonth(userId, 2026, 3)
+
+        verify(retrospectiveFinder).findByUserIdAndYearMonth(userId, 2026, 3)
+        assertThat(found).hasSize(2)
+    }
+
+    @Test
+    fun `findByUserIdAndDate - 날짜별 회고 목록을 반환한다`() {
+        val retros = listOf(Retrospective.create(userId))
+        val date = LocalDate.of(2026, 3, 10)
+        whenever(retrospectiveFinder.findByUserIdAndDate(userId, date)).thenReturn(retros)
+
+        val found = retrospectiveFinder.findByUserIdAndDate(userId, date)
+
+        verify(retrospectiveFinder).findByUserIdAndDate(userId, date)
+        assertThat(found).hasSize(1)
+    }
+
+    @Test
+    fun `findDeepQuestion - 심화 질문이 생성된 경우 isReady true를 반환한다`() {
+        val response =
+            DeepQuestionResponse(
+                isReady = true,
+                content = "비슷한 상황이 또 생긴다면 어떻게 하실 것 같나요?",
+            )
+        whenever(retrospectiveFinder.findDeepQuestion(retrospectiveId, userId)).thenReturn(response)
+
+        val found = retrospectiveFinder.findDeepQuestion(retrospectiveId, userId)
+
+        verify(retrospectiveFinder).findDeepQuestion(retrospectiveId, userId)
+        assertThat(found.isReady).isTrue()
+        assertThat(found.content).isNotBlank()
+    }
+
+    @Test
+    fun `findDeepQuestion - 심화 질문이 아직 생성 중이면 isReady false를 반환한다`() {
+        val response = DeepQuestionResponse(isReady = false)
+        whenever(retrospectiveFinder.findDeepQuestion(retrospectiveId, userId)).thenReturn(response)
+
+        val found = retrospectiveFinder.findDeepQuestion(retrospectiveId, userId)
+
+        verify(retrospectiveFinder).findDeepQuestion(retrospectiveId, userId)
+        assertThat(found.isReady).isFalse()
+        assertThat(found.content).isNull()
+    }
+
+    @Test
+    fun `findByUserIdAndCurrentWeek - 이번 주 완료된 회고 목록을 반환한다`() {
+        val retros = listOf(Retrospective.create(userId), Retrospective.create(userId))
+        whenever(retrospectiveFinder.findByUserIdAndCurrentWeek(userId)).thenReturn(retros)
+
+        val found = retrospectiveFinder.findByUserIdAndCurrentWeek(userId)
+
+        verify(retrospectiveFinder).findByUserIdAndCurrentWeek(userId)
+        assertThat(found).hasSize(2)
     }
 
     @Test

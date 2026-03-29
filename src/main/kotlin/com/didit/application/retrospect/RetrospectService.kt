@@ -171,7 +171,6 @@ class RetrospectService(
         retrospectiveId: UUID,
         userId: UUID,
         title: String,
-        projectId: UUID?,
         summary: AISummaryResponse,
     ): Retrospective {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)

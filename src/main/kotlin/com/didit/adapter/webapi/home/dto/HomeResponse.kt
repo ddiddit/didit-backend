@@ -14,7 +14,7 @@ data class HomeResponse(
         val id: UUID,
         val title: String?,
         val feedback: String?,
-        val createdAt: LocalDateTime?,
+        val completedAt: LocalDateTime?,
     ) {
         companion object {
             fun from(retrospective: Retrospective): RecentRetrospectiveResponse =
@@ -22,7 +22,7 @@ data class HomeResponse(
                     id = retrospective.id,
                     title = retrospective.title,
                     feedback = retrospective.summary?.feedback,
-                    createdAt = retrospective.createdAt,
+                    completedAt = retrospective.completedAt,
                 )
         }
     }

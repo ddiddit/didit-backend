@@ -4,15 +4,15 @@ import com.didit.domain.retrospect.Retrospective
 import java.time.LocalDateTime
 import java.util.UUID
 
-data class RetrospectiveListItemResponse(
+data class DailyRetrospectiveResponse(
     val id: UUID,
     val title: String?,
     val feedback: String?,
     val completedAt: LocalDateTime?,
 ) {
     companion object {
-        fun from(retrospective: Retrospective): RetrospectiveListItemResponse =
-            RetrospectiveListItemResponse(
+        fun from(retrospective: Retrospective): DailyRetrospectiveResponse =
+            DailyRetrospectiveResponse(
                 id = retrospective.id,
                 title = retrospective.title,
                 feedback = retrospective.summary?.feedback,

@@ -1,5 +1,6 @@
 package com.didit.application.retrospect.provided
 
+import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.domain.retrospect.Retrospective
 import java.time.LocalDate
 import java.util.UUID
@@ -23,6 +24,24 @@ interface RetrospectiveFinder {
         userId: UUID,
         date: LocalDate,
     ): Int
+
+    fun findByUserIdAndYearMonth(
+        userId: UUID,
+        year: Int,
+        month: Int,
+    ): List<Retrospective>
+
+    fun findByUserIdAndDate(
+        userId: UUID,
+        date: LocalDate,
+    ): List<Retrospective>
+
+    fun findByUserIdAndCurrentWeek(userId: UUID): List<Retrospective>
+
+    fun findDeepQuestion(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): DeepQuestionResponse
 
     fun searchByTitle(
         userId: UUID,

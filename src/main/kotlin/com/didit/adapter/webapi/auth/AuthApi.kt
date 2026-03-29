@@ -6,6 +6,7 @@ import com.didit.adapter.webapi.auth.dto.LoginRequest
 import com.didit.adapter.webapi.auth.dto.LoginResponse
 import com.didit.adapter.webapi.auth.dto.TokenRefreshRequest
 import com.didit.adapter.webapi.auth.dto.TokenRefreshResponse
+import com.didit.adapter.webapi.auth.dto.WithdrawRequest
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.auth.provided.Auth
 import org.springframework.http.HttpStatus
@@ -64,7 +65,12 @@ class AuthApi(
     @RequireAuth
     fun withdraw(
         @CurrentUserId userId: UUID,
+        @RequestBody request: WithdrawRequest,
     ) {
-        auth.withdraw(userId)
+        auth.withdraw(
+            userId = userId,
+            reason = request.reason,
+            reasonDetail = request.reasonDetail,
+        )
     }
 }

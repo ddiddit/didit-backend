@@ -39,6 +39,7 @@ include::{snippets}/auth/logout/http-response.adoc[]
 === Request
 
 include::{snippets}/auth/withdraw/http-request.adoc[]
+include::{snippets}/auth/withdraw/request-fields.adoc[]
 
 === Response
 
