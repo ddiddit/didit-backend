@@ -1,6 +1,5 @@
 package com.didit.application.auth.required
 
-import com.didit.application.auth.exception.UnsupportedOAuthProviderException
 import com.didit.domain.auth.Provider
 
 class OAuthClientFactory(

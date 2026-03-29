@@ -114,14 +114,33 @@ class AuthApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회원 탈퇴`() {
+        val request =
+            mapOf(
+                "reason" to "NO_LONGER_NEEDED",
+            )
+
         mockMvc
-            .perform(delete("/api/v1/auth/withdraw"))
-            .andExpect(status().isNoContent)
+            .perform(
+                delete("/api/v1/auth/withdraw")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isNoContent)
             .andDo(
                 document(
                     "auth/withdraw",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
+                    requestFields(
+                        fieldWithPath("reason")
+                            .type(JsonFieldType.STRING)
+                            .description(
+                                "탈퇴 사유 (NO_LONGER_NEEDED, MISSING_FEATURES, SERVICE_ISSUES, DIFFICULT_TO_USE, SWITCHING_SERVICE, OTHER)",
+                            ),
+                        fieldWithPath("reasonDetail")
+                            .type(JsonFieldType.STRING)
+                            .description("기타 사유 상세 내용 (OTHER 선택 시 필수)")
+                            .optional(),
+                    ),
                 ),
             )
     }

@@ -1,7 +1,6 @@
 package com.didit.adapter.integration.oauth
 
 import com.didit.application.auth.dto.UserInfo
-import com.didit.application.auth.exception.OAuthUserInfoFailedException
 import com.didit.application.auth.required.OAuthClient
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Jwts

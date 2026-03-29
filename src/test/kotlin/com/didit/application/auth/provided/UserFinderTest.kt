@@ -1,6 +1,5 @@
 package com.didit.application.auth.provided
 
-import com.didit.application.auth.exception.UserNotFoundException
 import com.didit.support.UserFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
