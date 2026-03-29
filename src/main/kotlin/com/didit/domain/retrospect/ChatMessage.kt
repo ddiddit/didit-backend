@@ -35,6 +35,9 @@ class ChatMessage(
     val questionType: QuestionType,
     @Column(nullable = false)
     val isSkipped: Boolean = false,
+    @Enumerated(EnumType.STRING)
+    @Column(length = 10)
+    val inputType: InputType? = null,
 ) {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -52,12 +55,14 @@ class ChatMessage(
                 sender = Sender.AI,
                 content = content,
                 questionType = questionType,
+                inputType = null,
             )
 
         fun userAnswer(
             retrospective: Retrospective,
             content: String,
             questionType: QuestionType,
+            inputType: InputType,
         ): ChatMessage {
             require(content.isNotBlank()) { "답변 내용은 비어 있을 수 없습니다." }
 
@@ -66,6 +71,7 @@ class ChatMessage(
                 sender = Sender.USER,
                 content = content,
                 questionType = questionType,
+                inputType = inputType,
             )
         }
 
@@ -81,6 +87,7 @@ class ChatMessage(
                 content = "",
                 questionType = questionType,
                 isSkipped = true,
+                inputType = null,
             )
         }
     }
