@@ -12,6 +12,7 @@ import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
+import com.didit.support.RetrospectiveFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
@@ -44,11 +45,11 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     private fun retrospectiveWithQ1(): Retrospective {
         val retro = Retrospective.create(userId)
-        retro.addMessage(
-            ChatMessage.question(retro, "오늘 어떤 일을 하셨나요?", QuestionType.Q1),
-        )
+        retro.addMessage(ChatMessage.question(retro, "오늘 어떤 일을 하셨나요?", QuestionType.Q1))
         return retro
     }
+
+    private fun completedRetrospective() = RetrospectiveFixture.createCompleted(userId)
 
     private fun aiSummaryResponse() =
         AISummaryResponse(
@@ -184,7 +185,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         lessonLearned = summary.lessonLearned,
                     ),
             )
-        val retro = retrospectiveWithQ1()
+        val retro = completedRetrospective()
         whenever(
             retrospectiveRegister.save(
                 retrospectiveId = any(),
@@ -306,7 +307,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 목록 조회`() {
-        val retros = listOf(retrospectiveWithQ1())
+        val retros = listOf(completedRetrospective())
         whenever(retrospectiveFinder.findAllByUserId(userId)).thenReturn(retros)
 
         mockMvc
@@ -330,7 +331,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 상세 조회`() {
-        val retro = retrospectiveWithQ1()
+        val retro = completedRetrospective()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
 
         mockMvc
@@ -381,7 +382,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `월별 캘린더 조회`() {
-        val retro = retrospectiveWithQ1()
+        val retro = completedRetrospective()
         whenever(retrospectiveFinder.findByUserIdAndYearMonth(userId, 2026, 3))
             .thenReturn(listOf(retro))
 
@@ -415,7 +416,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `날짜별 회고 목록 조회`() {
-        val retro = retrospectiveWithQ1()
+        val retro = completedRetrospective()
         whenever(retrospectiveFinder.findByUserIdAndDate(userId, LocalDate.of(2026, 3, 10)))
             .thenReturn(listOf(retro))
 
