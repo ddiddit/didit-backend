@@ -28,7 +28,6 @@ interface RetrospectiveRegister {
         retrospectiveId: UUID,
         userId: UUID,
         title: String,
-        projectId: UUID?,
         summary: AISummaryResponse,
     ): Retrospective
 

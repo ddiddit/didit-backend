@@ -136,4 +136,48 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         assertThat(found).isNotNull
         assertThat(found!!.title).isEqualTo("완료된 회고")
     }
+
+    @Test
+    fun `findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc - COMPLETED 상태만 반환한다`() {
+        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(
+            Retrospective.create(userId).apply {
+                startProgress()
+                complete(
+                    title = "완료된 회고",
+                    summary =
+                        RetrospectiveSummary(
+                            feedback = "피드백",
+                            insight = "",
+                            doneWork = "",
+                            blockedPoint = "",
+                            solutionProcess = "",
+                            lessonLearned = "",
+                        ),
+                    inputTokens = 0,
+                    outputTokens = 0,
+                )
+            },
+        )
+
+        val from =
+            LocalDateTime
+                .now()
+                .toLocalDate()
+                .withDayOfMonth(1)
+                .atStartOfDay()
+        val to = from.plusMonths(1)
+
+        val found =
+            retrospectiveRepository
+                .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
+                    userId = userId,
+                    status = RetroStatus.COMPLETED,
+                    from = from,
+                    to = to,
+                )
+
+        assertThat(found).hasSize(1)
+        assertThat(found[0].title).isEqualTo("완료된 회고")
+    }
 }

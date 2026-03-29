@@ -102,12 +102,12 @@ class RetrospectiveRegisterTest {
     fun `save - 제목과 summary로 회고를 저장한다`() {
         val retro = Retrospective.create(userId)
         val summary = aiSummaryResponse()
-        whenever(retrospectiveRegister.save(retrospectiveId, userId, "오늘의 회고", null, summary))
+        whenever(retrospectiveRegister.save(retrospectiveId, userId, "오늘의 회고", summary))
             .thenReturn(retro)
 
-        val result = retrospectiveRegister.save(retrospectiveId, userId, "오늘의 회고", null, summary)
+        val result = retrospectiveRegister.save(retrospectiveId, userId, "오늘의 회고", summary)
 
-        verify(retrospectiveRegister).save(retrospectiveId, userId, "오늘의 회고", null, summary)
+        verify(retrospectiveRegister).save(retrospectiveId, userId, "오늘의 회고", summary)
         assertThat(result.userId).isEqualTo(userId)
     }
 

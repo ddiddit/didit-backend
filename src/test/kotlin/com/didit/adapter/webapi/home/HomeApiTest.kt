@@ -4,9 +4,7 @@ import com.didit.application.auth.provided.UserFinder
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
-import com.didit.domain.retrospect.ChatMessage
-import com.didit.domain.retrospect.QuestionType
-import com.didit.domain.retrospect.Retrospective
+import com.didit.support.RetrospectiveFixture
 import com.didit.support.UserFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
@@ -28,15 +26,13 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
     @Test
     fun `홈 조회`() {
         val user = UserFixture.createOnboarded()
-        val retro =
-            Retrospective.create(userId).apply {
-                addMessage(ChatMessage.question(this, "오늘 어떤 일을 하셨나요?", QuestionType.Q1))
-            }
+        val retro = RetrospectiveFixture.createCompleted(userId)
+        val latestCompleted = RetrospectiveFixture.createCompleted(userId)
 
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
         whenever(retrospectiveFinder.findRecentByUserId(userId, 5)).thenReturn(listOf(retro))
         whenever(retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())).thenReturn(1)
-        whenever(retrospectiveFinder.findLatestCompletedByUserId(userId)).thenReturn(null)
+        whenever(retrospectiveFinder.findLatestCompletedByUserId(userId)).thenReturn(latestCompleted)
 
         mockMvc
             .perform(get("/api/v1/home"))
@@ -53,7 +49,7 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.recentRetrospectives[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.recentRetrospectives[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.recentRetrospectives[].feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
-                        fieldWithPath("data.recentRetrospectives[].createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                        fieldWithPath("data.recentRetrospectives[].completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                         fieldWithPath("data.latestFeedback").type(JsonFieldType.STRING).description("최근 AI 피드백").optional(),
                     ),
                 ),

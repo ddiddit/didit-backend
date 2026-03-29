@@ -4,6 +4,7 @@ import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
 import com.didit.application.retrospect.dto.AISummaryResponse
+import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
@@ -12,10 +13,10 @@ import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
+import com.didit.support.RetrospectiveFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
@@ -29,7 +30,9 @@ import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.pathParameters
+import org.springframework.restdocs.request.RequestDocumentation.queryParameters
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
+import java.time.LocalDate
 import java.util.UUID
 
 class RetrospectApiTest : AuthenticatedRestDocsSupport() {
@@ -42,11 +45,11 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     private fun retrospectiveWithQ1(): Retrospective {
         val retro = Retrospective.create(userId)
-        retro.addMessage(
-            ChatMessage.question(retro, "오늘 어떤 일을 하셨나요?", QuestionType.Q1),
-        )
+        retro.addMessage(ChatMessage.question(retro, "오늘 어떤 일을 하셨나요?", QuestionType.Q1))
         return retro
     }
+
+    private fun completedRetrospective() = RetrospectiveFixture.createCompleted(userId)
 
     private fun aiSummaryResponse() =
         AISummaryResponse(
@@ -166,12 +169,40 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
     }
 
     @Test
+    fun `심화 질문 조회`() {
+        val response =
+            DeepQuestionResponse(
+                isReady = true,
+                content = "비슷한 상황이 또 생긴다면 어떻게 하실 것 같나요?",
+            )
+        whenever(retrospectiveFinder.findDeepQuestion(retrospectiveId, userId))
+            .thenReturn(response)
+
+        mockMvc
+            .perform(get("/api/v1/retrospectives/{retrospectiveId}/deep-question", retrospectiveId))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/deep-question",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.isReady").type(JsonFieldType.BOOLEAN).description("심화 질문 생성 완료 여부"),
+                        fieldWithPath("data.content").type(JsonFieldType.STRING).description("심화 질문 내용").optional(),
+                    ),
+                ),
+            )
+    }
+
+    @Test
     fun `회고 저장`() {
         val summary = aiSummaryResponse()
         val request =
             SaveRetrospectiveRequest(
                 title = "오늘의 회고",
-                projectId = null,
                 summary =
                     SaveRetrospectiveRequest.SummaryRequest(
                         feedback = summary.feedback,
@@ -182,13 +213,12 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         lessonLearned = summary.lessonLearned,
                     ),
             )
-        val retro = retrospectiveWithQ1()
+        val retro = completedRetrospective()
         whenever(
             retrospectiveRegister.save(
                 retrospectiveId = any(),
                 userId = any(),
                 title = any(),
-                projectId = anyOrNull(),
                 summary = any(),
             ),
         ).thenReturn(retro)
@@ -209,7 +239,6 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     requestFields(
                         fieldWithPath("title").type(JsonFieldType.STRING).description("회고 제목"),
-                        fieldWithPath("projectId").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
                         fieldWithPath("summary.feedback").type(JsonFieldType.STRING).description("AI 피드백"),
                         fieldWithPath("summary.insight").type(JsonFieldType.STRING).description("인사이트"),
                         fieldWithPath("summary.doneWork").type(JsonFieldType.STRING).description("한 일"),
@@ -220,7 +249,6 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data.id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data.projectId").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
                         fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
                         fieldWithPath("data.summary").type(JsonFieldType.OBJECT).description("회고 요약").optional(),
                         fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
@@ -229,7 +257,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
                         fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
                         fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
-                        fieldWithPath("data.createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                        fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
             )
@@ -304,7 +332,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 목록 조회`() {
-        val retros = listOf(retrospectiveWithQ1())
+        val retros = listOf(completedRetrospective())
         whenever(retrospectiveFinder.findAllByUserId(userId)).thenReturn(retros)
 
         mockMvc
@@ -318,9 +346,8 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data[].projectId").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
                         fieldWithPath("data[].feedback").type(JsonFieldType.STRING).description("AI 피드백 한 줄").optional(),
-                        fieldWithPath("data[].createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                        fieldWithPath("data[].completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
             )
@@ -328,7 +355,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 상세 조회`() {
-        val retro = retrospectiveWithQ1()
+        val retro = completedRetrospective()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
 
         mockMvc
@@ -345,7 +372,6 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data.id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data.projectId").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
                         fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
                         fieldWithPath("data.summary").type(JsonFieldType.OBJECT).description("회고 요약").optional(),
                         fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
@@ -354,7 +380,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
                         fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
                         fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
-                        fieldWithPath("data.createdAt").type(JsonFieldType.NULL).description("생성 시간"),
+                        fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
             )
@@ -372,6 +398,69 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentResponse(),
                     pathParameters(
                         parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `월별 캘린더 조회`() {
+        val retro = completedRetrospective()
+        whenever(retrospectiveFinder.findByUserIdAndYearMonth(userId, 2026, 3))
+            .thenReturn(listOf(retro))
+
+        mockMvc
+            .perform(
+                get("/api/v1/retrospectives/calendar")
+                    .param("year", "2026")
+                    .param("month", "3"),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/calendar",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    queryParameters(
+                        parameterWithName("year").description("년도"),
+                        parameterWithName("month").description("월"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.year").type(JsonFieldType.NUMBER).description("년도"),
+                        fieldWithPath("data.month").type(JsonFieldType.NUMBER).description("월"),
+                        fieldWithPath("data.days").type(JsonFieldType.ARRAY).description("회고 작성 날짜 목록"),
+                        fieldWithPath("data.days[].date").type(JsonFieldType.STRING).description("날짜").optional(),
+                        fieldWithPath("data.days[].count").type(JsonFieldType.NUMBER).description("회고 횟수").optional(),
+                        fieldWithPath("data.weeklyCount").type(JsonFieldType.NUMBER).description("이번 주 회고 횟수"),
+                        fieldWithPath("data.isWeeklyGoalAchieved").type(JsonFieldType.BOOLEAN).description("주간 목표 달성 여부 (3회 이상)"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `날짜별 회고 목록 조회`() {
+        val retro = completedRetrospective()
+        whenever(retrospectiveFinder.findByUserIdAndDate(userId, LocalDate.of(2026, 3, 10)))
+            .thenReturn(listOf(retro))
+
+        mockMvc
+            .perform(
+                get("/api/v1/retrospectives/calendar/daily")
+                    .param("date", "2026-03-10"),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/calendar-daily",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    queryParameters(
+                        parameterWithName("date").description("날짜 (yyyy-MM-dd)"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data[].feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
+                        fieldWithPath("data[].completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
             )

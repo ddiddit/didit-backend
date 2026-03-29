@@ -63,6 +63,7 @@ class RetrospectiveTest {
         assertEquals("오늘의 회고", retro.title)
         assertEquals(100, retro.inputTokens)
         assertEquals(200, retro.outputTokens)
+        assertThat(retro.completedAt).isNotNull()
     }
 
     @Test
