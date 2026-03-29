@@ -3,6 +3,7 @@ package com.didit.application.retrospect
 import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
+import com.didit.application.retrospect.provided.SearchHistoryRegister
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.RetroStatus
@@ -20,6 +21,7 @@ import java.util.UUID
 @Service
 class RetrospectQueryService(
     private val retrospectiveRepository: RetrospectiveRepository,
+    private val searchHistoryRegister: SearchHistoryRegister,
 ) : RetrospectiveFinder {
     override fun findById(
         retrospectiveId: UUID,
@@ -117,5 +119,8 @@ class RetrospectQueryService(
     override fun searchByTitle(
         userId: UUID,
         keyword: String,
-    ): List<Retrospective> = retrospectiveRepository.searchByUserIdAndTitle(userId, keyword)
+    ): List<Retrospective> {
+        searchHistoryRegister.register(userId, keyword)
+        return retrospectiveRepository.searchByUserIdAndTitle(userId, keyword)
+    }
 }
