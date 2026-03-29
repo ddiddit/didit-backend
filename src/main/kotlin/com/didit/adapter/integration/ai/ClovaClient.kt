@@ -1,39 +1,51 @@
 package com.didit.adapter.integration.ai
 
-import com.didit.adapter.integration.ai.prompt.ClovaPrompts
+import com.didit.adapter.integration.ai.FeedbackPrompts
+import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.required.AIClient
-import com.didit.domain.auth.Job
+import com.didit.domain.shared.Job
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
-import org.springframework.web.reactive.function.client.WebClient
-import org.springframework.web.reactive.function.client.bodyToMono
+import org.springframework.web.client.RestClient
+import org.springframework.web.client.body
 
 @Component
 class ClovaClient(
-    private val webClient: WebClient,
-    @Value("\${clova.api.api-key}") private val apiKey: String,
-    @Value("\${clova.api.request-id}") private val requestId: String,
+    private val restClient: RestClient,
+    private val objectMapper: ObjectMapper,
+    @param:Value("\${clova.api.url}") private val apiUrl: String,
+    @param:Value("\${clova.api.api-key}") private val apiKey: String,
 ) : AIClient {
-    companion object {
-        private const val CLOVA_API_URL = "https://clovastudio.stream.ntruss.com/v1/chat-completions/HCX-003"
-    }
-
     override fun generateDeepQuestion(
-        job: Job,
+        job: Job?,
         answers: List<String>,
     ): String {
-        val prompt = ClovaPrompts.buildDeepQuestionPrompt(job, answers)
-        return callClova(prompt)
+        val prompt = FeedbackPrompts.buildDeepQuestionPrompt(job, answers)
+        val response = callClova(prompt)
+        return runCatching {
+            data class DeepQuestionDto(
+                val question: String,
+            )
+            objectMapper.readValue<DeepQuestionDto>(response).question
+        }.getOrElse {
+            throw RuntimeException("심화 질문 파싱에 실패했습니다. response: $response")
+        }
     }
 
-    override fun generateSummary(
-        job: Job,
+    override fun generateSummaryWithTitle(
+        job: Job?,
         allAnswers: List<String>,
-    ): String {
-        val prompt = ClovaPrompts.buildSummaryPrompt(job, allAnswers)
-        return callClova(prompt)
+    ): AISummaryResponse {
+        val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers)
+        val response = callClova(prompt)
+        return runCatching {
+            objectMapper.readValue<AISummaryResponse>(response)
+        }.getOrElse {
+            throw RuntimeException("회고 요약 파싱에 실패했습니다. response: $response")
+        }
     }
 
     private fun callClova(prompt: String): String {
@@ -47,23 +59,21 @@ class ClovaClient(
                 maxTokens = 500,
                 temperature = 0.7,
                 topP = 0.8,
-                repeatPenalty = 5.0,
+                repetitionPenalty = 1.1,
                 topK = 0,
-                includeAiFilters = false,
             )
 
-        return webClient
+        return restClient
             .post()
-            .uri(CLOVA_API_URL)
-            .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            .uri(apiUrl)
             .header("Authorization", "Bearer $apiKey")
-            .header("X-NCP-CLOVASTUDIO-REQUEST-ID", requestId)
-            .header(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_VALUE)
-            .bodyValue(request)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(request)
             .retrieve()
-            .bodyToMono<ClovaResponse>()
-            .map { it.result.message.content }
-            .block()
+            .body<ClovaResponse>()
+            ?.result
+            ?.message
+            ?.content
             ?: throw RuntimeException("Clova 응답을 받지 못했습니다.")
     }
 }
@@ -73,9 +83,8 @@ data class ClovaRequest(
     val maxTokens: Int,
     val temperature: Double,
     val topP: Double,
-    val repeatPenalty: Double,
+    val repetitionPenalty: Double,
     val topK: Int = 0,
-    val includeAiFilters: Boolean = false,
 )
 
 data class ClovaMessage(

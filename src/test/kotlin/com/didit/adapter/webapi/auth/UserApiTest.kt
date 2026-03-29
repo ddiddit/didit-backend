@@ -4,7 +4,7 @@ import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
-import com.didit.domain.auth.Job
+import com.didit.domain.shared.Job
 import com.didit.support.UserFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock

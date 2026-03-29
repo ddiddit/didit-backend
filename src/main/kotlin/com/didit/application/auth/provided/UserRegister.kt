@@ -1,6 +1,6 @@
 package com.didit.application.auth.provided
 
-import com.didit.domain.auth.Job
+import com.didit.domain.shared.Job
 import java.util.UUID
 
 interface UserRegister {

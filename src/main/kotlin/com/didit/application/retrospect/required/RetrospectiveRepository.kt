@@ -1,14 +1,23 @@
 package com.didit.application.retrospect.required
 
 import com.didit.domain.retrospect.Retrospective
+import org.springframework.data.repository.Repository
+import java.time.LocalDateTime
 import java.util.UUID
 
-interface RetrospectiveRepository {
+interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     fun save(retrospective: Retrospective): Retrospective
 
-    fun findById(id: UUID): Retrospective?
+    fun findByIdAndUserId(
+        id: UUID,
+        userId: UUID,
+    ): Retrospective?
 
-    fun findByUserId(userId: UUID): Retrospective?
+    fun findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId: UUID): List<Retrospective>
 
-    fun findByUserIdWithChatMessages(userId: UUID): Retrospective?
+    fun countByUserIdAndCreatedAtBetween(
+        userId: UUID,
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): Int
 }

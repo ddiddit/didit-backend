@@ -1,4 +1,4 @@
-package com.didit.domain.auth
+package com.didit.domain.shared
 
 enum class Job {
     DEVELOPER,

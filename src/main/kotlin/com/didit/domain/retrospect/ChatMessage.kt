@@ -1,18 +1,23 @@
 package com.didit.domain.retrospect
 
-import com.didit.domain.shared.BaseEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EntityListeners
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.JoinColumn
 import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import org.springframework.data.annotation.CreatedDate
+import org.springframework.data.jpa.domain.support.AuditingEntityListener
 import java.time.LocalDateTime
 import java.util.UUID
 
 @Table(name = "chat_messages")
 @Entity
+@EntityListeners(AuditingEntityListener::class)
 class ChatMessage(
     @Id
     @Column(columnDefinition = "BINARY(16)")
@@ -20,42 +25,63 @@ class ChatMessage(
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "retrospective_id", nullable = false)
     val retrospective: Retrospective,
-    @Column(nullable = false)
-    val questionNumber: Int,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    val sender: Sender,
     @Column(nullable = false, columnDefinition = "TEXT")
     val content: String,
-    @Column(name = "is_answer", nullable = false)
-    val isAnswer: Boolean,
-    @Column(name = "is_deep_question", nullable = false)
-    val isDeepQuestion: Boolean = false,
-    @Column(name = "message_created_at", nullable = false)
-    val messageCreatedAt: LocalDateTime = LocalDateTime.now(),
-) : BaseEntity() {
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 10)
+    val questionType: QuestionType,
+    @Column(nullable = false)
+    val isSkipped: Boolean = false,
+) {
+    @CreatedDate
+    @Column(name = "created_at", nullable = false, updatable = false)
+    var createdAt: LocalDateTime? = null
+        protected set
+
     companion object {
-        fun createQuestion(
+        fun question(
             retrospective: Retrospective,
-            questionNumber: Int,
             content: String,
-            isDeepQuestion: Boolean = false,
+            questionType: QuestionType,
         ): ChatMessage =
             ChatMessage(
                 retrospective = retrospective,
-                questionNumber = questionNumber,
+                sender = Sender.AI,
                 content = content,
-                isAnswer = false,
-                isDeepQuestion = isDeepQuestion,
+                questionType = questionType,
             )
 
-        fun createAnswer(
+        fun userAnswer(
             retrospective: Retrospective,
-            questionNumber: Int,
             content: String,
-        ): ChatMessage =
-            ChatMessage(
+            questionType: QuestionType,
+        ): ChatMessage {
+            require(content.isNotBlank()) { "답변 내용은 비어 있을 수 없습니다." }
+
+            return ChatMessage(
                 retrospective = retrospective,
-                questionNumber = questionNumber,
+                sender = Sender.USER,
                 content = content,
-                isAnswer = true,
+                questionType = questionType,
             )
+        }
+
+        fun skippedAnswer(
+            retrospective: Retrospective,
+            questionType: QuestionType,
+        ): ChatMessage {
+            require(questionType == QuestionType.Q4_DEEP) { "Q1~Q3는 스킵할 수 없습니다." }
+
+            return ChatMessage(
+                retrospective = retrospective,
+                sender = Sender.USER,
+                content = "",
+                questionType = questionType,
+                isSkipped = true,
+            )
+        }
     }
 }

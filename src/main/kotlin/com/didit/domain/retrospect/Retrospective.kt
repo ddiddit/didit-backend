@@ -1,9 +1,9 @@
 package com.didit.domain.retrospect
 
-import com.didit.domain.auth.Job
 import com.didit.domain.shared.BaseEntity
 import jakarta.persistence.CascadeType
 import jakarta.persistence.Column
+import jakarta.persistence.Embedded
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
@@ -20,60 +20,91 @@ class Retrospective(
     @Id
     @Column(columnDefinition = "BINARY(16)")
     val id: UUID = UUID.randomUUID(),
-    @Column(name = "user_id", nullable = false, columnDefinition = "BINARY(16)")
+    @Column(nullable = false, columnDefinition = "BINARY(16)")
     val userId: UUID,
+    @Column(columnDefinition = "BINARY(16)")
+    val projectId: UUID? = null,
+    @Column(nullable = true, length = 255)
+    var title: String? = null,
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    val userJob: Job,
-    @Column(name = "current_question_number", nullable = false)
-    var currentQuestionNumber: Int = 1,
-    @Column(name = "is_completed", nullable = false)
-    var isCompleted: Boolean = false,
-    @Column(name = "completed_at")
-    var completedAt: LocalDateTime? = null,
+    var status: RetroStatus = RetroStatus.IN_PROGRESS,
+    @Column(nullable = false)
+    var inputTokens: Int = 0,
+    @Column(nullable = false)
+    var outputTokens: Int = 0,
+    @Embedded
+    var summary: RetrospectiveSummary? = null,
+    @Column
+    var deletedAt: LocalDateTime? = null,
     @OneToMany(mappedBy = "retrospective", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
-    var chatMessages: MutableList<ChatMessage> = mutableListOf(),
+    val chatMessages: MutableList<ChatMessage> = mutableListOf(),
 ) : BaseEntity() {
-    fun addChatMessage(message: ChatMessage) {
+    fun isCompleted(): Boolean = status == RetroStatus.COMPLETED
+
+    fun isInProgress(): Boolean = status == RetroStatus.IN_PROGRESS
+
+    fun isDeleted(): Boolean = deletedAt != null
+
+    fun currentQuestionType(): QuestionType? =
+        aiMessages()
+            .maxByOrNull { it.questionType.ordinal }
+            ?.questionType
+
+    fun hasDeepQuestion(): Boolean = aiMessages().any { it.questionType == QuestionType.Q4_DEEP }
+
+    fun canAddDeepQuestion(): Boolean {
+        val answeredTypes = validUserAnswers().map { it.questionType }.toSet()
+        val hasAllBaseAnswers =
+            answeredTypes.containsAll(
+                listOf(QuestionType.Q1, QuestionType.Q2, QuestionType.Q3),
+            )
+        return hasAllBaseAnswers && !hasDeepQuestion()
+    }
+
+    fun getAnswersUpToQ3(): List<String> =
+        validUserAnswers()
+            .filter { it.questionType != QuestionType.Q4_DEEP }
+            .sortedBy { it.questionType.ordinal }
+            .map { it.content }
+
+    fun getAllAnswers(): List<String> =
+        validUserAnswers()
+            .sortedBy { it.questionType.ordinal }
+            .map { it.content }
+
+    fun addMessage(message: ChatMessage) {
         chatMessages.add(message)
     }
 
-    fun moveToNextQuestion(): Int {
-        currentQuestionNumber++
-        return currentQuestionNumber
+    fun complete(
+        title: String,
+        summary: RetrospectiveSummary,
+        inputTokens: Int,
+        outputTokens: Int,
+    ) {
+        require(title.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
+        this.title = title
+        this.summary = summary
+        this.inputTokens = inputTokens
+        this.outputTokens = outputTokens
+        this.status = RetroStatus.COMPLETED
     }
 
-    fun complete(now: LocalDateTime = LocalDateTime.now()) {
-        isCompleted = true
-        completedAt = now
+    fun updateTitle(newTitle: String) {
+        require(newTitle.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
+        this.title = newTitle
     }
 
-    fun canMoveToNextQuestion(): Boolean = currentQuestionNumber < 4
+    fun softDelete() {
+        this.deletedAt = LocalDateTime.now()
+    }
 
-    fun needsDeepQuestion(): Boolean = currentQuestionNumber == 4 && !hasDeepQuestion()
+    private fun aiMessages(): List<ChatMessage> = chatMessages.filter { it.sender == Sender.AI }
 
-    private fun hasDeepQuestion(): Boolean = chatMessages.any { it.questionNumber == 4 }
-
-    fun getAllAnswers(): List<String> =
-        chatMessages
-            .filter { it.isAnswer }
-            .sortedBy { it.questionNumber }
-            .map { it.content }
-
-    fun getAnswersForDeepQuestion(): List<String> =
-        chatMessages
-            .filter { it.isAnswer && it.questionNumber <= 3 }
-            .sortedBy { it.questionNumber }
-            .map { it.content }
+    private fun validUserAnswers(): List<ChatMessage> = chatMessages.filter { it.sender == Sender.USER && !it.isSkipped }
 
     companion object {
-        fun create(
-            userId: UUID,
-            userJob: Job,
-        ): Retrospective =
-            Retrospective(
-                userId = userId,
-                userJob = userJob,
-            )
+        fun create(userId: UUID): Retrospective = Retrospective(userId = userId)
     }
 }

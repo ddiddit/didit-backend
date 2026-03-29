@@ -1,8 +1,8 @@
 package com.didit.adapter.webapi.auth.dto
 
-import com.didit.domain.auth.Job
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.User
+import com.didit.domain.shared.Job
 
 data class UserProfileResponse(
     val nickname: String?,
