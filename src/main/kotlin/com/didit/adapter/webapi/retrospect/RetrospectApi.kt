@@ -146,4 +146,14 @@ class RetrospectApi(
     ) {
         retrospectiveRegister.updateTitle(retrospectiveId, userId, request.title)
     }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PostMapping("/{retrospectiveId}/exit")
+    fun exit(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ) {
+        retrospectiveRegister.exit(retrospectiveId, userId)
+    }
 }

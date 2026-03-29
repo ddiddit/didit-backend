@@ -135,4 +135,11 @@ class RetrospectiveRegisterTest {
 
         verify(retrospectiveRegister).delete(retrospectiveId, userId)
     }
+
+    @Test
+    fun `exit - 나가기를 처리한다`() {
+        retrospectiveRegister.exit(retrospectiveId, userId)
+
+        verify(retrospectiveRegister).exit(retrospectiveId, userId)
+    }
 }

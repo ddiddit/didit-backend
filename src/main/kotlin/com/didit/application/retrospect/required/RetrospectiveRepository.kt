@@ -1,5 +1,6 @@
 package com.didit.application.retrospect.required
 
+import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
 import org.springframework.data.repository.Repository
 import java.time.LocalDateTime
@@ -15,8 +16,9 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
 
     fun findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId: UUID): List<Retrospective>
 
-    fun countByUserIdAndCreatedAtBetween(
+    fun countByUserIdAndStatusNotAndCreatedAtBetween(
         userId: UUID,
+        status: RetroStatus,
         from: LocalDateTime,
         to: LocalDateTime,
     ): Int

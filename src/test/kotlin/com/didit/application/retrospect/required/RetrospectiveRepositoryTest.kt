@@ -1,6 +1,8 @@
 package com.didit.application.retrospect.required
 
+import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.support.RepositoryTestSupport
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -54,13 +56,33 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `countByUserIdAndCreatedAtBetween - 삭제된 회고도 카운트에 포함된다`() {
+    fun `countByUserIdAndStatusNotAndCreatedAtBetween - PENDING 상태는 카운트에서 제외된다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
-        retrospectiveRepository.save(Retrospective.create(userId).apply { softDelete() })
+        retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })
+        retrospectiveRepository.save(
+            Retrospective.create(userId).apply {
+                startProgress()
+                complete(
+                    title = "완료된 회고",
+                    summary =
+                        RetrospectiveSummary(
+                            feedback = "",
+                            insight = "",
+                            doneWork = "",
+                            blockedPoint = "",
+                            solutionProcess = "",
+                            lessonLearned = "",
+                        ),
+                    inputTokens = 0,
+                    outputTokens = 0,
+                )
+            },
+        )
 
         val count =
-            retrospectiveRepository.countByUserIdAndCreatedAtBetween(
+            retrospectiveRepository.countByUserIdAndStatusNotAndCreatedAtBetween(
                 userId = userId,
+                status = RetroStatus.PENDING,
                 from = LocalDateTime.now().toLocalDate().atStartOfDay(),
                 to = LocalDateTime.now().toLocalDate().atTime(23, 59, 59),
             )

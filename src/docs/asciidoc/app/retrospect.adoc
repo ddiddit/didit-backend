@@ -84,6 +84,17 @@ include::{snippets}/retrospect/restart/path-parameters.adoc[]
 include::{snippets}/retrospect/restart/http-response.adoc[]
 include::{snippets}/retrospect/restart/response-fields.adoc[]
 
+== 회고 나가기
+
+=== Request
+
+include::{snippets}/retrospect/exit/http-request.adoc[]
+include::{snippets}/retrospect/exit/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/exit/http-response.adoc[]
+
 == 회고 삭제
 
 === Request

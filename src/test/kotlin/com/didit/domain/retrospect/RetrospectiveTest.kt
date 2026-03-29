@@ -25,19 +25,31 @@ class RetrospectiveTest {
         )
 
     @Test
-    fun `create - 초기 상태는 IN_PROGRESS이고 summary는 null이다`() {
+    fun `create - 초기 상태는 PENDING이고 summary는 null이다`() {
         val retro = retrospective()
 
-        assertEquals(RetroStatus.IN_PROGRESS, retro.status)
+        assertEquals(RetroStatus.PENDING, retro.status)
         assertNull(retro.summary)
         assertNull(retro.title)
+        assertTrue(retro.isPending())
+        assertFalse(retro.isInProgress())
         assertFalse(retro.isCompleted())
+    }
+
+    @Test
+    fun `startProgress - 상태가 IN_PROGRESS로 변경된다`() {
+        val retro = retrospective()
+
+        retro.startProgress()
+
         assertTrue(retro.isInProgress())
+        assertFalse(retro.isPending())
+        assertFalse(retro.isCompleted())
     }
 
     @Test
     fun `complete - 정상 완료 시 status가 COMPLETED로 변경된다`() {
-        val retro = retrospective()
+        val retro = retrospective().apply { startProgress() }
 
         retro.complete(
             title = "오늘의 회고",
@@ -55,7 +67,7 @@ class RetrospectiveTest {
 
     @Test
     fun `complete - 제목이 빈 값이면 예외가 발생한다`() {
-        val retro = retrospective()
+        val retro = retrospective().apply { startProgress() }
 
         assertThrows<IllegalArgumentException> {
             retro.complete(
@@ -141,6 +153,7 @@ class RetrospectiveTest {
         val retro = retrospective()
 
         retro.updateTitle("새로운 제목")
+
         assertThat(retro.title).isEqualTo("새로운 제목")
     }
 
