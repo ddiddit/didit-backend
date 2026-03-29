@@ -10,10 +10,13 @@ import com.didit.application.auth.required.OAuthClientFactory
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.TokenProvider
 import com.didit.application.auth.required.UserRepository
+import com.didit.application.auth.required.WithdrawalRecordRepository
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.RefreshToken
 import com.didit.domain.auth.User
 import com.didit.domain.auth.UserRegisterRequest
+import com.didit.domain.auth.WithdrawalReason
+import com.didit.domain.auth.WithdrawalRecord
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -26,6 +29,7 @@ class AuthService(
     private val userFinder: UserFinder,
     private val oAuthClientFactory: OAuthClientFactory,
     private val tokenProvider: TokenProvider,
+    private val withdrawalRecordRepository: WithdrawalRecordRepository,
 ) : Auth {
     @Transactional
     override fun login(
@@ -44,11 +48,22 @@ class AuthService(
     }
 
     @Transactional
-    override fun withdraw(userId: UUID) {
+    override fun withdraw(
+        userId: UUID,
+        reason: WithdrawalReason,
+        reasonDetail: String?,
+    ) {
         val user = userFinder.findByIdOrThrow(userId)
         user.withdraw()
         userRepository.save(user)
         refreshTokenRepository.deleteByUserId(userId)
+        withdrawalRecordRepository.save(
+            WithdrawalRecord.create(
+                userId = userId,
+                reason = reason,
+                reasonDetail = reasonDetail,
+            ),
+        )
     }
 
     @Transactional

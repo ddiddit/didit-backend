@@ -8,15 +8,15 @@ class SpeechUnsupportedFileException(
     originalFilename: String?,
     contentType: String?,
 ) : BusinessException(
-    SpeechErrorCode.SPEECH_UNSUPPORTED_FILE,
-    "originalFilename: $originalFilename, contentType: $contentType",
-)
+        SpeechErrorCode.SPEECH_UNSUPPORTED_FILE,
+        "originalFilename: $originalFilename, contentType: $contentType",
+    )
 
 class SpeechTranscriptionFailedException(
     message: String,
 ) : BusinessException(
-    SpeechErrorCode.SPEECH_TRANSCRIPTION_FAILED,
-    message,
-)
+        SpeechErrorCode.SPEECH_TRANSCRIPTION_FAILED,
+        message,
+    )
 
 class SpeechEmptyResultException : BusinessException(SpeechErrorCode.SPEECH_EMPTY_RESULT)
