@@ -65,7 +65,7 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
 
         mockMvc
             .perform(
-                post("/api/v1/admin/inquiries/{inquiryId}/answer", inquiryId)
+                post("/api/v1/admin/inquiries/{inquiryId}", inquiryId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isOk)
@@ -111,7 +111,7 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
 
         mockMvc
             .perform(
-                patch("/api/v1/admin/inquiries/{inquiryId}/answer", inquiryId)
+                patch("/api/v1/admin/inquiries/{inquiryId}", inquiryId)
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isOk)

@@ -48,7 +48,7 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
 
         mockMvc
             .perform(
-                get("/api/v1/inquiry"),
+                get("/api/v1/inquiries/me"),
             ).andExpect(status().isOk)
             .andDo(
                 document(
@@ -80,7 +80,7 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
 
         mockMvc
             .perform(
-                post("/api/v1/inquiry")
+                post("/api/v1/inquiries")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isNoContent)
@@ -148,7 +148,7 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
 
         mockMvc
             .perform(
-                get("/api/v1/inquiry/list"),
+                get("/api/v1/inquiries"),
             ).andExpect(status().isOk)
             .andDo(
                 document(
@@ -184,7 +184,7 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
 
         mockMvc
             .perform(
-                delete("/api/v1/inquiry/{inquiryId}", inquiryId),
+                delete("/api/v1/inquiries/{inquiryId}", inquiryId),
             ).andExpect(status().isNoContent)
             .andDo(
                 document(
@@ -203,7 +203,7 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
             .thenReturn(emptyList())
 
         mockMvc
-            .perform(get("/api/v1/inquiry/list"))
+            .perform(get("/api/v1/inquiries"))
             .andExpect(status().isOk)
     }
 

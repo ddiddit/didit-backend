@@ -24,7 +24,7 @@ class InquiryAdminApi(
     private val inquiryFinder: InquiryFinder,
 ) {
     @RequireAdmin
-    @PostMapping("/{inquiryId}/answer")
+    @PostMapping("/{inquiryId}")
     fun answer(
         @CurrentAdminId adminId: UUID,
         @PathVariable inquiryId: UUID,
@@ -36,7 +36,7 @@ class InquiryAdminApi(
     }
 
     @RequireAdmin
-    @PatchMapping("/{inquiryId}/answer")
+    @PatchMapping("/{inquiryId}")
     fun updateAnswer(
         @CurrentAdminId adminId: UUID,
         @PathVariable inquiryId: UUID,
