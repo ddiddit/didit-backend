@@ -15,6 +15,7 @@ import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.domain.retrospect.SearchHistory
 import com.didit.support.RetrospectiveFixture
 import org.junit.jupiter.api.Test
