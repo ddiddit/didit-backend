@@ -10,6 +10,7 @@ import com.didit.adapter.webapi.retrospect.dto.RetrospectiveDetailResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveSearchResponse
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
+import com.didit.adapter.webapi.retrospect.dto.SearchHistoryResponse
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
@@ -17,6 +18,7 @@ import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
+import com.didit.application.retrospect.provided.SearchHistoryFinder
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
@@ -39,6 +41,7 @@ import java.util.UUID
 class RetrospectApi(
     private val retrospectiveRegister: RetrospectiveRegister,
     private val retrospectiveFinder: RetrospectiveFinder,
+    private val searchHistoryFinder: SearchHistoryFinder,
 ) {
     @RequireAuth
     @ResponseStatus(HttpStatus.CREATED)
@@ -58,7 +61,13 @@ class RetrospectApi(
         @PathVariable retrospectiveId: UUID,
         @RequestBody request: SubmitAnswerRequest,
     ): SuccessResponse<SubmitAnswerResponse> {
-        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, request.content)
+        val result =
+            retrospectiveRegister.submitAnswer(
+                retrospectiveId = retrospectiveId,
+                userId = userId,
+                content = request.content,
+                inputType = request.inputType,
+            )
 
         return SuccessResponse.of(result)
     }
@@ -209,5 +218,15 @@ class RetrospectApi(
     ): SuccessResponse<List<RetrospectiveSearchResponse>> {
         val retrospectives = retrospectiveFinder.searchByTitle(userId, keyword)
         return SuccessResponse.of(retrospectives.map { RetrospectiveSearchResponse.from(it) })
+    }
+
+    @RequireAuth
+    @GetMapping("/search/info")
+    fun searchInfo(
+        @CurrentUserId userId: UUID,
+    ): SuccessResponse<List<SearchHistoryResponse>> {
+        val histories = searchHistoryFinder.findRecent(userId)
+
+        return SuccessResponse.of(histories.map { SearchHistoryResponse.from(it) })
     }
 }

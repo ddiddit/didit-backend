@@ -11,6 +11,7 @@ import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.required.AIClient
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.ChatMessage
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
@@ -59,6 +60,7 @@ class RetrospectService(
         retrospectiveId: UUID,
         userId: UUID,
         content: String,
+        inputType: InputType,
     ): SubmitAnswerResponse {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
         if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
@@ -78,6 +80,7 @@ class RetrospectService(
                 retrospective = retrospective,
                 content = content,
                 questionType = currentQuestionType,
+                inputType = inputType,
             ),
         )
         retrospectiveRepository.save(retrospective)

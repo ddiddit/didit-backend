@@ -5,6 +5,7 @@ import org.junit.jupiter.api.assertThrows
 import java.util.UUID
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ChatMessageTest {
@@ -13,8 +14,23 @@ class ChatMessageTest {
     @Test
     fun `userAnswer - 빈 내용이면 예외가 발생한다`() {
         assertThrows<IllegalArgumentException> {
-            ChatMessage.userAnswer(retrospective(), "", QuestionType.Q1)
+            ChatMessage.userAnswer(retrospective(), "", QuestionType.Q1, InputType.TEXT)
         }
+    }
+
+    @Test
+    fun `userAnswer - inputType이 저장된다`() {
+        val message =
+            ChatMessage.userAnswer(
+                retrospective = retrospective(),
+                content = "답변입니다.",
+                questionType = QuestionType.Q1,
+                inputType = InputType.TEXT,
+            )
+
+        assertEquals(Sender.USER, message.sender)
+        assertEquals(InputType.TEXT, message.inputType)
+        assertFalse(message.isSkipped)
     }
 
     @Test
@@ -31,6 +47,7 @@ class ChatMessageTest {
         assertTrue(message.isSkipped)
         assertEquals("", message.content)
         assertEquals(Sender.USER, message.sender)
+        assertNull(message.inputType)
     }
 
     @Test
@@ -39,5 +56,6 @@ class ChatMessageTest {
 
         assertEquals(Sender.AI, message.sender)
         assertFalse(message.isSkipped)
+        assertNull(message.inputType)
     }
 }
