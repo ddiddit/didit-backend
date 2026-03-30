@@ -1,0 +1,35 @@
+= 음성 인식 API
+
+== 음성을 텍스트로 변환
+
+=== Request
+
+include::{snippets}/speech/transcribe/http-request.adoc[]
+include::{snippets}/speech/transcribe/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/speech/transcribe/http-response.adoc[]
+include::{snippets}/speech/transcribe/response-fields.adoc[]
+
+=== Error Cases
+
+==== 빈 파일 제출 시
+
+include::{snippets}/speech/transcribe/http-request-empty-file.adoc[]
+include::{snippets}/speech/transcribe/http-response-empty-file.adoc[]
+
+==== 지원하지 않는 파일 형식 제출 시
+
+include::{snippets}/speech/transcribe/http-request-unsupported-file.adoc[]
+include::{snippets}/speech/transcribe/http-response-unsupported-file.adoc[]
+
+==== 음성 인식 실패 시
+
+include::{snippets}/speech/transcribe/http-request-transcription-failed.adoc[]
+include::{snippets}/speech/transcribe/http-response-transcription-failed.adoc[]
+
+==== 음성 인식 결과가 비어있을 시
+
+include::{snippets}/speech/transcribe/http-request-empty-result.adoc[]
+include::{snippets}/speech/transcribe/http-response-empty-result.adoc[]
