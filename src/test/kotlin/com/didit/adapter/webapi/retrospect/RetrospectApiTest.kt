@@ -37,6 +37,7 @@ import org.springframework.restdocs.request.RequestDocumentation.queryParameters
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 class RetrospectApiTest : AuthenticatedRestDocsSupport() {
@@ -513,13 +514,42 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 제목 검색`() {
-        val retros = listOf(retrospectiveWithQ1(), retrospectiveWithQ1())
-        whenever(retrospectiveFinder.searchByTitle(userId, "회고")).thenReturn(retros)
+        val keyword = "retro"
+        val retros =
+            listOf(
+                Retrospective.create(userId).apply {
+                    title = "Retro 1"
+                    completedAt = LocalDateTime.now()
+                    summary =
+                        RetrospectiveSummary(
+                            feedback = "오늘 작업을 잘 마무리했어요.",
+                            insight = "문제를 작게 나누는 것이 중요합니다.",
+                            doneWork = "로그인 API 연동 완료",
+                            blockedPoint = "토큰 만료 처리 어려움",
+                            solutionProcess = "공식 문서 참고",
+                            lessonLearned = "초반에 에러 처리 설계",
+                        )
+                },
+                Retrospective.create(userId).apply {
+                    title = "Retro 2"
+                    completedAt = LocalDateTime.now()
+                    summary =
+                        RetrospectiveSummary(
+                            feedback = "오늘도 열심히 했습니다.",
+                            insight = "작게 나누는 습관 필요",
+                            doneWork = "DB 마이그레이션 완료",
+                            blockedPoint = "쿼리 최적화 어려움",
+                            solutionProcess = "팀 코드 리뷰 참고",
+                            lessonLearned = "테스트 먼저 작성",
+                        )
+                },
+            )
+        whenever(retrospectiveFinder.searchByTitle(userId, keyword)).thenReturn(retros)
 
         mockMvc
             .perform(
                 get("/api/v1/retrospectives/search")
-                    .param("keyword", "회고"),
+                    .param("keyword", keyword),
             ).andExpect(status().isOk)
             .andDo(
                 document(
