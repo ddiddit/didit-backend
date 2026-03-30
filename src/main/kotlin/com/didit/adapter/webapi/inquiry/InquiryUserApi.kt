@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
 @RestController
-@RequestMapping("/api/v1/inquiry")
+@RequestMapping("/api/v1/inquiries")
 class InquiryUserApi(
     private val inquiryInfoFinder: InquiryInfoFinder,
     private val inquiryRegister: InquiryRegister,
@@ -30,7 +30,7 @@ class InquiryUserApi(
     private val inquiryModifier: InquiryModifier,
 ) {
     @RequireAuth
-    @GetMapping
+    @GetMapping("/me")
     fun info(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<String?> = SuccessResponse.of(inquiryInfoFinder.findEmail(userId))
@@ -56,7 +56,7 @@ class InquiryUserApi(
     }
 
     @RequireAuth
-    @GetMapping("/list")
+    @GetMapping
     fun findAll(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<List<InquiryListResponse>> {
