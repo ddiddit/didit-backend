@@ -41,7 +41,13 @@ class ClovaClient(
         val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers)
         val response = call(prompt)
         return runCatching {
-            objectMapper.readValue<AISummaryResponse>(response)
+            // 정규식으로 markdown 코드 블록 제거
+            val cleanResponse =
+                response
+                    .replace(Regex("```json\\s*"), "")
+                    .replace(Regex("```\\s*$"), "")
+                    .trim()
+            objectMapper.readValue<AISummaryResponse>(cleanResponse)
         }.getOrElse {
             throw RuntimeException("회고 요약 파싱에 실패했습니다. response: $response")
         }
@@ -97,7 +103,7 @@ data class ClovaResponse(
 
 data class ClovaResult(
     val message: ClovaMessage,
-    val stopReason: String,
+    val stopReason: String?,
     val inputLength: Int,
     val outputLength: Int,
 )
