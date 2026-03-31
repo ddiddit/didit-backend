@@ -15,6 +15,7 @@ import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
+import com.didit.domain.retrospect.Sender
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -86,20 +87,60 @@ class RetrospectService(
         retrospectiveRepository.save(retrospective)
 
         if (currentQuestionType == QuestionType.Q3) {
-            generateDeepQuestionAsync(retrospective.id, userId)
+            // 심화 질문을 동기로 생성
+            val job = userFinder.getJobByUserId(retrospective.userId)
+            val answers = retrospective.getAnswersUpToQ3()
+            val deepQuestionContent = aiClient.generateDeepQuestion(job, answers)
+
+            retrospective.addMessage(
+                ChatMessage.question(
+                    retrospective = retrospective,
+                    content = deepQuestionContent,
+                    questionType = QuestionType.Q4_DEEP,
+                ),
+            )
+            retrospectiveRepository.save(retrospective)
+
             return SubmitAnswerResponse(
                 nextQuestionType = QuestionType.Q4_DEEP,
-                nextQuestionContent = null,
+                nextQuestionContent = deepQuestionContent,
                 isReadyToComplete = false,
             )
         }
 
         if (currentQuestionType == QuestionType.Q4_DEEP) {
-            return SubmitAnswerResponse(
-                nextQuestionType = null,
-                nextQuestionContent = null,
-                isReadyToComplete = true,
-            )
+            // 심화 질문이 이미 생성되었는지 확인
+            val deepQuestion =
+                retrospective.chatMessages
+                    .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
+
+            return if (deepQuestion != null) {
+                SubmitAnswerResponse(
+                    nextQuestionType = QuestionType.Q4_DEEP,
+                    nextQuestionContent = deepQuestion.content,
+                    isReadyToComplete = false,
+                )
+            } else {
+                // 심화 질문이 아직 생성되지 않았다면 잠시 기다렸다가 다시 확인
+                Thread.sleep(1000) // 1초 대기
+                val retryQuestion =
+                    retrospective.chatMessages
+                        .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
+
+                if (retryQuestion != null) {
+                    SubmitAnswerResponse(
+                        nextQuestionType = QuestionType.Q4_DEEP,
+                        nextQuestionContent = retryQuestion.content,
+                        isReadyToComplete = false,
+                    )
+                } else {
+                    SubmitAnswerResponse(
+                        nextQuestionType = QuestionType.Q4_DEEP,
+                        nextQuestionContent = "심화 질문을 생성 중입니다...",
+                        isReadyToComplete = false,
+                    )
+                }
+            }
         }
 
         val nextQuestionType = QuestionType.entries[currentQuestionType.ordinal + 1]
