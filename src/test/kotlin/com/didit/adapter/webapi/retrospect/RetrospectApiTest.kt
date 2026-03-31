@@ -35,6 +35,7 @@ import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.pathParameters
 import org.springframework.restdocs.request.RequestDocumentation.queryParameters
+import org.springframework.restdocs.snippet.Attributes.key
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDate
@@ -515,11 +516,11 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 제목 검색`() {
-        val keyword = "retro"
+        val keyword = "회고"
         val retros =
             listOf(
                 Retrospective.create(userId).apply {
-                    title = "Retro 1"
+                    title = "회고 1"
                     completedAt = LocalDateTime.now()
                     summary =
                         RetrospectiveSummary(
@@ -532,7 +533,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         )
                 },
                 Retrospective.create(userId).apply {
-                    title = "Retro 2"
+                    title = "회고 2"
                     completedAt = LocalDateTime.now()
                     summary =
                         RetrospectiveSummary(
@@ -557,6 +558,11 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     "retrospect/search",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
+                    queryParameters(
+                        parameterWithName("keyword")
+                            .description("검색 키워드")
+                            .attributes(key("example").value("회고")),
+                    ),
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),

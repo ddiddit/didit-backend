@@ -170,6 +170,7 @@ include::{snippets}/retrospect/find-by-id/response-fields.adoc[]
 === Request
 
 include::{snippets}/retrospect/search/http-request.adoc[]
+include::{snippets}/retrospect/search/query-parameters.adoc[]
 
 === Response
 
