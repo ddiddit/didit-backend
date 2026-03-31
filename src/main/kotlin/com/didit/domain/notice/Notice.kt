@@ -30,8 +30,6 @@ class Notice(
     @Column
     var deletedAt: LocalDateTime? = null,
 ) : BaseEntity() {
-    fun isPublished(): Boolean = status == NoticeStatus.PUBLISHED && deletedAt == null
-
     companion object {
         fun register(
             request: NoticeRegisterRequest,
