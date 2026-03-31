@@ -515,11 +515,11 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 제목 검색`() {
-        val keyword = "retro"
+        val keyword = "회고"
         val retros =
             listOf(
                 Retrospective.create(userId).apply {
-                    title = "Retro 1"
+                    title = "회고 1"
                     completedAt = LocalDateTime.now()
                     summary =
                         RetrospectiveSummary(
@@ -532,7 +532,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         )
                 },
                 Retrospective.create(userId).apply {
-                    title = "Retro 2"
+                    title = "회고 2"
                     completedAt = LocalDateTime.now()
                     summary =
                         RetrospectiveSummary(
@@ -557,6 +557,10 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     "retrospect/search",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
+                    queryParameters(
+                        parameterWithName("keyword")
+                            .description("검색 키워드 (예시: 회고)"),
+                    ),
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
