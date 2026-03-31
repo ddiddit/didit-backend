@@ -16,6 +16,7 @@ import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.domain.retrospect.Sender
+import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -31,7 +32,11 @@ class RetrospectService(
     private val userFinder: UserFinder,
 ) : RetrospectiveRegister {
     companion object {
+        private val logger = LoggerFactory.getLogger(RetrospectService::class.java)
         private const val DAILY_LIMIT = 3
+        private const val DEEP_QUESTION_GENERATING_MESSAGE = "심화 질문을 생성 중입니다..."
+        private const val DEFAULT_FALLBACK_QUESTION = "오늘 회고를 통해 어떤 성찰을 얻으셨나요?"
+
         private val QUESTION_CONTENTS =
             mapOf(
                 QuestionType.Q1 to "오늘 어떤 일을 하셨나요?",
@@ -64,8 +69,7 @@ class RetrospectService(
         inputType: InputType,
     ): SubmitAnswerResponse {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-        if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
-        if (retrospective.isDeleted()) throw RetrospectiveNotInProgressException(retrospectiveId)
+        validateRetrospectiveInProgress(retrospective, retrospectiveId)
 
         val currentQuestionType =
             retrospective.currentQuestionType()
@@ -76,87 +80,13 @@ class RetrospectService(
             retrospective.startProgress()
         }
 
-        retrospective.addMessage(
-            ChatMessage.userAnswer(
-                retrospective = retrospective,
-                content = content,
-                questionType = currentQuestionType,
-                inputType = inputType,
-            ),
-        )
-        retrospectiveRepository.save(retrospective)
+        saveUserAnswer(retrospective, content, currentQuestionType, inputType)
 
-        if (currentQuestionType == QuestionType.Q3) {
-            // 심화 질문을 동기로 생성
-            val job = userFinder.getJobByUserId(retrospective.userId)
-            val answers = retrospective.getAnswersUpToQ3()
-            val deepQuestionContent = aiClient.generateDeepQuestion(job, answers)
-
-            retrospective.addMessage(
-                ChatMessage.question(
-                    retrospective = retrospective,
-                    content = deepQuestionContent,
-                    questionType = QuestionType.Q4_DEEP,
-                ),
-            )
-            retrospectiveRepository.save(retrospective)
-
-            return SubmitAnswerResponse(
-                nextQuestionType = QuestionType.Q4_DEEP,
-                nextQuestionContent = deepQuestionContent,
-                isReadyToComplete = false,
-            )
+        return when (currentQuestionType) {
+            QuestionType.Q3 -> handleQ3Answer(retrospective)
+            QuestionType.Q4_DEEP -> handleQ4Answer(retrospective)
+            else -> handleRegularAnswer(retrospective, currentQuestionType)
         }
-
-        if (currentQuestionType == QuestionType.Q4_DEEP) {
-            // 심화 질문이 이미 생성되었는지 확인
-            val deepQuestion =
-                retrospective.chatMessages
-                    .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
-
-            return if (deepQuestion != null) {
-                SubmitAnswerResponse(
-                    nextQuestionType = QuestionType.Q4_DEEP,
-                    nextQuestionContent = deepQuestion.content,
-                    isReadyToComplete = false,
-                )
-            } else {
-                // 심화 질문이 아직 생성되지 않았다면 잠시 기다렸다가 다시 확인
-                Thread.sleep(1000) // 1초 대기
-                val retryQuestion =
-                    retrospective.chatMessages
-                        .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
-
-                if (retryQuestion != null) {
-                    SubmitAnswerResponse(
-                        nextQuestionType = QuestionType.Q4_DEEP,
-                        nextQuestionContent = retryQuestion.content,
-                        isReadyToComplete = false,
-                    )
-                } else {
-                    SubmitAnswerResponse(
-                        nextQuestionType = QuestionType.Q4_DEEP,
-                        nextQuestionContent = "심화 질문을 생성 중입니다...",
-                        isReadyToComplete = false,
-                    )
-                }
-            }
-        }
-
-        val nextQuestionType = QuestionType.entries[currentQuestionType.ordinal + 1]
-        val nextContent = QUESTION_CONTENTS[nextQuestionType]!!
-        retrospective.addMessage(
-            ChatMessage.question(
-                retrospective = retrospective,
-                content = nextContent,
-                questionType = nextQuestionType,
-            ),
-        )
-        return SubmitAnswerResponse(
-            nextQuestionType = nextQuestionType,
-            nextQuestionContent = nextContent,
-            isReadyToComplete = false,
-        )
     }
 
     @Async
@@ -168,7 +98,14 @@ class RetrospectService(
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
         val job = userFinder.getJobByUserId(retrospective.userId)
         val answers = retrospective.getAnswersUpToQ3()
-        val deepQuestionContent = aiClient.generateDeepQuestion(job, answers)
+
+        val deepQuestionContent =
+            try {
+                aiClient.generateDeepQuestion(job, answers)
+            } catch (e: Exception) {
+                logger.error("Failed to generate deep question for userId: $userId, retrospectiveId: $retrospectiveId", e)
+                DEFAULT_FALLBACK_QUESTION
+            }
 
         retrospective.addMessage(
             ChatMessage.question(
@@ -203,11 +140,15 @@ class RetrospectService(
         userId: UUID,
     ): AISummaryResponse {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-        if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
-        if (!retrospective.isInProgress()) throw RetrospectiveNotInProgressException(retrospectiveId)
+        validateRetrospectiveInProgress(retrospective, retrospectiveId)
 
         val job = userFinder.getJobByUserId(userId)
-        return aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers())
+        return try {
+            aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers())
+        } catch (e: Exception) {
+            logger.error("Failed to generate summary for userId: $userId, retrospectiveId: $retrospectiveId", e)
+            throw e
+        }
     }
 
     @Transactional
@@ -246,6 +187,87 @@ class RetrospectService(
         retrospective.softDelete()
         retrospectiveRepository.save(retrospective)
         return start(userId)
+    }
+
+    // Private helper methods
+
+    private fun validateRetrospectiveInProgress(
+        retrospective: Retrospective,
+        retrospectiveId: UUID,
+    ) {
+        if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
+        if (retrospective.isDeleted()) throw RetrospectiveNotInProgressException(retrospectiveId)
+    }
+
+    private fun saveUserAnswer(
+        retrospective: Retrospective,
+        content: String,
+        questionType: QuestionType,
+        inputType: InputType,
+    ) {
+        retrospective.addMessage(
+            ChatMessage.userAnswer(
+                retrospective = retrospective,
+                content = content,
+                questionType = questionType,
+                inputType = inputType,
+            ),
+        )
+        retrospectiveRepository.save(retrospective)
+    }
+
+    private fun handleQ3Answer(retrospective: Retrospective): SubmitAnswerResponse {
+        // 비동기로 심화 질문 생성
+        generateDeepQuestionAsync(retrospective.id, retrospective.userId)
+
+        return SubmitAnswerResponse(
+            nextQuestionType = QuestionType.Q4_DEEP,
+            nextQuestionContent = DEEP_QUESTION_GENERATING_MESSAGE,
+            isReadyToComplete = false,
+        )
+    }
+
+    private fun handleQ4Answer(retrospective: Retrospective): SubmitAnswerResponse {
+        val deepQuestion =
+            retrospective.chatMessages
+                .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
+
+        return if (deepQuestion != null) {
+            SubmitAnswerResponse(
+                nextQuestionType = QuestionType.Q4_DEEP,
+                nextQuestionContent = deepQuestion.content,
+                isReadyToComplete = true,
+            )
+        } else {
+            SubmitAnswerResponse(
+                nextQuestionType = QuestionType.Q4_DEEP,
+                nextQuestionContent = DEEP_QUESTION_GENERATING_MESSAGE,
+                isReadyToComplete = false,
+            )
+        }
+    }
+
+    private fun handleRegularAnswer(
+        retrospective: Retrospective,
+        currentQuestionType: QuestionType,
+    ): SubmitAnswerResponse {
+        val nextQuestionType = QuestionType.entries[currentQuestionType.ordinal + 1]
+        val nextContent = QUESTION_CONTENTS[nextQuestionType]!!
+
+        retrospective.addMessage(
+            ChatMessage.question(
+                retrospective = retrospective,
+                content = nextContent,
+                questionType = nextQuestionType,
+            ),
+        )
+        retrospectiveRepository.save(retrospective)
+
+        return SubmitAnswerResponse(
+            nextQuestionType = nextQuestionType,
+            nextQuestionContent = nextContent,
+            isReadyToComplete = false,
+        )
     }
 
     @Transactional
