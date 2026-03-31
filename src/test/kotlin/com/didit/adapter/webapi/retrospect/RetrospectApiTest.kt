@@ -35,7 +35,6 @@ import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.pathParameters
 import org.springframework.restdocs.request.RequestDocumentation.queryParameters
-import org.springframework.restdocs.snippet.Attributes.key
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDate
@@ -560,8 +559,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentResponse(),
                     queryParameters(
                         parameterWithName("keyword")
-                            .description("검색 키워드")
-                            .attributes(key("example").value("회고")),
+                            .description("검색 키워드 (예시: 회고)"),
                     ),
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
