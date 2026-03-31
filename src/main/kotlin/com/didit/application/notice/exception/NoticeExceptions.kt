@@ -10,11 +10,4 @@ class NoticeNotFoundException(
         "noticeId: $noticeId",
     )
 
-class NoticeStatusInvalidException(
-    noticeId: UUID,
-) : BusinessException(
-        NoticeErrorCode.NOTICE_STATUS_INVALID,
-        "noticeId: $noticeId",
-    )
-
 class NoticeForbiddenException : BusinessException(NoticeErrorCode.NOTICE_FORBIDDEN)
