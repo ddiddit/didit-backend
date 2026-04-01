@@ -2,6 +2,7 @@ package com.didit.adapter.integration.ai
 
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.required.AIClient
+import com.didit.application.retrospect.required.GeneratedDeepQuestion
 import com.didit.domain.shared.Job
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
@@ -25,10 +26,10 @@ class ClovaClient(
     override fun generateDeepQuestion(
         job: Job?,
         answers: List<String>,
-    ): String {
+    ): GeneratedDeepQuestion {
         val prompt = FeedbackPrompts.buildDeepQuestionPrompt(job, answers)
         val result = callWithResult(prompt)
-        return parseDeepQuestion(result.message.content)
+        return parseDeepQuestion(result)
     }
 
     override fun generateSummaryWithTitle(
@@ -67,14 +68,21 @@ class ClovaClient(
             ?: throw RuntimeException("Clova 응답을 받지 못했습니다.")
     }
 
-    private fun parseDeepQuestion(content: String): String =
+    private fun parseDeepQuestion(result: ClovaResult): GeneratedDeepQuestion =
         runCatching {
             data class DeepQuestionDto(
                 val question: String,
             )
-            objectMapper.readValue<DeepQuestionDto>(content).question
+
+            val question = objectMapper.readValue<DeepQuestionDto>(result.message.content).question
+
+            GeneratedDeepQuestion(
+                content = question,
+                inputTokens = result.inputLength,
+                outputTokens = result.outputLength,
+            )
         }.getOrElse {
-            throw RuntimeException("심화 질문 파싱에 실패했습니다. response: $content")
+            throw RuntimeException("심화 질문 파싱에 실패했습니다. response: ${result.message.content}")
         }
 
     private fun parseSummary(result: ClovaResult): AISummaryResponse =
@@ -84,6 +92,7 @@ class ClovaClient(
                     .replace(Regex("```json\\s*"), "")
                     .replace(Regex("```\\s*$"), "")
                     .trim()
+
             objectMapper.readValue<AISummaryResponse>(cleanResponse).copy(
                 inputTokens = result.inputLength,
                 outputTokens = result.outputLength,
