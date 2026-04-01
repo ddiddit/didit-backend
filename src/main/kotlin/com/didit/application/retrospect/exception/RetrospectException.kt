@@ -30,3 +30,22 @@ class DailyLimitExceededException(
         RetrospectErrorCode.DAILY_LIMIT_EXCEEDED,
         "userId: $userId",
     )
+
+class SpeechEmptyFileException : BusinessException(RetrospectErrorCode.SPEECH_EMPTY_FILE)
+
+class SpeechUnsupportedFileException(
+    originalFilename: String?,
+    contentType: String?,
+) : BusinessException(
+        RetrospectErrorCode.SPEECH_UNSUPPORTED_FILE,
+        "originalFilename: $originalFilename, contentType: $contentType",
+    )
+
+class SpeechTranscriptionFailedException(
+    message: String,
+) : BusinessException(
+        RetrospectErrorCode.SPEECH_TRANSCRIPTION_FAILED,
+        message,
+    )
+
+class SpeechEmptyResultException : BusinessException(RetrospectErrorCode.SPEECH_EMPTY_RESULT)
