@@ -143,12 +143,26 @@ class RetrospectService(
         validateRetrospectiveInProgress(retrospective, retrospectiveId)
 
         val job = userFinder.getJobByUserId(userId)
-        return try {
-            aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers())
-        } catch (e: Exception) {
-            logger.error("Failed to generate summary for userId: $userId, retrospectiveId: $retrospectiveId", e)
-            throw e
-        }
+        val summary =
+            try {
+                aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers())
+            } catch (e: Exception) {
+                logger.error("Failed to generate summary", e)
+                throw e
+            }
+
+        retrospective.saveSummary(
+            RetrospectiveSummary(
+                feedback = summary.feedback,
+                insight = summary.insight,
+                doneWork = summary.doneWork,
+                blockedPoint = summary.blockedPoint,
+                solutionProcess = summary.solutionProcess,
+                lessonLearned = summary.lessonLearned,
+            ),
+        )
+        retrospectiveRepository.save(retrospective)
+        return summary
     }
 
     @Transactional
@@ -156,25 +170,12 @@ class RetrospectService(
         retrospectiveId: UUID,
         userId: UUID,
         title: String,
-        summary: AISummaryResponse,
     ): Retrospective {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
         if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
 
-        retrospective.complete(
-            title = title,
-            summary =
-                RetrospectiveSummary(
-                    feedback = summary.feedback,
-                    insight = summary.insight,
-                    doneWork = summary.doneWork,
-                    blockedPoint = summary.blockedPoint,
-                    solutionProcess = summary.solutionProcess,
-                    lessonLearned = summary.lessonLearned,
-                ),
-            inputTokens = 0,
-            outputTokens = 0,
-        )
+        retrospective.complete(title = title)
+
         return retrospectiveRepository.save(retrospective)
     }
 

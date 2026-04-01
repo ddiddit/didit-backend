@@ -115,7 +115,6 @@ class RetrospectApi(
                 retrospectiveId = retrospectiveId,
                 userId = userId,
                 title = request.title,
-                summary = request.toAISummaryResponse(),
             )
         return SuccessResponse.of(RetrospectiveDetailResponse.from(retrospective))
     }

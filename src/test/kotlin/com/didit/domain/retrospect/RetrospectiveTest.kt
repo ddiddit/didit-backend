@@ -51,18 +51,12 @@ class RetrospectiveTest {
     fun `complete - 정상 완료 시 status가 COMPLETED로 변경된다`() {
         val retro = retrospective().apply { startProgress() }
 
-        retro.complete(
-            title = "오늘의 회고",
-            summary = summary(),
-            inputTokens = 100,
-            outputTokens = 200,
-        )
+        retro.saveSummary(summary())
+        retro.complete(title = "오늘의 회고")
 
         assertTrue(retro.isCompleted())
         assertFalse(retro.isInProgress())
         assertEquals("오늘의 회고", retro.title)
-        assertEquals(100, retro.inputTokens)
-        assertEquals(200, retro.outputTokens)
         assertThat(retro.completedAt).isNotNull()
     }
 
@@ -71,12 +65,7 @@ class RetrospectiveTest {
         val retro = retrospective().apply { startProgress() }
 
         assertThrows<IllegalArgumentException> {
-            retro.complete(
-                title = "",
-                summary = summary(),
-                inputTokens = 100,
-                outputTokens = 200,
-            )
+            retro.complete(title = "")
         }
     }
 

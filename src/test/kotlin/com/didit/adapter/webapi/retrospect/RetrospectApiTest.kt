@@ -217,27 +217,13 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 저장`() {
-        val summary = aiSummaryResponse()
-        val request =
-            SaveRetrospectiveRequest(
-                title = "오늘의 회고",
-                summary =
-                    SaveRetrospectiveRequest.SummaryRequest(
-                        feedback = summary.feedback,
-                        insight = summary.insight,
-                        doneWork = summary.doneWork,
-                        blockedPoint = summary.blockedPoint,
-                        solutionProcess = summary.solutionProcess,
-                        lessonLearned = summary.lessonLearned,
-                    ),
-            )
+        val request = SaveRetrospectiveRequest(title = "오늘의 회고")
         val retro = completedRetrospective()
         whenever(
             retrospectiveRegister.save(
                 retrospectiveId = any(),
                 userId = any(),
                 title = any(),
-                summary = any(),
             ),
         ).thenReturn(retro)
 
@@ -257,36 +243,18 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     requestFields(
                         fieldWithPath("title").type(JsonFieldType.STRING).description("회고 제목"),
-                        fieldWithPath("summary.feedback").type(JsonFieldType.STRING).description("AI 피드백"),
-                        fieldWithPath("summary.insight").type(JsonFieldType.STRING).description("인사이트"),
-                        fieldWithPath("summary.doneWork").type(JsonFieldType.STRING).description("한 일"),
-                        fieldWithPath("summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점"),
-                        fieldWithPath("summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정"),
-                        fieldWithPath("summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점"),
                     ),
                     responseFields(
                         fieldWithPath("data.id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
                         fieldWithPath("data.summary").type(JsonFieldType.OBJECT).description("회고 요약").optional(),
-                        fieldWithPath("data.summary.feedback")
-                            .type(JsonFieldType.STRING)
-                            .description("AI 피드백")
-                            .optional(),
+                        fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
                         fieldWithPath("data.summary.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
                         fieldWithPath("data.summary.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
-                        fieldWithPath("data.summary.blockedPoint")
-                            .type(JsonFieldType.STRING)
-                            .description("막힌 지점")
-                            .optional(),
-                        fieldWithPath("data.summary.solutionProcess")
-                            .type(JsonFieldType.STRING)
-                            .description("해결 과정")
-                            .optional(),
-                        fieldWithPath("data.summary.lessonLearned")
-                            .type(JsonFieldType.STRING)
-                            .description("배운 점")
-                            .optional(),
+                        fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
+                        fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
+                        fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),

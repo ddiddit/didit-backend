@@ -30,7 +30,6 @@ interface RetrospectiveRegister {
         retrospectiveId: UUID,
         userId: UUID,
         title: String,
-        summary: AISummaryResponse,
     ): Retrospective
 
     fun restart(
