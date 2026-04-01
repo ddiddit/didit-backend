@@ -48,3 +48,15 @@ include::{snippets}/inquiry/admin/answer-update/request-fields.adoc[]
 
 include::{snippets}/inquiry/admin/answer-update/http-response.adoc[]
 include::{snippets}/inquiry/admin/answer-update/response-fields.adoc[]
+
+== 관리자 문의 답변 삭제
+
+=== Request
+
+include::{snippets}/inquiry/admin/answer-delete/http-request.adoc[]
+include::{snippets}/inquiry/admin/answer-delete/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/inquiry/admin/answer-delete/http-response.adoc[]
+include::{snippets}/inquiry/admin/answer-delete/response-fields.adoc[]

@@ -89,9 +89,15 @@ class Inquiry(
         adminId: UUID,
     ) {
         require(status == InquiryStatus.ANSWERED) { "답변이 미완료된 문의는 답변 수정이 불가능합니다." }
-        require(this.adminId == adminId) { "해당 문의 답변에 권한이 없습니다." }
 
         this.adminAnswer = answer
         this.answeredAt = LocalDateTime.now()
+    }
+
+    fun deleteAnswer(adminId: UUID) {
+        if (this.adminAnswer == null) return
+        this.adminAnswer = null
+        this.adminId = null
+        this.status = InquiryStatus.PENDING
     }
 }

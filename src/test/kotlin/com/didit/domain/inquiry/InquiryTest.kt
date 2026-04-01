@@ -185,26 +185,4 @@ class InquiryTest {
             }
         assertEquals("답변이 미완료된 문의는 답변 수정이 불가능합니다.", exception.message)
     }
-
-    @Test
-    fun `답변자 권한 없으면 수정 시 예외`() {
-        val request =
-            InquiryRegisterRequest(
-                userId = userId,
-                email = email,
-                type = InquiryType.USAGE,
-                typeEtc = null,
-                content = "문의 내용",
-                isAgreed = true,
-            )
-        val inquiry = Inquiry.register(request, userId, email)
-        inquiry.answer(adminId, "첫 답변")
-
-        val otherAdminId = UUID.randomUUID()
-        val exception =
-            assertThrows<IllegalArgumentException> {
-                inquiry.updateAnswer("수정 답변", otherAdminId)
-            }
-        assertEquals("해당 문의 답변에 권한이 없습니다.", exception.message)
-    }
 }
