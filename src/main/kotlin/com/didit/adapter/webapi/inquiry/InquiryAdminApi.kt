@@ -8,6 +8,7 @@ import com.didit.adapter.webapi.inquiry.dto.InquiryResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.inquiry.provided.InquiryFinder
 import com.didit.application.inquiry.provided.InquiryModifier
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -43,6 +44,17 @@ class InquiryAdminApi(
         @RequestBody request: InquiryAnswerRequest,
     ): SuccessResponse<InquiryResponse> {
         val inquiry = inquiryModifier.updateAnswer(inquiryId, adminId, request.answer)
+        return SuccessResponse.of(InquiryResponse.of(inquiry))
+    }
+
+    @RequireAdmin
+    @DeleteMapping("/{inquiryId}")
+    fun deleteAnswer(
+        @CurrentAdminId adminId: UUID,
+        @PathVariable inquiryId: UUID,
+    ): SuccessResponse<InquiryResponse> {
+        val inquiry = inquiryModifier.deleteAnswer(inquiryId, adminId)
+
         return SuccessResponse.of(InquiryResponse.of(inquiry))
     }
 

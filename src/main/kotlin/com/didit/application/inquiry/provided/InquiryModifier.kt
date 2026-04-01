@@ -16,6 +16,11 @@ interface InquiryModifier {
         answer: String,
     ): Inquiry
 
+    fun deleteAnswer(
+        inquiryId: UUID,
+        adminId: UUID,
+    ): Inquiry
+
     fun delete(
         inquiryId: UUID,
         userId: UUID,

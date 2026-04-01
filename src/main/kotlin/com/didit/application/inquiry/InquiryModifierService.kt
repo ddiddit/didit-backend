@@ -37,6 +37,16 @@ class InquiryModifierService(
         return inquiryRepository.save(inquiry)
     }
 
+    override fun deleteAnswer(
+        inquiryId: UUID,
+        adminId: UUID,
+    ): Inquiry {
+        val inquiry = inquiryRepository.findByIdAndDeletedAtIsNull(inquiryId) ?: throw InquiryNotFoundException()
+        inquiry.deleteAnswer(adminId)
+
+        return inquiryRepository.save(inquiry)
+    }
+
     @Transactional
     override fun delete(
         inquiryId: UUID,

@@ -21,9 +21,11 @@ import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.pathParameters
 import org.springframework.test.util.ReflectionTestUtils
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDateTime
 import java.util.UUID
@@ -58,7 +60,7 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
         val inquiryId = UUID.randomUUID()
 
         val request = InquiryAnswerRequest("답변입니다.")
-        val inquiry = createInquiry()
+        val inquiry = createInquiry().apply { this.adminAnswer = request.answer }
 
         whenever(inquiryModifier.answer(any(), any(), any()))
             .thenReturn(inquiry)
@@ -69,6 +71,7 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.adminAnswer").value("답변입니다."))
             .andDo(
                 document(
                     "inquiry/admin/answer",
@@ -104,7 +107,7 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
         val inquiryId = UUID.randomUUID()
 
         val request = InquiryAnswerRequest("수정된 답변입니다.")
-        val inquiry = createInquiry()
+        val inquiry = createInquiry().apply { this.adminAnswer = "수정된 답변입니다." }
 
         whenever(inquiryModifier.updateAnswer(any(), any(), any()))
             .thenReturn(inquiry)
@@ -115,6 +118,7 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.adminAnswer").value("수정된 답변입니다."))
             .andDo(
                 document(
                     "inquiry/admin/answer-update",
@@ -142,6 +146,64 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.createdAt").type(JsonFieldType.STRING).description("문의 생성 시간"),
                         fieldWithPath("data.adminAnswer").type(JsonFieldType.STRING).description("관리자 답변"),
                         fieldWithPath("data.answeredAt").type(JsonFieldType.STRING).description("답변 시간"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `관리자 문의 답변 삭제`() {
+        val inquiryId = UUID.randomUUID()
+        val inquiry =
+            createInquiry().apply {
+                this.adminAnswer = null
+                this.answeredAt = null
+                this.status = InquiryStatus.PENDING
+            }
+
+        whenever(inquiryModifier.deleteAnswer(any(), any()))
+            .thenReturn(inquiry)
+
+        mockMvc
+            .perform(
+                delete("/api/v1/admin/inquiries/{inquiryId}", inquiryId)
+                    .accept(MediaType.APPLICATION_JSON),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "inquiry/admin/answer-delete",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("inquiryId").description("문의 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.id").type(JsonFieldType.STRING).description("문의 ID"),
+                        fieldWithPath("data.email").type(JsonFieldType.STRING).description("문의자 이메일"),
+                        fieldWithPath("data.type")
+                            .type(JsonFieldType.STRING)
+                            .description("문의 유형(USAGE, BUG, IMPROVEMENT, ETC)"),
+                        fieldWithPath("data.typeEtc")
+                            .type(JsonFieldType.STRING)
+                            .optional()
+                            .description("기타 유형 내용"),
+                        fieldWithPath("data.content")
+                            .type(JsonFieldType.STRING)
+                            .description("문의 내용"),
+                        fieldWithPath("data.status")
+                            .type(JsonFieldType.STRING)
+                            .description("문의 상태(PENDING, ANSWERED)"),
+                        fieldWithPath("data.createdAt")
+                            .type(JsonFieldType.STRING)
+                            .description("문의 생성 시간"),
+                        fieldWithPath("data.adminAnswer")
+                            .type(JsonFieldType.STRING)
+                            .optional()
+                            .description("관리자 답변 (삭제 시 null)"),
+                        fieldWithPath("data.answeredAt")
+                            .type(JsonFieldType.STRING)
+                            .optional()
+                            .description("답변 시간 (삭제 시 null)"),
                     ),
                 ),
             )
