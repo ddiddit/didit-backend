@@ -156,6 +156,9 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     responseFields(
+                        fieldWithPath("data[].id")
+                            .type(JsonFieldType.STRING)
+                            .description("문의 ID (UUID)"),
                         fieldWithPath("data[].type")
                             .type(JsonFieldType.STRING)
                             .description("문의 유형(USAGE, BUG, IMPROVEMENT, ETC)"),
