@@ -72,6 +72,6 @@ class InquiryUserApi(
         @CurrentUserId userId: UUID,
         @PathVariable inquiryId: UUID,
     ) {
-        inquiryModifier.delete(userId, inquiryId)
+        inquiryModifier.delete(inquiryId, userId)
     }
 }

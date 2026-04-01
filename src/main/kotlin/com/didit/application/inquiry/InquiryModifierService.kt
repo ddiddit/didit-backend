@@ -19,7 +19,7 @@ class InquiryModifierService(
         adminId: UUID,
         answer: String,
     ): Inquiry {
-        val inquiry = inquiryRepository.findById(inquiryId) ?: throw InquiryNotFoundException()
+        val inquiry = inquiryRepository.findByIdAndDeletedAtIsNull(inquiryId) ?: throw InquiryNotFoundException()
 
         inquiry.answer(adminId, answer)
         return inquiryRepository.save(inquiry)
@@ -31,7 +31,7 @@ class InquiryModifierService(
         adminId: UUID,
         answer: String,
     ): Inquiry {
-        val inquiry = inquiryRepository.findById(inquiryId) ?: throw InquiryNotFoundException()
+        val inquiry = inquiryRepository.findByIdAndDeletedAtIsNull(inquiryId) ?: throw InquiryNotFoundException()
 
         inquiry.updateAnswer(answer, adminId)
         return inquiryRepository.save(inquiry)
@@ -42,7 +42,7 @@ class InquiryModifierService(
         inquiryId: UUID,
         userId: UUID,
     ) {
-        val inquiry = inquiryRepository.findById(inquiryId) ?: throw InquiryNotFoundException()
+        val inquiry = inquiryRepository.findByIdAndDeletedAtIsNull(inquiryId) ?: throw InquiryNotFoundException()
 
         inquiry.delete(userId)
     }
