@@ -10,6 +10,7 @@ import org.mockito.Mockito.verify
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.whenever
 import java.util.UUID
+import kotlin.test.assertEquals
 
 @ExtendWith(MockitoExtension::class)
 class InquiryRepositoryTest {
@@ -29,31 +30,37 @@ class InquiryRepositoryTest {
                 isAgreed = true,
                 status = InquiryStatus.PENDING,
             )
+
         whenever(inquiryRepository.save(inquiry)).thenReturn(inquiry)
 
         val result = inquiryRepository.save(inquiry)
 
         verify(inquiryRepository).save(inquiry)
-        assert(result == inquiry)
+        assertEquals(inquiry, result)
     }
 
     @Test
-    fun `findAllByUserId(userId)`() {
+    fun `findAllByUserIdAndDeletedAtIsNull`() {
         val userId = UUID.randomUUID()
-        inquiryRepository.findAllByUserId(userId)
-        verify(inquiryRepository).findAllByUserId(userId)
+
+        inquiryRepository.findAllByUserIdAndDeletedAtIsNull(userId)
+
+        verify(inquiryRepository).findAllByUserIdAndDeletedAtIsNull(userId)
     }
 
     @Test
-    fun `findById(inquiryId)`() {
+    fun `findByIdAndDeletedAtIsNull`() {
         val inquiryId = UUID.randomUUID()
-        inquiryRepository.findById(inquiryId)
-        verify(inquiryRepository).findById(inquiryId)
+
+        inquiryRepository.findByIdAndDeletedAtIsNull(inquiryId)
+
+        verify(inquiryRepository).findByIdAndDeletedAtIsNull(inquiryId)
     }
 
     @Test
-    fun `findAllByOrderByCreatedAtDesc()`() {
-        inquiryRepository.findAllByOrderByCreatedAtDesc()
-        verify(inquiryRepository).findAllByOrderByCreatedAtDesc()
+    fun `findAllByDeletedAtIsNullOrderByCreatedAtDesc`() {
+        inquiryRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc()
+
+        verify(inquiryRepository).findAllByDeletedAtIsNullOrderByCreatedAtDesc()
     }
 }

@@ -7,9 +7,9 @@ import java.util.UUID
 interface InquiryRepository : Repository<Inquiry, UUID> {
     fun save(inquiry: Inquiry): Inquiry
 
-    fun findAllByUserId(userId: UUID): List<Inquiry>
+    fun findAllByUserIdAndDeletedAtIsNull(userId: UUID): List<Inquiry>
 
-    fun findById(inquiryId: UUID): Inquiry?
+    fun findByIdAndDeletedAtIsNull(inquiryId: UUID): Inquiry?
 
-    fun findAllByOrderByCreatedAtDesc(): List<Inquiry>
+    fun findAllByDeletedAtIsNullOrderByCreatedAtDesc(): List<Inquiry>
 }

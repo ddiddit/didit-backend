@@ -14,18 +14,18 @@ class InquiryFinderService(
     private val inquiryRepository: InquiryRepository,
 ) : InquiryFinder {
     override fun findAll(userId: UUID): List<Inquiry> {
-        val inquiries = inquiryRepository.findAllByUserId(userId)
+        val inquiries = inquiryRepository.findAllByUserIdAndDeletedAtIsNull(userId)
 
         return inquiries
     }
 
     override fun findAll(): List<Inquiry> {
-        val inquiries = inquiryRepository.findAllByOrderByCreatedAtDesc()
+        val inquiries = inquiryRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc()
         return inquiries
     }
 
     override fun findById(id: UUID): Inquiry {
-        val inquiry = inquiryRepository.findById(id) ?: throw InquiryNotFoundException()
+        val inquiry = inquiryRepository.findByIdAndDeletedAtIsNull(id) ?: throw InquiryNotFoundException()
         return inquiry
     }
 }
