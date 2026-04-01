@@ -506,11 +506,11 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 제목 검색`() {
-        val keyword = "회고"
+        val keyword = "로그인"
         val retros =
             listOf(
                 Retrospective.create(userId).apply {
-                    title = "회고 1"
+                    title = "로그인 API 연동 회고"
                     completedAt = LocalDateTime.now()
                     summary =
                         RetrospectiveSummary(
@@ -523,14 +523,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         )
                 },
                 Retrospective.create(userId).apply {
-                    title = "회고 2"
+                    title = "로그인 버그 수정 회고"
                     completedAt = LocalDateTime.now()
                     summary =
                         RetrospectiveSummary(
                             feedback = "오늘도 열심히 했습니다.",
                             insight = "작게 나누는 습관 필요",
-                            doneWork = "DB 마이그레이션 완료",
-                            blockedPoint = "쿼리 최적화 어려움",
+                            doneWork = "로그인 버그 수정 완료",
+                            blockedPoint = "세션 처리 어려움",
                             solutionProcess = "팀 코드 리뷰 참고",
                             lessonLearned = "테스트 먼저 작성",
                         )
@@ -549,16 +549,12 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     queryParameters(
-                        parameterWithName("keyword")
-                            .description("검색 키워드 (예시: 회고)"),
+                        parameterWithName("keyword").description("검색 키워드 (예시: 로그인)"),
                     ),
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data[].feedback")
-                            .type(JsonFieldType.STRING)
-                            .description("AI 피드백 한 줄")
-                            .optional(),
+                        fieldWithPath("data[].feedback").type(JsonFieldType.STRING).description("AI 피드백 한 줄").optional(),
                         fieldWithPath("data[].createdAt").type(JsonFieldType.STRING).description("생성 시간").optional(),
                     ),
                 ),
