@@ -8,8 +8,10 @@ import com.didit.application.retrospect.exception.RetrospectiveNotInProgressExce
 import com.didit.application.retrospect.exception.SpeechEmptyFileException
 import com.didit.application.retrospect.exception.SpeechEmptyResultException
 import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
+import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.required.AIClient
+import com.didit.application.retrospect.required.GeneratedDeepQuestion
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.SpeechClient
 import com.didit.domain.retrospect.ChatMessage
@@ -70,6 +72,8 @@ class RetrospectServiceTest {
             blockedPoint = "막힌 지점",
             solutionProcess = "해결 과정",
             lessonLearned = "배운 점",
+            inputTokens = 100,
+            outputTokens = 50,
         )
 
     private fun inProgressRetrospective(): Retrospective =
@@ -77,6 +81,16 @@ class RetrospectServiceTest {
             addMessage(ChatMessage.question(this, "오늘 어떤 일을 하셨나요?", QuestionType.Q1))
             startProgress()
         }
+
+    private fun summaryFixture() =
+        RetrospectiveSummary(
+            feedback = "피드백",
+            insight = "인사이트",
+            doneWork = "한 일",
+            blockedPoint = "막힌 지점",
+            solutionProcess = "해결 과정",
+            lessonLearned = "배운 점",
+        )
 
     @Test
     fun `start - 회고를 시작하고 저장한다`() {
@@ -100,6 +114,7 @@ class RetrospectServiceTest {
         verify(retrospectiveRepository, never()).save(any())
     }
 
+    @Test
     fun `submitTextAnswer - Q1 답변 시 PENDING에서 IN_PROGRESS로 전환된다`() {
         val retro =
             Retrospective.create(userId).apply {
@@ -127,7 +142,13 @@ class RetrospectServiceTest {
 
         whenever(retrospectiveFinder.findById(any(), any())).thenReturn(retro)
         whenever(userFinder.getJobByUserId(any())).thenReturn(Job.DEVELOPER)
-        whenever(aiClient.generateDeepQuestion(any(), any())).thenReturn("심화 질문입니다.")
+        whenever(aiClient.generateDeepQuestion(any(), any())).thenReturn(
+            GeneratedDeepQuestion(
+                content = "심화 질문입니다.",
+                inputTokens = 50,
+                outputTokens = 20,
+            ),
+        )
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = retrospectService.submitTextAnswer(retrospectiveId, userId, "Q3 답변")
@@ -163,7 +184,21 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `submitVoiceAnswer - 빈 파일이면 예외가 발생한다`() {
+    fun `submitVoiceAnswer - 회고가 완료된 상태면 STT 호출 없이 예외가 발생한다`() {
+        val retro = RetrospectiveFixture.createCompleted(userId)
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<RetrospectiveAlreadyCompletedException> {
+            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100) { 1 }, "voice.wav")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
+    fun `submitVoiceAnswer - 빈 파일이면 STT 호출 없이 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
         assertThrows<SpeechEmptyFileException> {
             retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(0), "voice.wav")
         }
@@ -171,7 +206,10 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `submitVoiceAnswer - wav가 아닌 파일이면 예외가 발생한다`() {
+    fun `submitVoiceAnswer - wav가 아닌 파일이면 STT 호출 없이 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
         assertThrows<SpeechUnsupportedFileException> {
             retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.mp3")
         }
@@ -180,7 +218,9 @@ class RetrospectServiceTest {
 
     @Test
     fun `submitVoiceAnswer - 음성 인식 결과가 비어있으면 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
         val audioBytes = ByteArray(100) { 1 }
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(speechClient.transcribe(audioBytes, "voice.wav")).thenReturn("   ")
 
         assertThrows<SpeechEmptyResultException> {
@@ -201,7 +241,7 @@ class RetrospectServiceTest {
 
     @Test
     fun `skipDeepQuestion - 진행 중이 아닌 회고에 스킵 시 예외가 발생한다`() {
-        val retro = Retrospective.create(userId) // PENDING
+        val retro = Retrospective.create(userId)
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
 
         assertThrows<RetrospectiveNotInProgressException> {
@@ -210,7 +250,7 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `complete - AI 요약을 생성하고 저장한다`() {
+    fun `complete - AI 요약을 생성하고 토큰을 포함해 저장한다`() {
         val retro = inProgressRetrospective()
         val summary = aiSummaryResponse()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
@@ -222,6 +262,8 @@ class RetrospectServiceTest {
 
         assertThat(result.title).isEqualTo(summary.title)
         assertThat(retro.summary).isNotNull()
+        assertThat(retro.inputTokens).isEqualTo(100)
+        assertThat(retro.outputTokens).isEqualTo(50)
         verify(retrospectiveRepository).save(retro)
     }
 
@@ -237,19 +279,7 @@ class RetrospectServiceTest {
 
     @Test
     fun `save - 제목으로 회고를 완료 처리한다`() {
-        val retro =
-            inProgressRetrospective().apply {
-                saveSummary(
-                    RetrospectiveSummary(
-                        feedback = "피드백",
-                        insight = "인사이트",
-                        doneWork = "한 일",
-                        blockedPoint = "막힌 지점",
-                        solutionProcess = "해결 과정",
-                        lessonLearned = "배운 점",
-                    ),
-                )
-            }
+        val retro = inProgressRetrospective().apply { saveSummary(summaryFixture()) }
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
@@ -265,6 +295,16 @@ class RetrospectServiceTest {
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
 
         assertThrows<RetrospectiveAlreadyCompletedException> {
+            retrospectService.save(retrospectiveId, userId, "제목")
+        }
+    }
+
+    @Test
+    fun `save - summary 없이 저장 시 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<SummaryNotGeneratedException> {
             retrospectService.save(retrospectiveId, userId, "제목")
         }
     }

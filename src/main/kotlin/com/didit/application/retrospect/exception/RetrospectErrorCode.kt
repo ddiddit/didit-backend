@@ -11,6 +11,7 @@ enum class RetrospectErrorCode(
     RETROSPECTIVE_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "이미 완료된 회고입니다."),
     RETROSPECTIVE_NOT_IN_PROGRESS(HttpStatus.BAD_REQUEST, "진행 중인 회고가 아닙니다."),
     DAILY_LIMIT_EXCEEDED(HttpStatus.BAD_REQUEST, "오늘 회고 횟수를 모두 사용했습니다."),
+    SUMMARY_NOT_GENERATED(HttpStatus.BAD_REQUEST, "AI 요약이 아직 생성되지 않았습니다."),
 
     SPEECH_EMPTY_FILE(HttpStatus.BAD_REQUEST, "음성 파일이 비어 있습니다."),
     SPEECH_UNSUPPORTED_FILE(HttpStatus.BAD_REQUEST, "지원하지 않는 음성 파일 형식입니다."),

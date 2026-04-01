@@ -70,6 +70,27 @@ class RetrospectiveTest {
     }
 
     @Test
+    fun `saveSummary - summary가 저장된다`() {
+        val retro = retrospective()
+
+        retro.saveSummary(summary())
+
+        assertThat(retro.summary).isNotNull()
+        assertThat(retro.summary!!.feedback).isEqualTo("피드백")
+    }
+
+    @Test
+    fun `addTokens - 토큰이 누적된다`() {
+        val retro = retrospective()
+
+        retro.addTokens(100, 50)
+        retro.addTokens(200, 80)
+
+        assertThat(retro.inputTokens).isEqualTo(300)
+        assertThat(retro.outputTokens).isEqualTo(130)
+    }
+
+    @Test
     fun `softDelete - deletedAt이 설정되고 isDeleted가 true가 된다`() {
         val retro = retrospective()
 
