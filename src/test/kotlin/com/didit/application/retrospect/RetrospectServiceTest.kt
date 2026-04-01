@@ -124,7 +124,10 @@ class RetrospectServiceTest {
                 addMessage(ChatMessage.userAnswer(this, "Q2 답변", QuestionType.Q2, InputType.TEXT))
                 addMessage(ChatMessage.question(this, "Q3", QuestionType.Q3))
             }
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        whenever(retrospectiveFinder.findById(any(), any())).thenReturn(retro)
+        whenever(userFinder.getJobByUserId(any())).thenReturn(Job.DEVELOPER)
+        whenever(aiClient.generateDeepQuestion(any(), any())).thenReturn("심화 질문입니다.")
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = retrospectService.submitTextAnswer(retrospectiveId, userId, "Q3 답변")
