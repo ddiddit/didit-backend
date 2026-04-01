@@ -1,4 +1,3 @@
-// RetrospectiveRepository.kt
 package com.didit.application.retrospect.required
 
 import com.didit.domain.retrospect.RetroStatus

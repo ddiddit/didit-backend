@@ -10,6 +10,13 @@ class RetrospectiveNotFoundException(
         "retrospectiveId: $retrospectiveId",
     )
 
+class SummaryNotGeneratedException(
+    retrospectiveId: UUID,
+) : BusinessException(
+        RetrospectErrorCode.SUMMARY_NOT_GENERATED,
+        "retrospectiveId: $retrospectiveId",
+    )
+
 class RetrospectiveAlreadyCompletedException(
     retrospectiveId: UUID,
 ) : BusinessException(

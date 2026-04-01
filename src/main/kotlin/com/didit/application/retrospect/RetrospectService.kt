@@ -9,6 +9,7 @@ import com.didit.application.retrospect.exception.RetrospectiveNotInProgressExce
 import com.didit.application.retrospect.exception.SpeechEmptyFileException
 import com.didit.application.retrospect.exception.SpeechEmptyResultException
 import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
+import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.required.AIClient
@@ -71,7 +72,7 @@ class RetrospectService(
         retrospectiveId: UUID,
         userId: UUID,
         content: String,
-    ): SubmitAnswerResponse = submitAnswer(retrospectiveId, userId, content, InputType.TEXT)
+    ): SubmitAnswerResponse = processAnswer(retrospectiveId, userId, content, InputType.TEXT)
 
     @Transactional
     override fun submitVoiceAnswer(
@@ -80,8 +81,19 @@ class RetrospectService(
         audioBytes: ByteArray,
         filename: String,
     ): SubmitAnswerResponse {
+        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+        validateRetrospectiveInProgress(retrospective, retrospectiveId)
+
+        val currentQuestionType =
+            retrospective.currentQuestionType()
+                ?: throw RetrospectiveNotInProgressException(retrospectiveId)
+
+        if (retrospective.isPending()) retrospective.startProgress()
+
         val content = transcribe(audioBytes, filename)
-        return submitAnswer(retrospectiveId, userId, content, InputType.STT)
+        saveUserAnswer(retrospective, content, currentQuestionType, InputType.STT)
+
+        return routeAnswer(retrospective, currentQuestionType)
     }
 
     @Async
@@ -94,21 +106,26 @@ class RetrospectService(
         val job = userFinder.getJobByUserId(retrospective.userId)
         val answers = retrospective.getAnswersUpToQ3()
 
-        val deepQuestionContent =
+        val deepQuestion =
             try {
                 aiClient.generateDeepQuestion(job, answers)
             } catch (e: Exception) {
-                logger.error("Failed to generate deep question for userId: $userId, retrospectiveId: $retrospectiveId", e)
-                DEFAULT_FALLBACK_QUESTION
+                logger.error("심화 질문 생성 실패 - userId: $userId, retrospectiveId: $retrospectiveId", e)
+                null
             }
 
         retrospective.addMessage(
             ChatMessage.question(
                 retrospective = retrospective,
-                content = deepQuestionContent,
+                content = deepQuestion?.content ?: DEFAULT_FALLBACK_QUESTION,
                 questionType = QuestionType.Q4_DEEP,
             ),
         )
+
+        if (deepQuestion != null) {
+            retrospective.addTokens(deepQuestion.inputTokens, deepQuestion.outputTokens)
+        }
+
         retrospectiveRepository.save(retrospective)
     }
 
@@ -142,7 +159,7 @@ class RetrospectService(
             try {
                 aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers())
             } catch (e: Exception) {
-                logger.error("Failed to generate summary", e)
+                logger.error("회고 요약 생성 실패 - userId: $userId, retrospectiveId: $retrospectiveId", e)
                 throw e
             }
 
@@ -156,6 +173,8 @@ class RetrospectService(
                 lessonLearned = summary.lessonLearned,
             ),
         )
+
+        retrospective.addTokens(summary.inputTokens, summary.outputTokens)
         retrospectiveRepository.save(retrospective)
         return summary
     }
@@ -168,6 +187,7 @@ class RetrospectService(
     ): Retrospective {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
         if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
+        if (retrospective.summary == null) throw SummaryNotGeneratedException(retrospectiveId)
 
         retrospective.complete(title = title)
         return retrospectiveRepository.save(retrospective)
@@ -211,13 +231,12 @@ class RetrospectService(
         userId: UUID,
     ) {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-        if (retrospective.isPending()) {
-            retrospective.softDelete()
-            retrospectiveRepository.save(retrospective)
-        }
+        if (!retrospective.isPending()) return
+        retrospective.softDelete()
+        retrospectiveRepository.save(retrospective)
     }
 
-    private fun submitAnswer(
+    private fun processAnswer(
         retrospectiveId: UUID,
         userId: UUID,
         content: String,
@@ -233,26 +252,28 @@ class RetrospectService(
         if (retrospective.isPending()) retrospective.startProgress()
 
         saveUserAnswer(retrospective, content, currentQuestionType, inputType)
+        return routeAnswer(retrospective, currentQuestionType)
+    }
 
-        return when (currentQuestionType) {
+    private fun routeAnswer(
+        retrospective: Retrospective,
+        currentQuestionType: QuestionType,
+    ): SubmitAnswerResponse =
+        when (currentQuestionType) {
             QuestionType.Q3 -> handleQ3Answer(retrospective)
             QuestionType.Q4_DEEP -> handleQ4Answer(retrospective)
             else -> handleRegularAnswer(retrospective, currentQuestionType)
         }
-    }
 
     private fun transcribe(
         audioBytes: ByteArray,
         filename: String,
     ): String {
         if (audioBytes.isEmpty()) throw SpeechEmptyFileException()
-        if (!filename.lowercase().endsWith(".wav")) {
-            throw SpeechUnsupportedFileException(filename, null)
-        }
+        if (!filename.lowercase().endsWith(".wav")) throw SpeechUnsupportedFileException(filename, null)
 
         val text = speechClient.transcribe(audioBytes, filename).trim()
         if (text.isBlank()) throw SpeechEmptyResultException()
-
         return text
     }
 

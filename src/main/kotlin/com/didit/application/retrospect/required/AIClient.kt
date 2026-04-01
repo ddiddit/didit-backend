@@ -7,10 +7,16 @@ interface AIClient {
     fun generateDeepQuestion(
         job: Job?,
         answers: List<String>,
-    ): String
+    ): GeneratedDeepQuestion
 
     fun generateSummaryWithTitle(
         job: Job?,
         allAnswers: List<String>,
     ): AISummaryResponse
 }
+
+data class GeneratedDeepQuestion(
+    val content: String,
+    val inputTokens: Int,
+    val outputTokens: Int,
+)

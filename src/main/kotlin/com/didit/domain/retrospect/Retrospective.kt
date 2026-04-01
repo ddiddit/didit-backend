@@ -46,10 +46,9 @@ class Retrospective(
 
     fun isDeleted(): Boolean = deletedAt != null
 
-    fun currentQuestionType(): QuestionType? =
-        aiMessages()
-            .maxByOrNull { it.questionType.ordinal }
-            ?.questionType
+    fun isPending(): Boolean = status == RetroStatus.PENDING
+
+    fun currentQuestionType(): QuestionType? = aiMessages().maxByOrNull { it.questionType.ordinal }?.questionType
 
     fun hasDeepQuestion(): Boolean = aiMessages().any { it.questionType == QuestionType.Q4_DEEP }
 
@@ -77,27 +76,31 @@ class Retrospective(
         chatMessages.add(message)
     }
 
-    fun isPending(): Boolean = status == RetroStatus.PENDING
-
     fun startProgress() {
         this.status = RetroStatus.IN_PROGRESS
-    }
-
-    fun complete(title: String) {
-        require(title.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
-
-        this.title = title
-        this.status = RetroStatus.COMPLETED
-        this.completedAt = LocalDateTime.now()
     }
 
     fun saveSummary(summary: RetrospectiveSummary) {
         this.summary = summary
     }
 
+    fun addTokens(
+        inputTokens: Int,
+        outputTokens: Int,
+    ) {
+        this.inputTokens += inputTokens
+        this.outputTokens += outputTokens
+    }
+
+    fun complete(title: String) {
+        require(title.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
+        this.title = title
+        this.status = RetroStatus.COMPLETED
+        this.completedAt = LocalDateTime.now()
+    }
+
     fun updateTitle(newTitle: String) {
         require(newTitle.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
-
         this.title = newTitle
     }
 

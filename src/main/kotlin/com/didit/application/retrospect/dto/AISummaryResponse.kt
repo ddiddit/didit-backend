@@ -8,4 +8,6 @@ data class AISummaryResponse(
     val blockedPoint: String,
     val solutionProcess: String,
     val lessonLearned: String,
+    val inputTokens: Int = 0,
+    val outputTokens: Int = 0,
 )
