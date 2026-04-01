@@ -41,7 +41,6 @@ class ClovaClient(
         val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers)
         val response = call(prompt)
         return runCatching {
-            // 정규식으로 markdown 코드 블록 제거
             val cleanResponse =
                 response
                     .replace(Regex("```json\\s*"), "")

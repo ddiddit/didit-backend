@@ -83,20 +83,16 @@ class Retrospective(
         this.status = RetroStatus.IN_PROGRESS
     }
 
-    fun complete(
-        title: String,
-        summary: RetrospectiveSummary,
-        inputTokens: Int,
-        outputTokens: Int,
-    ) {
+    fun complete(title: String) {
         require(title.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
 
         this.title = title
-        this.summary = summary
-        this.inputTokens = inputTokens
-        this.outputTokens = outputTokens
         this.status = RetroStatus.COMPLETED
         this.completedAt = LocalDateTime.now()
+    }
+
+    fun saveSummary(summary: RetrospectiveSummary) {
+        this.summary = summary
     }
 
     fun updateTitle(newTitle: String) {

@@ -12,7 +12,6 @@ import com.didit.application.retrospect.provided.SearchHistoryFinder
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ChatMessage
-import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
@@ -93,18 +92,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `답변 제출`() {
-        val request =
-            SubmitAnswerRequest(
-                content = "로그인 API 연동 작업을 했습니다.",
-                inputType = InputType.TEXT,
-            )
+        val request = SubmitAnswerRequest(content = "로그인 API 연동 작업을 했습니다.")
         val response =
             SubmitAnswerResponse(
                 nextQuestionType = QuestionType.Q2,
                 nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
                 isReadyToComplete = false,
             )
-        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, request.content, request.inputType))
+        whenever(retrospectiveRegister.submitTextAnswer(retrospectiveId, userId, request.content))
             .thenReturn(response)
 
         mockMvc
@@ -123,17 +118,45 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     requestFields(
                         fieldWithPath("content").type(JsonFieldType.STRING).description("답변 내용"),
-                        fieldWithPath("inputType").type(JsonFieldType.STRING).description("답변 입력 타입"),
                     ),
                     responseFields(
-                        fieldWithPath("data.nextQuestionType")
-                            .type(JsonFieldType.STRING)
-                            .description("다음 질문 타입")
-                            .optional(),
-                        fieldWithPath("data.nextQuestionContent")
-                            .type(JsonFieldType.STRING)
-                            .description("다음 질문 내용")
-                            .optional(),
+                        fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
+                        fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
+                        fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `음성 답변 제출`() {
+        val response =
+            SubmitAnswerResponse(
+                nextQuestionType = QuestionType.Q2,
+                nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
+                isReadyToComplete = false,
+            )
+        whenever(retrospectiveRegister.submitVoiceAnswer(any(), any(), any(), any()))
+            .thenReturn(response)
+
+        mockMvc
+            .perform(
+                org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders
+                    .multipart("/api/v1/retrospectives/{retrospectiveId}/answers/voice", retrospectiveId)
+                    .file("file", ByteArray(100))
+                    .contentType(MediaType.MULTIPART_FORM_DATA),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/submit-voice-answer",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
+                        fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
                         fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
                     ),
                 ),
@@ -217,27 +240,13 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 저장`() {
-        val summary = aiSummaryResponse()
-        val request =
-            SaveRetrospectiveRequest(
-                title = "오늘의 회고",
-                summary =
-                    SaveRetrospectiveRequest.SummaryRequest(
-                        feedback = summary.feedback,
-                        insight = summary.insight,
-                        doneWork = summary.doneWork,
-                        blockedPoint = summary.blockedPoint,
-                        solutionProcess = summary.solutionProcess,
-                        lessonLearned = summary.lessonLearned,
-                    ),
-            )
+        val request = SaveRetrospectiveRequest(title = "오늘의 회고")
         val retro = completedRetrospective()
         whenever(
             retrospectiveRegister.save(
                 retrospectiveId = any(),
                 userId = any(),
                 title = any(),
-                summary = any(),
             ),
         ).thenReturn(retro)
 
@@ -257,36 +266,18 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     requestFields(
                         fieldWithPath("title").type(JsonFieldType.STRING).description("회고 제목"),
-                        fieldWithPath("summary.feedback").type(JsonFieldType.STRING).description("AI 피드백"),
-                        fieldWithPath("summary.insight").type(JsonFieldType.STRING).description("인사이트"),
-                        fieldWithPath("summary.doneWork").type(JsonFieldType.STRING).description("한 일"),
-                        fieldWithPath("summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점"),
-                        fieldWithPath("summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정"),
-                        fieldWithPath("summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점"),
                     ),
                     responseFields(
                         fieldWithPath("data.id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
                         fieldWithPath("data.summary").type(JsonFieldType.OBJECT).description("회고 요약").optional(),
-                        fieldWithPath("data.summary.feedback")
-                            .type(JsonFieldType.STRING)
-                            .description("AI 피드백")
-                            .optional(),
+                        fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
                         fieldWithPath("data.summary.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
                         fieldWithPath("data.summary.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
-                        fieldWithPath("data.summary.blockedPoint")
-                            .type(JsonFieldType.STRING)
-                            .description("막힌 지점")
-                            .optional(),
-                        fieldWithPath("data.summary.solutionProcess")
-                            .type(JsonFieldType.STRING)
-                            .description("해결 과정")
-                            .optional(),
-                        fieldWithPath("data.summary.lessonLearned")
-                            .type(JsonFieldType.STRING)
-                            .description("배운 점")
-                            .optional(),
+                        fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
+                        fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
+                        fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
@@ -515,11 +506,11 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 제목 검색`() {
-        val keyword = "회고"
+        val keyword = "로그인"
         val retros =
             listOf(
                 Retrospective.create(userId).apply {
-                    title = "회고 1"
+                    title = "로그인 API 연동 회고"
                     completedAt = LocalDateTime.now()
                     summary =
                         RetrospectiveSummary(
@@ -532,14 +523,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         )
                 },
                 Retrospective.create(userId).apply {
-                    title = "회고 2"
+                    title = "로그인 버그 수정 회고"
                     completedAt = LocalDateTime.now()
                     summary =
                         RetrospectiveSummary(
                             feedback = "오늘도 열심히 했습니다.",
                             insight = "작게 나누는 습관 필요",
-                            doneWork = "DB 마이그레이션 완료",
-                            blockedPoint = "쿼리 최적화 어려움",
+                            doneWork = "로그인 버그 수정 완료",
+                            blockedPoint = "세션 처리 어려움",
                             solutionProcess = "팀 코드 리뷰 참고",
                             lessonLearned = "테스트 먼저 작성",
                         )
@@ -558,16 +549,12 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     queryParameters(
-                        parameterWithName("keyword")
-                            .description("검색 키워드 (예시: 회고)"),
+                        parameterWithName("keyword").description("검색 키워드 (예시: 로그인)"),
                     ),
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data[].feedback")
-                            .type(JsonFieldType.STRING)
-                            .description("AI 피드백 한 줄")
-                            .optional(),
+                        fieldWithPath("data[].feedback").type(JsonFieldType.STRING).description("AI 피드백 한 줄").optional(),
                         fieldWithPath("data[].createdAt").type(JsonFieldType.STRING).description("생성 시간").optional(),
                     ),
                 ),

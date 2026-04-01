@@ -17,6 +17,27 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
     private val userId = UUID.randomUUID()
 
+    private fun summary(feedback: String = "피드백") =
+        RetrospectiveSummary(
+            feedback = feedback,
+            insight = "",
+            doneWork = "",
+            blockedPoint = "",
+            solutionProcess = "",
+            lessonLearned = "",
+        )
+
+    private fun completedRetrospective(
+        userId: UUID,
+        title: String,
+        feedback: String = "피드백",
+    ): Retrospective =
+        Retrospective.create(userId).apply {
+            startProgress()
+            saveSummary(summary(feedback))
+            complete(title = title)
+        }
+
     @Test
     fun `save`() {
         val retro = Retrospective.create(userId)
@@ -60,25 +81,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     fun `countByUserIdAndStatusNotAndCreatedAtBetween - PENDING 상태는 카운트에서 제외된다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
         retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })
-        retrospectiveRepository.save(
-            Retrospective.create(userId).apply {
-                startProgress()
-                complete(
-                    title = "완료된 회고",
-                    summary =
-                        RetrospectiveSummary(
-                            feedback = "",
-                            insight = "",
-                            doneWork = "",
-                            blockedPoint = "",
-                            solutionProcess = "",
-                            lessonLearned = "",
-                        ),
-                    inputTokens = 0,
-                    outputTokens = 0,
-                )
-            },
-        )
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
 
         val count =
             retrospectiveRepository.countByUserIdAndStatusNotAndCreatedAtBetween(
@@ -106,26 +109,8 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
     @Test
     fun `findFirstByUserIdAndStatusAndDeletedAtIsNull - 가장 최근 완료된 회고를 반환한다`() {
-        retrospectiveRepository.save(Retrospective.create(userId)) // PENDING
-        retrospectiveRepository.save(
-            Retrospective.create(userId).apply {
-                startProgress()
-                complete(
-                    title = "완료된 회고",
-                    summary =
-                        RetrospectiveSummary(
-                            feedback = "피드백",
-                            insight = "",
-                            doneWork = "",
-                            blockedPoint = "",
-                            solutionProcess = "",
-                            lessonLearned = "",
-                        ),
-                    inputTokens = 0,
-                    outputTokens = 0,
-                )
-            },
-        )
+        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고", feedback = "피드백"))
 
         val found =
             retrospectiveRepository.findFirstByUserIdAndStatusAndDeletedAtIsNull(
@@ -140,25 +125,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     @Test
     fun `findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc - COMPLETED 상태만 반환한다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
-        retrospectiveRepository.save(
-            Retrospective.create(userId).apply {
-                startProgress()
-                complete(
-                    title = "완료된 회고",
-                    summary =
-                        RetrospectiveSummary(
-                            feedback = "피드백",
-                            insight = "",
-                            doneWork = "",
-                            blockedPoint = "",
-                            solutionProcess = "",
-                            lessonLearned = "",
-                        ),
-                    inputTokens = 0,
-                    outputTokens = 0,
-                )
-            },
-        )
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
 
         val from =
             LocalDateTime
@@ -183,29 +150,18 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
     @Test
     fun `searchByUserIdAndTitle`() {
-        retrospectiveRepository.save(
-            Retrospective.create(userId).apply {
-                updateTitle("오늘 회고")
-            },
-        )
-
-        retrospectiveRepository.save(
-            Retrospective.create(userId).apply {
-                updateTitle("회고 정리")
-            },
-        )
-        retrospectiveRepository.save(
-            Retrospective.create(UUID.randomUUID()).apply {
-                updateTitle("오늘 회고")
-            },
-        )
+        retrospectiveRepository.save(Retrospective.create(userId).apply { updateTitle("오늘 회고") })
+        retrospectiveRepository.save(Retrospective.create(userId).apply { updateTitle("회고 정리") })
+        retrospectiveRepository.save(Retrospective.create(UUID.randomUUID()).apply { updateTitle("오늘 회고") })
         retrospectiveRepository.save(
             Retrospective.create(userId).apply {
                 updateTitle("회고 삭제됨")
                 softDelete()
             },
         )
+
         val result = retrospectiveRepository.searchByUserIdAndTitle(userId, "회고")
+
         assertThat(result).hasSize(2)
         assertThat(result.map { it.title }).containsExactly("회고 정리", "오늘 회고")
     }

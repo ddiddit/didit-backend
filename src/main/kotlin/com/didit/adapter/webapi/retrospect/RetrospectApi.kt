@@ -22,6 +22,7 @@ import com.didit.application.retrospect.provided.SearchHistoryFinder
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
+import org.springframework.http.MediaType
 import org.springframework.validation.annotation.Validated
 import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
@@ -31,8 +32,10 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
+import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
+import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDate
 import java.util.UUID
 
@@ -50,25 +53,34 @@ class RetrospectApi(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<StartRetrospectiveResponse> {
         val retrospective = retrospectiveRegister.start(userId)
-
         return SuccessResponse.of(StartRetrospectiveResponse.from(retrospective))
     }
 
     @RequireAuth
     @PostMapping("/{retrospectiveId}/answers")
-    fun submitAnswer(
+    fun submitTextAnswer(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
         @RequestBody request: SubmitAnswerRequest,
     ): SuccessResponse<SubmitAnswerResponse> {
+        val result = retrospectiveRegister.submitTextAnswer(retrospectiveId, userId, request.content)
+        return SuccessResponse.of(result)
+    }
+
+    @RequireAuth
+    @PostMapping("/{retrospectiveId}/answers/voice", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun submitVoiceAnswer(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+        @RequestPart("file") file: MultipartFile,
+    ): SuccessResponse<SubmitAnswerResponse> {
         val result =
-            retrospectiveRegister.submitAnswer(
+            retrospectiveRegister.submitVoiceAnswer(
                 retrospectiveId = retrospectiveId,
                 userId = userId,
-                content = request.content,
-                inputType = request.inputType,
+                audioBytes = file.bytes,
+                filename = file.originalFilename ?: "voice.wav",
             )
-
         return SuccessResponse.of(result)
     }
 
@@ -89,7 +101,6 @@ class RetrospectApi(
         @PathVariable retrospectiveId: UUID,
     ): SuccessResponse<CompleteRetrospectiveResponse> {
         val result = retrospectiveRegister.complete(retrospectiveId, userId)
-
         return SuccessResponse.of(CompleteRetrospectiveResponse.from(result))
     }
 
@@ -115,7 +126,6 @@ class RetrospectApi(
                 retrospectiveId = retrospectiveId,
                 userId = userId,
                 title = request.title,
-                summary = request.toAISummaryResponse(),
             )
         return SuccessResponse.of(RetrospectiveDetailResponse.from(retrospective))
     }
@@ -128,7 +138,6 @@ class RetrospectApi(
         @PathVariable retrospectiveId: UUID,
     ): SuccessResponse<StartRetrospectiveResponse> {
         val retrospective = retrospectiveRegister.restart(retrospectiveId, userId)
-
         return SuccessResponse.of(StartRetrospectiveResponse.from(retrospective))
     }
 
@@ -148,7 +157,6 @@ class RetrospectApi(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<List<RetrospectiveListItemResponse>> {
         val retrospectives = retrospectiveFinder.findAllByUserId(userId)
-
         return SuccessResponse.of(retrospectives.map { RetrospectiveListItemResponse.from(it) })
     }
 
@@ -159,7 +167,6 @@ class RetrospectApi(
         @PathVariable retrospectiveId: UUID,
     ): SuccessResponse<RetrospectiveDetailResponse> {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-
         return SuccessResponse.of(RetrospectiveDetailResponse.from(retrospective))
     }
 
@@ -193,9 +200,7 @@ class RetrospectApi(
         @RequestParam @Min(1) @Max(12) month: Int,
     ): SuccessResponse<CalendarResponse> {
         val retrospectives = retrospectiveFinder.findByUserIdAndYearMonth(userId, year, month)
-
         val weeklyRetrospectives = retrospectiveFinder.findByUserIdAndCurrentWeek(userId)
-
         return SuccessResponse.of(CalendarResponse.of(year, month, retrospectives, weeklyRetrospectives))
     }
 
@@ -206,7 +211,6 @@ class RetrospectApi(
         @RequestParam date: LocalDate,
     ): SuccessResponse<List<DailyRetrospectiveResponse>> {
         val retrospectives = retrospectiveFinder.findByUserIdAndDate(userId, date)
-
         return SuccessResponse.of(retrospectives.map { DailyRetrospectiveResponse.from(it) })
     }
 
@@ -226,7 +230,6 @@ class RetrospectApi(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<List<SearchHistoryResponse>> {
         val histories = searchHistoryFinder.findRecent(userId)
-
         return SuccessResponse.of(histories.map { SearchHistoryResponse.from(it) })
     }
 }

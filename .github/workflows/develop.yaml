@@ -126,6 +126,8 @@ jobs:
             ADMIN_INVITE_BASE_URL=${{ secrets.DEV_ADMIN_INVITE_BASE_URL }}
             ADMIN_CORS_ALLOWED_ORIGINS=${{ secrets.DEV_CORS_ALLOWED_ORIGINS }}
             CLOVA_API_KEY=${{ secrets.CLOVA_API_KEY }}
+            CLOVA_SPEECH_INVOKE_URL=${{ secrets.CLOVA_SPEECH_INVOKE_URL }}
+            CLOVA_SPEECH_SECRET_KEY=${{ secrets.CLOVA_SPEECH_SECRET_KEY }}
             ENVEOF
 
             echo "DEPLOYER=${{ github.actor }}" >> deploy/dev/.env

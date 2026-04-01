@@ -2,18 +2,23 @@ package com.didit.application.retrospect.provided
 
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
-import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.Retrospective
 import java.util.UUID
 
 interface RetrospectiveRegister {
     fun start(userId: UUID): Retrospective
 
-    fun submitAnswer(
+    fun submitTextAnswer(
         retrospectiveId: UUID,
         userId: UUID,
         content: String,
-        inputType: InputType,
+    ): SubmitAnswerResponse
+
+    fun submitVoiceAnswer(
+        retrospectiveId: UUID,
+        userId: UUID,
+        audioBytes: ByteArray,
+        filename: String,
     ): SubmitAnswerResponse
 
     fun skipDeepQuestion(
@@ -30,7 +35,6 @@ interface RetrospectiveRegister {
         retrospectiveId: UUID,
         userId: UUID,
         title: String,
-        summary: AISummaryResponse,
     ): Retrospective
 
     fun restart(

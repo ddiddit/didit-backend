@@ -7,7 +7,11 @@ import org.springframework.restdocs.operation.preprocess.Preprocessors.preproces
 import org.springframework.restdocs.operation.preprocess.Preprocessors.prettyPrint
 
 object ApiDocumentUtils {
-    fun getDocumentRequest(): OperationRequestPreprocessor = preprocessRequest(prettyPrint())
+    fun getDocumentRequest(): OperationRequestPreprocessor =
+        preprocessRequest(
+            UriDecodingPreprocessor(),
+            prettyPrint(),
+        )
 
     fun getDocumentResponse(): OperationResponsePreprocessor = preprocessResponse(prettyPrint())
 }

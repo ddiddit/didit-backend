@@ -24,6 +24,18 @@ include::{snippets}/retrospect/submit-answer/request-fields.adoc[]
 include::{snippets}/retrospect/submit-answer/http-response.adoc[]
 include::{snippets}/retrospect/submit-answer/response-fields.adoc[]
 
+== 음성 답변 제출
+
+=== Request
+
+include::{snippets}/retrospect/submit-voice-answer/http-request.adoc[]
+include::{snippets}/retrospect/submit-voice-answer/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/submit-voice-answer/http-response.adoc[]
+include::{snippets}/retrospect/submit-voice-answer/response-fields.adoc[]
+
 == 심화 질문 스킵
 
 === Request
