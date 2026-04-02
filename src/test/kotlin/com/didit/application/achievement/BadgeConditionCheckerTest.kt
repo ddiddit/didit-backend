@@ -31,7 +31,6 @@ class BadgeConditionCheckerTest {
         streak = streak,
         deepQuestionCount = deepQuestionCount,
         retroDate = retroDate,
-        weeklyCountByDayOfWeek = weeklyCountByDayOfWeek,
         weeklyGoalAchievedWeeks = weeklyGoalAchievedWeeks,
     )
 
@@ -114,20 +113,6 @@ class BadgeConditionCheckerTest {
         val context = context(deepQuestionCount = 4)
 
         assertThat(checker.isSatisfied(BadgeConditionType.DEEP_QUESTION_5, context)).isFalse()
-    }
-
-    @Test
-    fun `WEEKLY_MON - 월요일 3회 이상이면 true를 반환한다`() {
-        val context = context(weeklyCountByDayOfWeek = mapOf(DayOfWeek.MONDAY to 3))
-
-        assertThat(checker.isSatisfied(BadgeConditionType.WEEKLY_MON, context)).isTrue()
-    }
-
-    @Test
-    fun `WEEKLY_MON - 월요일 3회 미만이면 false를 반환한다`() {
-        val context = context(weeklyCountByDayOfWeek = mapOf(DayOfWeek.MONDAY to 2))
-
-        assertThat(checker.isSatisfied(BadgeConditionType.WEEKLY_MON, context)).isFalse()
     }
 
     @Test

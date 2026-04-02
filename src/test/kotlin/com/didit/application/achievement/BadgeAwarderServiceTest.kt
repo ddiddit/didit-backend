@@ -67,7 +67,6 @@ class BadgeAwarderServiceTest {
         whenever(streakRepository.save(any())).thenAnswer { it.arguments[0] }
         whenever(retrospectAchievementReader.countCompletedRetros(userId)).thenReturn(totalRetroCount)
         whenever(retrospectAchievementReader.countDeepQuestionAnswers(userId)).thenReturn(deepQuestionCount)
-        whenever(retrospectAchievementReader.countByDayOfWeek(userId)).thenReturn(emptyMap())
         whenever(retrospectAchievementReader.countWeeklyGoalAchievedWeeks(userId)).thenReturn(weeklyGoalAchievedWeeks)
         whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
     }
@@ -134,7 +133,6 @@ class BadgeAwarderServiceTest {
         whenever(streakRepository.save(any())).thenAnswer { it.arguments[0] }
         whenever(retrospectAchievementReader.countCompletedRetros(userId)).thenReturn(1)
         whenever(retrospectAchievementReader.countDeepQuestionAnswers(userId)).thenReturn(0)
-        whenever(retrospectAchievementReader.countByDayOfWeek(userId)).thenReturn(emptyMap())
         whenever(retrospectAchievementReader.countWeeklyGoalAchievedWeeks(userId)).thenReturn(0)
         whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
         whenever(badgeRepository.findAll()).thenReturn(emptyList())
