@@ -13,6 +13,7 @@ services:
       - "127.0.0.1:8080:8080"
     volumes:
       - /home/didit-dev/didit/firebase:/home/didit-dev/didit/firebase
+      - /home/didit-dev/logs/didit-api:/home/didit-dev/logs/didit-api
 
 networks:
   didit-network:
