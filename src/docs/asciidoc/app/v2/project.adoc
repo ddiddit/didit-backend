@@ -1,0 +1,10 @@
+[[v2-project]]
+= 프로젝트 API (v2)
+
+== 프로젝트 생성
+=== request
+include::{snippets}/project/create/http-request.adoc[]
+include::{snippets}/project/create/request-fields.adoc[]
+
+=== response
+include::{snippets}/project/create/http-response.adoc[]

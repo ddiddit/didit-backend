@@ -20,3 +20,6 @@ include::retrospect.adoc[]
 include::badge.adoc[]
 include::notice.adoc[]
 include::inquiry.adoc[]
+
+= 프로젝트 API 바로가기
+link:v2/project.html[프로젝트 API]
