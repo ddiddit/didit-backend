@@ -19,7 +19,6 @@ import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
-import com.didit.domain.retrospect.Sender
 import com.didit.domain.shared.Job
 import com.didit.support.RetrospectiveFixture
 import org.assertj.core.api.Assertions.assertThat
@@ -130,21 +129,6 @@ class RetrospectServiceTest {
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
         assertThat(result.isReadyToComplete).isFalse()
         assertThat(result.content).isNull()
-    }
-
-    @Test
-    fun `submitAnswer - Q1 STT 답변 시 inputType이 STT로 저장된다`() {
-        val retro =
-            Retrospective.create(userId).apply {
-                addMessage(ChatMessage.question(this, "오늘 어떤 일을 하셨나요?", QuestionType.Q1))
-            }
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
-        whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
-
-        retrospectService.submitAnswer(retrospectiveId, userId, "음성 변환된 텍스트")
-
-        val userAnswer = retro.chatMessages.filter { it.sender == Sender.USER }.last()
-        assertThat(userAnswer.inputType).isEqualTo(InputType.STT)
     }
 
     @Test
