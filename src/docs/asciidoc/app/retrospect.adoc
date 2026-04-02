@@ -29,13 +29,11 @@ include::{snippets}/retrospect/submit-answer/response-fields.adoc[]
 === Request
 
 include::{snippets}/retrospect/transcribe-voice/http-request.adoc[]
-include::{snippets}/retrospect/transcribe-voice/path-parameters.adoc[]
 
 === Response
 
 include::{snippets}/retrospect/transcribe-voice/http-response.adoc[]
 include::{snippets}/retrospect/transcribe-voice/response-fields.adoc[]
-
 == 심화 질문 스킵
 
 === Request
