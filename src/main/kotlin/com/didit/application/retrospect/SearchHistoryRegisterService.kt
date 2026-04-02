@@ -12,6 +12,7 @@ import java.util.UUID
 class SearchHistoryRegisterService(
     private val searchHistoryRepository: SearchHistoryRepository,
 ) : SearchHistoryRegister {
+    @Transactional
     override fun register(
         userId: UUID,
         keyword: String,
