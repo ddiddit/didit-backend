@@ -81,12 +81,12 @@ class ClovaClient(
 
             val question = objectMapper.readValue<DeepQuestionDto>(result.message.content).question
 
-            logger.debug("심화 질문 토큰 사용량 - inputLength: ${result.inputLength}, outputLength: ${result.outputLength}")
+            logger.debug("심화 질문 토큰 사용량 - promptTokens: ${result.usage.promptTokens}, completionTokens: ${result.usage.completionTokens}")
 
             GeneratedDeepQuestion(
                 content = question,
-                inputTokens = result.inputLength,
-                outputTokens = result.outputLength,
+                inputTokens = result.usage.promptTokens,
+                outputTokens = result.usage.completionTokens,
             )
         }.getOrElse {
             throw RuntimeException("심화 질문 파싱에 실패했습니다. response: ${result.message.content}")
@@ -100,11 +100,11 @@ class ClovaClient(
                     .replace(Regex("```"), "")
                     .trim()
 
-            logger.debug("회고 요약 토큰 사용량 - inputLength: ${result.inputLength}, outputLength: ${result.outputLength}")
+            logger.debug("회고 요약 토큰 사용량 - promptTokens: ${result.usage.promptTokens}, completionTokens: ${result.usage.completionTokens}")
 
             objectMapper.readValue<AISummaryResponse>(cleanResponse).copy(
-                inputTokens = result.inputLength,
-                outputTokens = result.outputLength,
+                inputTokens = result.usage.promptTokens,
+                outputTokens = result.usage.completionTokens,
             )
         }.getOrElse {
             throw RuntimeException("회고 요약 파싱에 실패했습니다. response: ${result.message.content}")
@@ -131,7 +131,11 @@ data class ClovaResponse(
 
 data class ClovaResult(
     val message: ClovaMessage,
-    val stopReason: String?,
-    val inputLength: Int,
-    val outputLength: Int,
+    val finishReason: String?,
+    val usage: ClovaUsage,
+)
+
+data class ClovaUsage(
+    val promptTokens: Int,
+    val completionTokens: Int,
 )
