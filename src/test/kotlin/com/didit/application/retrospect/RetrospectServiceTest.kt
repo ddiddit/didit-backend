@@ -5,15 +5,11 @@ import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.exception.DailyLimitExceededException
 import com.didit.application.retrospect.exception.RetrospectiveAlreadyCompletedException
 import com.didit.application.retrospect.exception.RetrospectiveNotInProgressException
-import com.didit.application.retrospect.exception.SpeechEmptyFileException
-import com.didit.application.retrospect.exception.SpeechEmptyResultException
-import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.required.AIClient
 import com.didit.application.retrospect.required.GeneratedDeepQuestion
 import com.didit.application.retrospect.required.RetrospectiveRepository
-import com.didit.application.retrospect.required.SpeechClient
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
@@ -41,8 +37,6 @@ class RetrospectServiceTest {
 
     @Mock lateinit var retrospectiveFinder: RetrospectiveFinder
 
-    @Mock lateinit var speechClient: SpeechClient
-
     @Mock lateinit var aiClient: AIClient
 
     @Mock lateinit var userFinder: UserFinder
@@ -58,7 +52,6 @@ class RetrospectServiceTest {
             RetrospectService(
                 retrospectiveRepository = retrospectiveRepository,
                 retrospectiveFinder = retrospectiveFinder,
-                speechClient = speechClient,
                 aiClient = aiClient,
                 userFinder = userFinder,
             )
@@ -183,44 +176,6 @@ class RetrospectServiceTest {
 
         assertThrows<RetrospectiveAlreadyCompletedException> {
             retrospectService.submitAnswer(retrospectiveId, userId, "답변", InputType.TEXT)
-        }
-    }
-
-    @Test
-    fun `transcribeVoice - wav 파일을 텍스트로 변환한다`() {
-        val audioBytes = ByteArray(100) { 1 }
-        val filename = "voice.wav"
-        whenever(speechClient.transcribe(audioBytes, filename)).thenReturn("음성 변환된 텍스트")
-
-        val result = retrospectService.transcribeVoice(audioBytes, filename)
-
-        assertThat(result).isEqualTo("음성 변환된 텍스트")
-        verify(speechClient).transcribe(audioBytes, filename)
-    }
-
-    @Test
-    fun `transcribeVoice - 빈 파일이면 예외가 발생한다`() {
-        assertThrows<SpeechEmptyFileException> {
-            retrospectService.transcribeVoice(ByteArray(0), "voice.wav")
-        }
-        verify(speechClient, never()).transcribe(any(), any())
-    }
-
-    @Test
-    fun `transcribeVoice - wav가 아닌 파일이면 예외가 발생한다`() {
-        assertThrows<SpeechUnsupportedFileException> {
-            retrospectService.transcribeVoice(ByteArray(100), "voice.mp3")
-        }
-        verify(speechClient, never()).transcribe(any(), any())
-    }
-
-    @Test
-    fun `transcribeVoice - 음성 인식 결과가 비어있으면 예외가 발생한다`() {
-        val audioBytes = ByteArray(100) { 1 }
-        whenever(speechClient.transcribe(audioBytes, "voice.wav")).thenReturn("   ")
-
-        assertThrows<SpeechEmptyResultException> {
-            retrospectService.transcribeVoice(audioBytes, "voice.wav")
         }
     }
 

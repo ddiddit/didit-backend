@@ -20,6 +20,7 @@ import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.provided.SearchHistoryFinder
+import com.didit.application.retrospect.provided.SpeechTranscriber
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
@@ -46,6 +47,7 @@ class RetrospectApi(
     private val retrospectiveRegister: RetrospectiveRegister,
     private val retrospectiveFinder: RetrospectiveFinder,
     private val searchHistoryFinder: SearchHistoryFinder,
+    private val speechTranscriber: SpeechTranscriber,
 ) {
     @RequireAuth
     @ResponseStatus(HttpStatus.CREATED)
@@ -75,17 +77,13 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @PostMapping("/{retrospectiveId}/answers/voice", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @PostMapping("/voice/transcribe", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun transcribeVoice(
         @CurrentUserId userId: UUID,
-        @PathVariable retrospectiveId: UUID,
         @RequestPart("file") file: MultipartFile,
     ): SuccessResponse<SpeechTranscribeResponse> {
-        val text =
-            retrospectiveRegister.transcribeVoice(
-                audioBytes = file.bytes,
-                filename = file.originalFilename ?: "voice.wav",
-            )
+        val text = speechTranscriber.transcribe(file)
+
         return SuccessResponse.of(SpeechTranscribeResponse(text))
     }
 
