@@ -1,6 +1,6 @@
-package com.didit.application.project.required
+package com.didit.application.organization.required
 
-import com.didit.domain.project.Project
+import com.didit.domain.organization.Project
 import org.springframework.data.repository.Repository
 import java.util.UUID
 

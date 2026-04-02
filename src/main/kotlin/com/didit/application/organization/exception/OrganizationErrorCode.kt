@@ -1,9 +1,9 @@
-package com.didit.application.project.exception
+package com.didit.application.organization.exception
 
 import com.didit.application.common.exception.BaseErrorCode
 import org.springframework.http.HttpStatus
 
-enum class ProjectErrorCode(
+enum class OrganizationErrorCode(
     override val status: HttpStatus,
     override val detail: String,
 ) : BaseErrorCode {

@@ -1,10 +1,10 @@
-package com.didit.application.project
+package com.didit.application.organization
 
 import com.didit.application.auth.provided.UserFinder
-import com.didit.application.project.exception.DuplicateProjectNameException
-import com.didit.application.project.provided.ProjectRegister
-import com.didit.application.project.required.ProjectRepository
-import com.didit.domain.project.Project
+import com.didit.application.organization.exception.DuplicateProjectNameException
+import com.didit.application.organization.provided.ProjectRegister
+import com.didit.application.organization.required.ProjectRepository
+import com.didit.domain.organization.Project
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -29,7 +29,7 @@ class ProjectRegisterService(
         }
 
         val project =
-            Project.create(
+            Project.Companion.create(
                 userId = userId,
                 name = normalizedName,
             )

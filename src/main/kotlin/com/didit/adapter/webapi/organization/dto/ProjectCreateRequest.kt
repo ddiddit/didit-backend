@@ -1,4 +1,4 @@
-package com.didit.adapter.webapi.project.dto
+package com.didit.adapter.webapi.organization.dto
 
 import jakarta.validation.constraints.NotBlank
 import jakarta.validation.constraints.Size

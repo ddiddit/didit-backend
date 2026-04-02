@@ -1,4 +1,4 @@
-package com.didit.domain.project
+package com.didit.domain.organization
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.assertThrows
