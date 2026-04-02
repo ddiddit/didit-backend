@@ -202,4 +202,14 @@ class RetrospectiveTest {
 
         assertThat(retro.countDeepQuestionAnswers()).isEqualTo(0)
     }
+
+    @Test
+    fun `assignProject - projectId가 정상적으로 할당된다`() {
+        val retro = retrospective()
+        val projectId = UUID.randomUUID()
+
+        retro.assignProject(projectId)
+
+        assertThat(retro.projectId).isEqualTo(projectId)
+    }
 }
