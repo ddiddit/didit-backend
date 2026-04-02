@@ -101,6 +101,28 @@ class RetrospectiveRegisterTest {
     }
 
     @Test
+    fun `submitVoiceAnswer - 음성 답변을 제출하고 변환된 텍스트와 다음 질문을 반환한다`() {
+        val audioBytes = ByteArray(100)
+        val filename = "voice.wav"
+        val response =
+            SubmitAnswerResponse(
+                content = "음성 변환된 텍스트",
+                nextQuestionType = QuestionType.Q2,
+                nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
+                isReadyToComplete = false,
+            )
+        whenever(retrospectiveRegister.submitVoiceAnswer(retrospectiveId, userId, audioBytes, filename))
+            .thenReturn(response)
+
+        val result = retrospectiveRegister.submitVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
+
+        verify(retrospectiveRegister).submitVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
+        assertThat(result.content).isEqualTo("음성 변환된 텍스트")
+        assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
+        assertThat(result.isReadyToComplete).isFalse()
+    }
+
+    @Test
     fun `skipDeepQuestion - 심화 질문을 스킵한다`() {
         retrospectiveRegister.skipDeepQuestion(retrospectiveId, userId)
 

@@ -11,16 +11,15 @@ import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveSearchResponse
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.SearchHistoryResponse
-import com.didit.adapter.webapi.retrospect.dto.SpeechTranscribeResponse
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
 import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
+import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.provided.SearchHistoryFinder
-import com.didit.application.retrospect.provided.SpeechTranscriber
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
@@ -47,7 +46,6 @@ class RetrospectApi(
     private val retrospectiveRegister: RetrospectiveRegister,
     private val retrospectiveFinder: RetrospectiveFinder,
     private val searchHistoryFinder: SearchHistoryFinder,
-    private val speechTranscriber: SpeechTranscriber,
 ) {
     @RequireAuth
     @ResponseStatus(HttpStatus.CREATED)
@@ -77,14 +75,22 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @PostMapping("/voice/transcribe", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    fun transcribeVoice(
+    @PostMapping("/{retrospectiveId}/answers/voice", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun submitVoiceAnswer(
         @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
         @RequestPart("file") file: MultipartFile,
-    ): SuccessResponse<SpeechTranscribeResponse> {
-        val text = speechTranscriber.transcribe(file)
-
-        return SuccessResponse.of(SpeechTranscribeResponse(text))
+    ): SuccessResponse<SubmitAnswerResponse> {
+        val result =
+            retrospectiveRegister.submitVoiceAnswer(
+                retrospectiveId = retrospectiveId,
+                userId = userId,
+                audioBytes = file.bytes,
+                filename =
+                    file.originalFilename
+                        ?: throw SpeechUnsupportedFileException(null, file.contentType),
+            )
+        return SuccessResponse.of(result)
     }
 
     @RequireAuth

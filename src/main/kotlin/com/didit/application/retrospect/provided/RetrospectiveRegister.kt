@@ -16,6 +16,13 @@ interface RetrospectiveRegister {
         inputType: InputType,
     ): SubmitAnswerResponse
 
+    fun submitVoiceAnswer(
+        retrospectiveId: UUID,
+        userId: UUID,
+        audioBytes: ByteArray,
+        filename: String,
+    ): SubmitAnswerResponse
+
     fun skipDeepQuestion(
         retrospectiveId: UUID,
         userId: UUID,
