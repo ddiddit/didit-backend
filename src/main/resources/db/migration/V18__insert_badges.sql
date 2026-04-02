@@ -1,0 +1,16 @@
+INSERT INTO badges (id, name, description, condition_type, created_at)
+VALUES (UUID_TO_BIN(UUID()), '첫 기록', '첫 회고 저장 완료', 'FIRST_RETRO', NOW()),
+       (UUID_TO_BIN(UUID()), '3일 기록', '3일 연속 회고 저장 완료', 'STREAK_3_DAYS', NOW()),
+       (UUID_TO_BIN(UUID()), '30회 기록', '누적 회고 저장 완료 30회', 'TOTAL_30', NOW()),
+       (UUID_TO_BIN(UUID()), '몰입의 시작', '심화 질문 1회 답변 완료', 'DEEP_QUESTION_1', NOW()),
+       (UUID_TO_BIN(UUID()), '몰입의 지속', '심화 질문 5회 답변 완료', 'DEEP_QUESTION_5', NOW()),
+       (UUID_TO_BIN(UUID()), '몰입의 힘', '심화 질문 10회 답변 완료', 'DEEP_QUESTION_10', NOW()),
+       (UUID_TO_BIN(UUID()), '월요일 루틴', '매주 월요일에 회고 3회 작성', 'WEEKLY_MON', NOW()),
+       (UUID_TO_BIN(UUID()), '화요일 루틴', '매주 화요일에 회고 3회 작성', 'WEEKLY_TUE', NOW()),
+       (UUID_TO_BIN(UUID()), '수요일 루틴', '매주 수요일에 회고 3회 작성', 'WEEKLY_WED', NOW()),
+       (UUID_TO_BIN(UUID()), '목요일 루틴', '매주 목요일에 회고 3회 작성', 'WEEKLY_THU', NOW()),
+       (UUID_TO_BIN(UUID()), '금요일 루틴', '매주 금요일에 회고 3회 작성', 'WEEKLY_FRI', NOW()),
+       (UUID_TO_BIN(UUID()), '토요일 루틴', '매주 토요일에 회고 3회 작성', 'WEEKLY_SAT', NOW()),
+       (UUID_TO_BIN(UUID()), '일요일 루틴', '매주 일요일에 회고 3회 작성', 'WEEKLY_SUN', NOW()),
+       (UUID_TO_BIN(UUID()), '루틴 첫 걸음', '주 3회 이상 회고 완료 첫 달성', 'WEEKLY_3_FIRST', NOW()),
+       (UUID_TO_BIN(UUID()), '루틴의 힘', '3주 이상 주 3회 이상 회고 완료', 'WEEKLY_3_THREE_WEEKS', NOW());

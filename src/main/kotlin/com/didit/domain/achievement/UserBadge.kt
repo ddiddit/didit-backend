@@ -19,7 +19,13 @@ class UserBadge(
     val badgeId: UUID,
     @Column(nullable = false)
     val acquiredAt: LocalDateTime = LocalDateTime.now(),
+    @Column(nullable = false)
+    var isNotified: Boolean = false,
 ) {
+    fun markAsNotified() {
+        isNotified = true
+    }
+
     companion object {
         fun create(
             userId: UUID,

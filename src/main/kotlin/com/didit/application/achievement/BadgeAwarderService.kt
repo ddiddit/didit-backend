@@ -15,7 +15,7 @@ import java.util.UUID
 
 @Transactional(readOnly = true)
 @Service
-class BadgeService(
+class BadgeAwarderService(
     private val badgeRepository: BadgeRepository,
     private val userBadgeRepository: UserBadgeRepository,
     private val streakRepository: StreakRepository,
