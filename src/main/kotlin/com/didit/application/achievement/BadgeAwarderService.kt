@@ -56,7 +56,9 @@ class BadgeAwarderService(
         retroDate: LocalDate,
     ): Streak {
         val streak = streakRepository.findByUserId(userId) ?: Streak.create(userId)
+
         streak.update(retroDate)
+
         return streakRepository.save(streak)
     }
 
