@@ -41,8 +41,6 @@ class InquiryUserApiTest : AuthenticatedRestDocsSupport() {
     @Test
     @WithMockUser
     fun `문의 접근 시 사용자 이메일 반환`() {
-        val userId = UUID.randomUUID()
-
         whenever(inquiryInfoFinder.findEmail(any()))
             .thenReturn("test@email.com")
 
