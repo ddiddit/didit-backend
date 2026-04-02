@@ -11,9 +11,8 @@ import java.util.UUID
 class InquiryInfoFinderService(
     private val userFinder: UserFinder,
 ) : InquiryInfoFinder {
-    override fun findEmail(userId: UUID): String {
+    override fun findEmail(userId: UUID): String? {
         val user = userFinder.findByIdOrThrow(userId)
-
-        return requireNotNull(user.email) { "유저 이메일은 null일 수 없습니다. userId=$userId" }
+        return user.email!!
     }
 }
