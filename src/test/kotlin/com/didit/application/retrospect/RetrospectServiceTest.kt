@@ -143,7 +143,9 @@ class RetrospectServiceTest {
 
         assertThat(retro.isInProgress()).isTrue()
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
-        assertThat(retro.chatMessages.last().inputType).isEqualTo(InputType.STT)
+
+        val userAnswer = retro.chatMessages.filter { it.sender == Sender.USER }.last()
+        assertThat(userAnswer.inputType).isEqualTo(InputType.STT)
     }
 
     @Test
