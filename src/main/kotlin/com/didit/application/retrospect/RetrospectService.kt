@@ -1,5 +1,8 @@
 package com.didit.application.retrospect
 
+import com.didit.application.audit.ActorType
+import com.didit.application.audit.AuditAction
+import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
@@ -39,6 +42,7 @@ class RetrospectService(
     private val aiClient: AIClient,
     private val userFinder: UserFinder,
     private val eventPublisher: ApplicationEventPublisher,
+    private val auditLogger: AuditLogger,
 ) : RetrospectiveRegister {
     companion object {
         private val logger = LoggerFactory.getLogger(RetrospectService::class.java)
@@ -215,6 +219,15 @@ class RetrospectService(
         )
 
         logger.info("회고 저장 - userId: $userId, retrospectiveId: $retrospectiveId, title: $title")
+
+        auditLogger.log(
+            actorId = userId,
+            actorType = ActorType.USER,
+            action = AuditAction.RETROSPECTIVE_SAVED,
+            targetId = retrospectiveId,
+            targetType = "RETROSPECTIVE",
+            payload = mapOf("title" to title),
+        )
 
         return saved
     }

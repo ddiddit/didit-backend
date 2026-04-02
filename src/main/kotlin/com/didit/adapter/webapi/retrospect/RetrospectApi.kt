@@ -126,7 +126,6 @@ class RetrospectApi(
         return SuccessResponse.of(result)
     }
 
-    @Audit(AuditAction.RETROSPECTIVE_SAVED, targetType = "RETROSPECTIVE")
     @RequireAuth
     @PostMapping("/{retrospectiveId}/save")
     fun save(

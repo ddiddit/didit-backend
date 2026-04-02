@@ -5,6 +5,9 @@ import com.didit.application.achievement.required.BadgeRepository
 import com.didit.application.achievement.required.RetrospectAchievementReader
 import com.didit.application.achievement.required.StreakRepository
 import com.didit.application.achievement.required.UserBadgeRepository
+import com.didit.application.audit.ActorType
+import com.didit.application.audit.AuditAction
+import com.didit.application.audit.AuditLogger
 import com.didit.domain.achievement.Badge
 import com.didit.domain.achievement.Streak
 import com.didit.domain.achievement.UserBadge
@@ -22,6 +25,7 @@ class BadgeAwarderService(
     private val streakRepository: StreakRepository,
     private val retrospectAchievementReader: RetrospectAchievementReader,
     private val badgeConditionChecker: BadgeConditionChecker,
+    private val auditLogger: AuditLogger,
 ) : BadgeAwarder {
     companion object {
         private val logger = LoggerFactory.getLogger(BadgeAwarderService::class.java)
@@ -42,7 +46,22 @@ class BadgeAwarderService(
             allBadges
                 .filter { badge -> badge.id !in acquiredBadgeIds }
                 .filter { badge -> badgeConditionChecker.isSatisfied(badge.conditionType, context) }
-                .onEach { badge -> userBadgeRepository.save(UserBadge.create(userId, badge.id)) }
+                .onEach { badge ->
+                    userBadgeRepository.save(UserBadge.create(userId, badge.id))
+
+                    auditLogger.log(
+                        actorId = userId,
+                        actorType = ActorType.SYSTEM,
+                        action = AuditAction.BADGE_ACQUIRED,
+                        targetId = badge.id,
+                        targetType = "BADGE",
+                        payload =
+                            mapOf(
+                                "badgeName" to badge.name,
+                                "conditionType" to badge.conditionType.name,
+                            ),
+                    )
+                }
 
         if (newBadges.isNotEmpty()) {
             logger.info("배지 획득 - userId: $userId, badges: ${newBadges.map { it.name }}")
@@ -56,9 +75,7 @@ class BadgeAwarderService(
         retroDate: LocalDate,
     ): Streak {
         val streak = streakRepository.findByUserId(userId) ?: Streak.create(userId)
-
         streak.update(retroDate)
-
         return streakRepository.save(streak)
     }
 

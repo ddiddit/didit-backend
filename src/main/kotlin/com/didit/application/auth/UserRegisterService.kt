@@ -1,5 +1,8 @@
 package com.didit.application.auth
 
+import com.didit.application.audit.ActorType
+import com.didit.application.audit.AuditAction
+import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.exception.DuplicateNicknameException
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
@@ -17,6 +20,7 @@ class UserRegisterService(
     private val userFinder: UserFinder,
     private val userRepository: UserRepository,
     private val notificationSettingModifier: NotificationSettingModifier,
+    private val auditLogger: AuditLogger,
 ) : UserRegister {
     companion object {
         private val logger = LoggerFactory.getLogger(UserRegisterService::class.java)
@@ -60,6 +64,17 @@ class UserRegisterService(
         userRepository.save(user)
 
         logger.info("프로필 수정 - userId: $userId, nickname: $nickname, job: $job")
+
+        auditLogger.log(
+            actorId = userId,
+            actorType = ActorType.USER,
+            action = AuditAction.USER_PROFILE_UPDATED,
+            payload =
+                mapOf(
+                    "nickname" to nickname,
+                    "job" to job.name,
+                ),
+        )
     }
 
     @Transactional

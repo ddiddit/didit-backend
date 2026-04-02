@@ -1,5 +1,6 @@
 package com.didit.application.retrospect
 
+import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.exception.DailyLimitExceededException
@@ -50,6 +51,8 @@ class RetrospectServiceTest {
 
     @Mock lateinit var eventPublisher: ApplicationEventPublisher
 
+    @Mock lateinit var auditLogger: AuditLogger
+
     private lateinit var retrospectService: RetrospectService
 
     private val userId = UUID.randomUUID()
@@ -65,6 +68,7 @@ class RetrospectServiceTest {
                 aiClient = aiClient,
                 userFinder = userFinder,
                 eventPublisher = eventPublisher,
+                auditLogger = auditLogger,
             )
     }
 

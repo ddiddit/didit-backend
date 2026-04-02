@@ -63,7 +63,6 @@ class AuthApi(
         auth.logout(userId)
     }
 
-    @Audit(AuditAction.USER_WITHDREW)
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/withdraw")
