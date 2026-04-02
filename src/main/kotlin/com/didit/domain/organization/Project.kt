@@ -1,4 +1,4 @@
-package com.didit.domain.project
+package com.didit.domain.organization
 
 import com.didit.domain.shared.BaseEntity
 import jakarta.persistence.Column

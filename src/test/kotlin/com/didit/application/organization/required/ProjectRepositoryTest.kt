@@ -1,6 +1,6 @@
-package com.didit.application.project.required
+package com.didit.application.organization.required
 
-import com.didit.domain.project.Project
+import com.didit.domain.organization.Project
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock

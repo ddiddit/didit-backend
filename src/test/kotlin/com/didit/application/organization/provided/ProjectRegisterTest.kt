@@ -1,4 +1,4 @@
-package com.didit.application.project.provided
+package com.didit.application.organization.provided
 
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith

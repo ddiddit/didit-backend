@@ -1,9 +1,10 @@
-package com.didit.adapter.webapi.project
+package com.didit.adapter.webapi.organization
 
-import com.didit.adapter.webapi.project.dto.ProjectCreateRequest
-import com.didit.application.project.provided.ProjectRegister
+import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
+import com.didit.application.organization.provided.ProjectRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
+import com.didit.domain.organization.Project
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
@@ -32,7 +33,7 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
 
         whenever(projectRegister.create(userId, request.name))
             .thenReturn(
-                com.didit.domain.project.Project.create(
+                Project.create(
                     userId = userId,
                     name = request.name,
                 ),
@@ -40,7 +41,7 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
 
         mockMvc
             .perform(
-                post("/api/v2/projects")
+                post("/api/v1/projects")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request))
                     .header("Authorization", "Bearer access-token"),
@@ -65,7 +66,7 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
 
         mockMvc
             .perform(
-                post("/api/v2/projects")
+                post("/api/v1/projects")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(objectMapper.writeValueAsString(request))
                     .header("Authorization", "Bearer access-token"),
