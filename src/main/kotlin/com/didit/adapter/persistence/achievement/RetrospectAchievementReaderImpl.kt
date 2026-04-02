@@ -22,6 +22,8 @@ class RetrospectAchievementReaderImpl(
     override fun countWeeklyGoalAchievedWeeks(userId: UUID): Int =
         retrospectiveRepository
             .findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(userId, RetroStatus.COMPLETED)
-            .groupBy { it.toLocalDate().with(DayOfWeek.MONDAY) }
+            .map { it.toLocalDate() }
+            .distinct()
+            .groupBy { it.with(DayOfWeek.MONDAY) }
             .count { (_, dates) -> dates.size >= 3 }
 }
