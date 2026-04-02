@@ -43,29 +43,35 @@ class ClovaClient(
         return parseSummary(result)
     }
 
-    private fun callWithResult(prompt: String): ClovaResult =
-        restClient
-            .post()
-            .uri(apiUrl)
-            .header("Authorization", "Bearer $apiKey")
-            .contentType(MediaType.APPLICATION_JSON)
-            .body(
-                ClovaRequest(
-                    messages =
-                        listOf(
-                            ClovaMessage(role = "system", content = SYSTEM_PROMPT),
-                            ClovaMessage(role = "user", content = prompt),
-                        ),
-                    maxTokens = 500,
-                    temperature = 0.7,
-                    topP = 0.8,
-                    repetitionPenalty = 1.1,
-                    topK = 0,
-                ),
-            ).retrieve()
-            .body<ClovaResponse>()
-            ?.result
-            ?: throw RuntimeException("Clova 응답을 받지 못했습니다.")
+    private fun callWithResult(prompt: String): ClovaResult {
+        val rawResponse =
+            restClient
+                .post()
+                .uri(apiUrl)
+                .header("Authorization", "Bearer $apiKey")
+                .contentType(MediaType.APPLICATION_JSON)
+                .body(
+                    ClovaRequest(
+                        messages =
+                            listOf(
+                                ClovaMessage(role = "system", content = SYSTEM_PROMPT),
+                                ClovaMessage(role = "user", content = prompt),
+                            ),
+                        maxTokens = 500,
+                        temperature = 0.7,
+                        topP = 0.8,
+                        repetitionPenalty = 1.1,
+                        topK = 0,
+                    ),
+                ).retrieve()
+                .body<String>()
+
+        logger.debug("Clova 전체 응답: $rawResponse")
+
+        return objectMapper
+            .readValue<ClovaResponse>(rawResponse!!)
+            .result
+    }
 
     private fun parseDeepQuestion(result: ClovaResult): GeneratedDeepQuestion =
         runCatching {
