@@ -21,11 +21,13 @@ class InquiryFinderService(
 
     override fun findAll(): List<Inquiry> {
         val inquiries = inquiryRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc()
+
         return inquiries
     }
 
     override fun findById(id: UUID): Inquiry {
         val inquiry = inquiryRepository.findByIdAndDeletedAtIsNull(id) ?: throw InquiryNotFoundException()
+
         return inquiry
     }
 }
