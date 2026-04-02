@@ -9,6 +9,7 @@ import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.provided.SearchHistoryFinder
+import com.didit.application.retrospect.provided.SpeechTranscriber
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ChatMessage
@@ -45,8 +46,15 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
     private val retrospectiveRegister: RetrospectiveRegister = mock(RetrospectiveRegister::class.java)
     private val retrospectiveFinder: RetrospectiveFinder = mock(RetrospectiveFinder::class.java)
     private val searchHistoryFinder: SearchHistoryFinder = mock(SearchHistoryFinder::class.java)
+    private val speechTranscriber: SpeechTranscriber = mock(SpeechTranscriber::class.java)
 
-    override fun initController() = RetrospectApi(retrospectiveRegister, retrospectiveFinder, searchHistoryFinder)
+    override fun initController() =
+        RetrospectApi(
+            retrospectiveRegister,
+            retrospectiveFinder,
+            searchHistoryFinder,
+            speechTranscriber,
+        )
 
     private val retrospectiveId = UUID.randomUUID()
 
@@ -132,13 +140,13 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `음성을 텍스트로 변환`() {
-        whenever(retrospectiveRegister.transcribeVoice(any(), any()))
+        whenever(speechTranscriber.transcribe(any()))
             .thenReturn("로그인 API 연동 작업을 했습니다.")
 
         mockMvc
             .perform(
                 org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders
-                    .multipart("/api/v1/retrospectives/{retrospectiveId}/answers/voice", retrospectiveId)
+                    .multipart("/api/v1/retrospectives/voice/transcribe")
                     .file("file", ByteArray(100))
                     .contentType(MediaType.MULTIPART_FORM_DATA),
             ).andExpect(status().isOk)
@@ -147,9 +155,6 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     "retrospect/transcribe-voice",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
-                    pathParameters(
-                        parameterWithName("retrospectiveId").description("회고 ID"),
-                    ),
                     responseFields(
                         fieldWithPath("data.text").type(JsonFieldType.STRING).description("변환된 텍스트"),
                     ),
