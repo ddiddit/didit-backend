@@ -183,4 +183,13 @@ class RetrospectiveRegisterTest {
 
         verify(retrospectiveRegister).exit(retrospectiveId, userId)
     }
+
+    @Test
+    fun `assignProject - 회고에 프로젝트를 할당한다`() {
+        val projectId = UUID.randomUUID()
+
+        retrospectiveRegister.assignProject(userId, retrospectiveId, projectId)
+
+        verify(retrospectiveRegister).assignProject(userId, retrospectiveId, projectId)
+    }
 }

@@ -67,6 +67,20 @@ class ProjectRepositoryTest {
         assertEquals(2, result.size)
     }
 
+    @Test
+    fun `findByIdAndUserIdAndDeletedAtIsNull`() {
+        val project = createProject()
+        val projectId = project.id
+
+        whenever(projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId))
+            .thenReturn(project)
+
+        val result = projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)
+
+        verify(projectRepository).findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)
+        assertEquals(project, result)
+    }
+
     private fun createProject(): Project =
         Project.create(
             userId = userId,
