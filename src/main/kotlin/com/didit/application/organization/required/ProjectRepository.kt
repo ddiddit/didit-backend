@@ -11,4 +11,6 @@ interface ProjectRepository : Repository<Project, UUID> {
         userId: UUID,
         name: String,
     ): Boolean
+
+    fun findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId: UUID): List<Project>
 }

@@ -46,6 +46,27 @@ class ProjectRepositoryTest {
         assertEquals(true, result)
     }
 
+    @Test
+    fun `findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc`() {
+        val projects =
+            listOf(
+                createProject(),
+                createProject(),
+            )
+
+        whenever(
+            projectRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId),
+        ).thenReturn(projects)
+
+        val result =
+            projectRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
+
+        verify(projectRepository)
+            .findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
+
+        assertEquals(2, result.size)
+    }
+
     private fun createProject(): Project =
         Project.create(
             userId = userId,
