@@ -89,8 +89,8 @@ class ClovaClient(
         runCatching {
             val cleanResponse =
                 result.message.content
-                    .replace(Regex("```json\\s*"), "")
-                    .replace(Regex("```\\s*$"), "")
+                    .replace(Regex("```json"), "")
+                    .replace(Regex("```"), "")
                     .trim()
 
             objectMapper.readValue<AISummaryResponse>(cleanResponse).copy(
