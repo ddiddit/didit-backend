@@ -3,6 +3,7 @@ package com.didit.application.retrospect
 import com.didit.application.retrospect.exception.SpeechEmptyFileException
 import com.didit.application.retrospect.exception.SpeechEmptyResultException
 import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
+import com.didit.application.retrospect.provided.SpeechTranscriber
 import com.didit.application.retrospect.required.SpeechClient
 import org.springframework.stereotype.Service
 import org.springframework.web.multipart.MultipartFile
@@ -10,8 +11,8 @@ import org.springframework.web.multipart.MultipartFile
 @Service
 class SpeechService(
     private val speechClient: SpeechClient,
-) {
-    fun transcribe(file: MultipartFile): String {
+) : SpeechTranscriber {
+    override fun transcribe(file: MultipartFile): String {
         val filename =
             file.originalFilename
                 ?: throw SpeechUnsupportedFileException(null, file.contentType)
