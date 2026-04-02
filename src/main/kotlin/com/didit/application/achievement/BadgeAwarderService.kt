@@ -59,7 +59,6 @@ class BadgeAwarderService(
             streak = streak,
             deepQuestionCount = retrospectAchievementReader.countDeepQuestionAnswers(userId),
             retroDate = retroDate,
-            weeklyCountByDayOfWeek = retrospectAchievementReader.countByDayOfWeek(userId),
             weeklyGoalAchievedWeeks = retrospectAchievementReader.countWeeklyGoalAchievedWeeks(userId),
         )
 }

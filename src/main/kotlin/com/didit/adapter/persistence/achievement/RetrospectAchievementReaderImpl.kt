@@ -19,12 +19,6 @@ class RetrospectAchievementReaderImpl(
             .findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
             .sumOf { it.countDeepQuestionAnswers() }
 
-    override fun countByDayOfWeek(userId: UUID): Map<DayOfWeek, Int> =
-        retrospectiveRepository
-            .findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(userId, RetroStatus.COMPLETED)
-            .groupingBy { it.dayOfWeek }
-            .eachCount()
-
     override fun countWeeklyGoalAchievedWeeks(userId: UUID): Int =
         retrospectiveRepository
             .findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(userId, RetroStatus.COMPLETED)
