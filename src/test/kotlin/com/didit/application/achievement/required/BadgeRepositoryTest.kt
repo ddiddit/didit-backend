@@ -19,26 +19,16 @@ class BadgeRepositoryTest : RepositoryTestSupport() {
         )
 
     @Test
-    fun `saveAll - 배지를 저장한다`() {
-        val badges =
-            listOf(
-                badge(BadgeConditionType.FIRST_RETRO),
-                badge(BadgeConditionType.TOTAL_30),
-            )
+    fun `save - 배지를 저장한다`() {
+        val saved = badgeRepository.save(badge(BadgeConditionType.FIRST_RETRO))
 
-        val saved = badgeRepository.saveAll(badges)
-
-        assertThat(saved).hasSize(2)
+        assertThat(saved.conditionType).isEqualTo(BadgeConditionType.FIRST_RETRO)
     }
 
     @Test
     fun `findAll - 전체 배지를 반환한다`() {
-        badgeRepository.saveAll(
-            listOf(
-                badge(BadgeConditionType.FIRST_RETRO),
-                badge(BadgeConditionType.STREAK_3_DAYS),
-            ),
-        )
+        badgeRepository.save(badge(BadgeConditionType.FIRST_RETRO))
+        badgeRepository.save(badge(BadgeConditionType.STREAK_3_DAYS))
 
         val result = badgeRepository.findAll()
 
