@@ -115,7 +115,7 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `submitTextAnswer - Q1 답변 시 PENDING에서 IN_PROGRESS로 전환된다`() {
+    fun `submitAnswer - Q1 텍스트 답변 시 PENDING에서 IN_PROGRESS로 전환된다`() {
         val retro =
             Retrospective.create(userId).apply {
                 addMessage(ChatMessage.question(this, "오늘 어떤 일을 하셨나요?", QuestionType.Q1))
@@ -123,7 +123,7 @@ class RetrospectServiceTest {
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        val result = retrospectService.submitTextAnswer(retrospectiveId, userId, "Q1 답변")
+        val result = retrospectService.submitAnswer(retrospectiveId, userId, "Q1 답변", InputType.TEXT)
 
         assertThat(retro.isInProgress()).isTrue()
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
@@ -131,7 +131,23 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `submitTextAnswer - Q3 답변 시 심화 질문 생성 메시지를 반환한다`() {
+    fun `submitAnswer - Q1 STT 답변 시 inputType이 STT로 저장된다`() {
+        val retro =
+            Retrospective.create(userId).apply {
+                addMessage(ChatMessage.question(this, "오늘 어떤 일을 하셨나요?", QuestionType.Q1))
+            }
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        val result = retrospectService.submitAnswer(retrospectiveId, userId, "음성 변환된 텍스트", InputType.STT)
+
+        assertThat(retro.isInProgress()).isTrue()
+        assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
+        assertThat(retro.chatMessages.last().inputType).isEqualTo(InputType.STT)
+    }
+
+    @Test
+    fun `submitAnswer - Q3 답변 시 심화 질문 생성 메시지를 반환한다`() {
         val retro =
             inProgressRetrospective().apply {
                 addMessage(ChatMessage.userAnswer(this, "Q1 답변", QuestionType.Q1, InputType.TEXT))
@@ -151,80 +167,57 @@ class RetrospectServiceTest {
         )
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        val result = retrospectService.submitTextAnswer(retrospectiveId, userId, "Q3 답변")
+        val result = retrospectService.submitAnswer(retrospectiveId, userId, "Q3 답변", InputType.TEXT)
 
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q4_DEEP)
         assertThat(result.isReadyToComplete).isFalse()
     }
 
     @Test
-    fun `submitTextAnswer - 이미 완료된 회고에 답변 시 예외가 발생한다`() {
+    fun `submitAnswer - 이미 완료된 회고에 답변 시 예외가 발생한다`() {
         val retro = RetrospectiveFixture.createCompleted(userId)
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
 
         assertThrows<RetrospectiveAlreadyCompletedException> {
-            retrospectService.submitTextAnswer(retrospectiveId, userId, "답변")
+            retrospectService.submitAnswer(retrospectiveId, userId, "답변", InputType.TEXT)
         }
     }
 
     @Test
-    fun `submitVoiceAnswer - wav 파일을 변환해서 답변을 제출한다`() {
-        val retro = inProgressRetrospective()
+    fun `transcribeVoice - wav 파일을 텍스트로 변환한다`() {
         val audioBytes = ByteArray(100) { 1 }
         val filename = "voice.wav"
-
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(speechClient.transcribe(audioBytes, filename)).thenReturn("음성 변환된 텍스트")
-        whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        val result = retrospectService.submitVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
+        val result = retrospectService.transcribeVoice(audioBytes, filename)
 
-        assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
+        assertThat(result).isEqualTo("음성 변환된 텍스트")
         verify(speechClient).transcribe(audioBytes, filename)
     }
 
     @Test
-    fun `submitVoiceAnswer - 회고가 완료된 상태면 STT 호출 없이 예외가 발생한다`() {
-        val retro = RetrospectiveFixture.createCompleted(userId)
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
-
-        assertThrows<RetrospectiveAlreadyCompletedException> {
-            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100) { 1 }, "voice.wav")
-        }
-        verify(speechClient, never()).transcribe(any(), any())
-    }
-
-    @Test
-    fun `submitVoiceAnswer - 빈 파일이면 STT 호출 없이 예외가 발생한다`() {
-        val retro = inProgressRetrospective()
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
-
+    fun `transcribeVoice - 빈 파일이면 예외가 발생한다`() {
         assertThrows<SpeechEmptyFileException> {
-            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(0), "voice.wav")
+            retrospectService.transcribeVoice(ByteArray(0), "voice.wav")
         }
         verify(speechClient, never()).transcribe(any(), any())
     }
 
     @Test
-    fun `submitVoiceAnswer - wav가 아닌 파일이면 STT 호출 없이 예외가 발생한다`() {
-        val retro = inProgressRetrospective()
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
-
+    fun `transcribeVoice - wav가 아닌 파일이면 예외가 발생한다`() {
         assertThrows<SpeechUnsupportedFileException> {
-            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.mp3")
+            retrospectService.transcribeVoice(ByteArray(100), "voice.mp3")
         }
         verify(speechClient, never()).transcribe(any(), any())
     }
 
     @Test
-    fun `submitVoiceAnswer - 음성 인식 결과가 비어있으면 예외가 발생한다`() {
-        val retro = inProgressRetrospective()
+    fun `transcribeVoice - 음성 인식 결과가 비어있으면 예외가 발생한다`() {
         val audioBytes = ByteArray(100) { 1 }
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(speechClient.transcribe(audioBytes, "voice.wav")).thenReturn("   ")
 
         assertThrows<SpeechEmptyResultException> {
-            retrospectService.submitVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
+            retrospectService.transcribeVoice(audioBytes, "voice.wav")
         }
     }
 

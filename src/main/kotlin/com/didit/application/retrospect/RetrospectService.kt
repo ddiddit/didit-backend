@@ -68,33 +68,17 @@ class RetrospectService(
     }
 
     @Transactional
-    override fun submitTextAnswer(
+    override fun submitAnswer(
         retrospectiveId: UUID,
         userId: UUID,
         content: String,
-    ): SubmitAnswerResponse = processAnswer(retrospectiveId, userId, content, InputType.TEXT)
+        inputType: InputType,
+    ): SubmitAnswerResponse = processAnswer(retrospectiveId, userId, content, inputType)
 
-    @Transactional
-    override fun submitVoiceAnswer(
-        retrospectiveId: UUID,
-        userId: UUID,
+    override fun transcribeVoice(
         audioBytes: ByteArray,
         filename: String,
-    ): SubmitAnswerResponse {
-        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-        validateRetrospectiveInProgress(retrospective, retrospectiveId)
-
-        val currentQuestionType =
-            retrospective.currentQuestionType()
-                ?: throw RetrospectiveNotInProgressException(retrospectiveId)
-
-        if (retrospective.isPending()) retrospective.startProgress()
-
-        val content = transcribe(audioBytes, filename)
-        saveUserAnswer(retrospective, content, currentQuestionType, InputType.STT)
-
-        return routeAnswer(retrospective, currentQuestionType)
-    }
+    ): String = transcribe(audioBytes, filename)
 
     @Async
     @Transactional
@@ -173,7 +157,6 @@ class RetrospectService(
                 lessonLearned = summary.lessonLearned,
             ),
         )
-
         retrospective.addTokens(summary.inputTokens, summary.outputTokens)
         retrospectiveRepository.save(retrospective)
         return summary

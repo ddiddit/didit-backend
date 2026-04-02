@@ -12,6 +12,7 @@ import com.didit.application.retrospect.provided.SearchHistoryFinder
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ChatMessage
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
@@ -92,14 +93,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `답변 제출`() {
-        val request = SubmitAnswerRequest(content = "로그인 API 연동 작업을 했습니다.")
+        val request = SubmitAnswerRequest(content = "로그인 API 연동 작업을 했습니다.", inputType = InputType.TEXT)
         val response =
             SubmitAnswerResponse(
                 nextQuestionType = QuestionType.Q2,
                 nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
                 isReadyToComplete = false,
             )
-        whenever(retrospectiveRegister.submitTextAnswer(retrospectiveId, userId, request.content))
+        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, request.content, request.inputType))
             .thenReturn(response)
 
         mockMvc
@@ -118,6 +119,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     requestFields(
                         fieldWithPath("content").type(JsonFieldType.STRING).description("답변 내용"),
+                        fieldWithPath("inputType").type(JsonFieldType.STRING).description("입력 타입 (TEXT, STT)"),
                     ),
                     responseFields(
                         fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
@@ -129,15 +131,9 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
     }
 
     @Test
-    fun `음성 답변 제출`() {
-        val response =
-            SubmitAnswerResponse(
-                nextQuestionType = QuestionType.Q2,
-                nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
-                isReadyToComplete = false,
-            )
-        whenever(retrospectiveRegister.submitVoiceAnswer(any(), any(), any(), any()))
-            .thenReturn(response)
+    fun `음성을 텍스트로 변환`() {
+        whenever(retrospectiveRegister.transcribeVoice(any(), any()))
+            .thenReturn("로그인 API 연동 작업을 했습니다.")
 
         mockMvc
             .perform(
@@ -148,16 +144,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
             ).andExpect(status().isOk)
             .andDo(
                 document(
-                    "retrospect/submit-voice-answer",
+                    "retrospect/transcribe-voice",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     pathParameters(
                         parameterWithName("retrospectiveId").description("회고 ID"),
                     ),
                     responseFields(
-                        fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
-                        fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
-                        fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
+                        fieldWithPath("data.text").type(JsonFieldType.STRING).description("변환된 텍스트"),
                     ),
                 ),
             )
