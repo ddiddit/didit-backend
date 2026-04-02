@@ -20,7 +20,7 @@ import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.test.Test
 
-class NoticeApiTest : AuthenticatedRestDocsSupport() {
+class NoticeUserApiTest : AuthenticatedRestDocsSupport() {
     private val noticeFinder: NoticeFinder = mock(NoticeFinder::class.java)
 
     override fun initController() = NoticeUserApi(noticeFinder)
