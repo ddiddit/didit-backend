@@ -31,7 +31,6 @@ class AdminApi(
     private val adminManager: AdminManager,
     private val adminInviteManager: AdminInviteManager,
 ) {
-    @Audit(AuditAction.ADMIN_INVITED)
     @RequireSuperAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/invite")

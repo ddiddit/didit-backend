@@ -7,6 +7,9 @@ import com.didit.application.admin.provided.AdminInviteManager
 import com.didit.application.admin.required.AdminInviteRepository
 import com.didit.application.admin.required.AdminRepository
 import com.didit.application.admin.required.PasswordEncryptor
+import com.didit.application.audit.ActorType
+import com.didit.application.audit.AuditAction
+import com.didit.application.audit.AuditLogger
 import com.didit.application.notification.required.EmailSender
 import com.didit.domain.admin.Admin
 import com.didit.domain.admin.AdminInvite
@@ -28,6 +31,7 @@ class AdminInviteService(
     private val adminInviteRepository: AdminInviteRepository,
     private val emailSender: EmailSender,
     private val passwordEncryptor: PasswordEncryptor,
+    private val auditLogger: AuditLogger,
     @param:Value("\${admin.invite.expiry-hours:48}") private val expiryHours: Long,
     @param:Value("\${admin.invite.base-url}") private val baseUrl: String,
 ) : AdminInviteManager {
@@ -63,6 +67,17 @@ class AdminInviteService(
         )
 
         logger.info("어드민 초대 이메일 발송 - invitedBy: $invitedBy, email: $email, position: $position")
+
+        auditLogger.log(
+            actorId = invitedBy,
+            actorType = ActorType.ADMIN,
+            action = AuditAction.ADMIN_INVITED,
+            payload =
+                mapOf(
+                    "email" to email,
+                    "position" to position.name,
+                ),
+        )
     }
 
     @Transactional

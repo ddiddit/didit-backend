@@ -4,6 +4,7 @@ import com.didit.application.achievement.required.BadgeRepository
 import com.didit.application.achievement.required.RetrospectAchievementReader
 import com.didit.application.achievement.required.StreakRepository
 import com.didit.application.achievement.required.UserBadgeRepository
+import com.didit.application.audit.AuditLogger
 import com.didit.domain.achievement.Badge
 import com.didit.domain.achievement.BadgeConditionType
 import com.didit.domain.achievement.Streak
@@ -31,6 +32,8 @@ class BadgeAwarderServiceTest {
 
     @Mock lateinit var retrospectAchievementReader: RetrospectAchievementReader
 
+    @Mock lateinit var auditLogger: AuditLogger
+
     private lateinit var badgeService: BadgeAwarderService
     private lateinit var badgeConditionChecker: BadgeConditionChecker
 
@@ -47,6 +50,7 @@ class BadgeAwarderServiceTest {
                 streakRepository = streakRepository,
                 retrospectAchievementReader = retrospectAchievementReader,
                 badgeConditionChecker = badgeConditionChecker,
+                auditLogger = auditLogger,
             )
     }
 
