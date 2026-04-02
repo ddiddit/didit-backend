@@ -25,9 +25,7 @@ class Streak(
 ) {
     fun update(retroDate: LocalDate) {
         if (isSameDay(retroDate)) return
-
         if (isConsecutive(retroDate)) return increaseStreak(retroDate)
-
         resetStreak(retroDate)
     }
 
@@ -46,6 +44,7 @@ class Streak(
 
     private fun resetStreak(retroDate: LocalDate) {
         currentStreak = 1
+        longestStreak = maxOf(longestStreak, 1)
         lastRetroDate = retroDate
         updatedAt = LocalDateTime.now()
     }
