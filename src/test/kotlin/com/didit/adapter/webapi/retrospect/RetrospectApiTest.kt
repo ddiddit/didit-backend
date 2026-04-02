@@ -123,9 +123,9 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     requestFields(
                         fieldWithPath("content").type(JsonFieldType.STRING).description("답변 내용"),
-                        fieldWithPath("inputType").type(JsonFieldType.STRING).description("입력 타입 (TEXT, STT)"),
                     ),
                     responseFields(
+                        fieldWithPath("data.content").type(JsonFieldType.STRING).description("STT 변환 텍스트").optional(),
                         fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
                         fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
                         fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
