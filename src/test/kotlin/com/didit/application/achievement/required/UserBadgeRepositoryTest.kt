@@ -19,16 +19,13 @@ class UserBadgeRepositoryTest : RepositoryTestSupport() {
     private val userId = UUID.randomUUID()
 
     private fun savedBadge(conditionType: BadgeConditionType): Badge =
-        badgeRepository
-            .saveAll(
-                listOf(
-                    Badge.create(
-                        name = conditionType.name,
-                        description = "설명",
-                        conditionType = conditionType,
-                    ),
-                ),
-            ).first()
+        badgeRepository.save(
+            Badge.create(
+                name = conditionType.name,
+                description = "설명",
+                conditionType = conditionType,
+            ),
+        )
 
     @Test
     fun `save - 사용자 배지를 저장한다`() {
@@ -56,6 +53,7 @@ class UserBadgeRepositoryTest : RepositoryTestSupport() {
     @Test
     fun `findAllByUserId - 다른 유저의 배지는 반환하지 않는다`() {
         val badge = savedBadge(BadgeConditionType.FIRST_RETRO)
+
         userBadgeRepository.save(UserBadge.create(userId, badge.id))
         userBadgeRepository.save(UserBadge.create(UUID.randomUUID(), badge.id))
 

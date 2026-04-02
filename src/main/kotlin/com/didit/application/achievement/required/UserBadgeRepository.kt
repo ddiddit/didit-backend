@@ -9,10 +9,5 @@ interface UserBadgeRepository : Repository<UserBadge, UUID> {
 
     fun findTop3ByUserIdOrderByAcquiredAtDesc(userId: UUID): List<UserBadge>
 
-    fun existsByUserIdAndBadgeId(
-        userId: UUID,
-        badgeId: UUID,
-    ): Boolean
-
     fun save(userBadge: UserBadge): UserBadge
 }
