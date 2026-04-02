@@ -26,9 +26,9 @@ class BadgeRepositoryTest : RepositoryTestSupport() {
                 badge(BadgeConditionType.TOTAL_30),
             )
 
-        badgeRepository.saveAll(badges)
+        val saved = badgeRepository.saveAll(badges)
 
-        assertThat(badgeRepository.count()).isEqualTo(2)
+        assertThat(saved).hasSize(2)
     }
 
     @Test
@@ -43,18 +43,5 @@ class BadgeRepositoryTest : RepositoryTestSupport() {
         val result = badgeRepository.findAll()
 
         assertThat(result).hasSize(2)
-    }
-
-    @Test
-    fun `count - 배지 개수를 반환한다`() {
-        badgeRepository.saveAll(
-            listOf(
-                badge(BadgeConditionType.FIRST_RETRO),
-                badge(BadgeConditionType.TOTAL_30),
-                badge(BadgeConditionType.STREAK_3_DAYS),
-            ),
-        )
-
-        assertThat(badgeRepository.count()).isEqualTo(3)
     }
 }

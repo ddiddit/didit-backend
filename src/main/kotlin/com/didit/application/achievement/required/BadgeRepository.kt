@@ -8,6 +8,4 @@ interface BadgeRepository : Repository<Badge, UUID> {
     fun findAll(): List<Badge>
 
     fun saveAll(badges: List<Badge>): List<Badge>
-
-    fun count(): Long
 }
