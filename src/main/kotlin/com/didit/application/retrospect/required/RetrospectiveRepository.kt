@@ -56,4 +56,18 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         @Param("userId") userId: UUID,
         @Param("keyword") keyword: String,
     ): List<Retrospective>
+
+    fun countByUserIdAndStatusAndDeletedAtIsNull(
+        userId: UUID,
+        status: RetroStatus,
+    ): Int
+
+    @Query(
+        "SELECT r.completedAt FROM Retrospective r " +
+            "WHERE r.userId = :userId AND r.status = :status AND r.deletedAt IS NULL",
+    )
+    fun findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(
+        @Param("userId") userId: UUID,
+        @Param("status") status: RetroStatus,
+    ): List<LocalDateTime>
 }

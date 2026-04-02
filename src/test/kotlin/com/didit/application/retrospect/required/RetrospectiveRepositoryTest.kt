@@ -165,4 +165,41 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         assertThat(result).hasSize(2)
         assertThat(result.map { it.title }).containsExactly("회고 정리", "오늘 회고")
     }
+
+    @Test
+    fun `countByUserIdAndStatusAndDeletedAtIsNull - COMPLETED 상태만 카운트한다`() {
+        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고1"))
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고2"))
+        retrospectiveRepository.save(
+            completedRetrospective(userId, "삭제된 회고").apply { softDelete() },
+        )
+
+        val count =
+            retrospectiveRepository.countByUserIdAndStatusAndDeletedAtIsNull(
+                userId = userId,
+                status = RetroStatus.COMPLETED,
+            )
+
+        assertThat(count).isEqualTo(2)
+    }
+
+    @Test
+    fun `findCompletedAtByUserIdAndStatusAndDeletedAtIsNull - 완료된 회고의 날짜를 반환한다`() {
+        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고1"))
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고2"))
+        retrospectiveRepository.save(
+            completedRetrospective(userId, "삭제된 회고").apply { softDelete() },
+        )
+
+        val dates =
+            retrospectiveRepository.findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(
+                userId = userId,
+                status = RetroStatus.COMPLETED,
+            )
+
+        assertThat(dates).hasSize(2)
+    }
 }

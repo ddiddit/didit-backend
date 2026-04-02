@@ -176,4 +176,30 @@ class RetrospectiveTest {
             retro.updateTitle("")
         }
     }
+
+    @Test
+    fun `countDeepQuestionAnswers - 심화질문 답변 수를 반환한다`() {
+        val retro = retrospective()
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q4 답변1", QuestionType.Q4_DEEP, InputType.TEXT))
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q4 답변2", QuestionType.Q4_DEEP, InputType.TEXT))
+
+        assertThat(retro.countDeepQuestionAnswers()).isEqualTo(2)
+    }
+
+    @Test
+    fun `countDeepQuestionAnswers - 스킵된 답변은 카운트에서 제외된다`() {
+        val retro = retrospective()
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q4 답변", QuestionType.Q4_DEEP, InputType.TEXT))
+        retro.addMessage(ChatMessage.skippedAnswer(retro, QuestionType.Q4_DEEP))
+
+        assertThat(retro.countDeepQuestionAnswers()).isEqualTo(1)
+    }
+
+    @Test
+    fun `countDeepQuestionAnswers - 심화질문 답변이 없으면 0을 반환한다`() {
+        val retro = retrospective()
+        retro.addMessage(ChatMessage.userAnswer(retro, "Q1 답변", QuestionType.Q1, InputType.TEXT))
+
+        assertThat(retro.countDeepQuestionAnswers()).isEqualTo(0)
+    }
 }
