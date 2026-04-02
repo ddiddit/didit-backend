@@ -91,6 +91,7 @@ class NoticeAdminApi(
         return SuccessResponse.of(NoticeAdminDetailResponse.of(notice))
     }
 
+    @Audit(AuditAction.NOTICE_DELETED, targetType = "NOTICE")
     @RequireAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{noticeId}")

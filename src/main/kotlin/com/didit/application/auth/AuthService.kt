@@ -57,6 +57,7 @@ class AuthService(
             actorId = user.id,
             actorType = ActorType.USER,
             action = AuditAction.USER_LOGGED_IN,
+            payload = mapOf("provider" to provider.name),
         )
 
         return issueTokens(user, isNewUser)
@@ -65,6 +66,7 @@ class AuthService(
     @Transactional
     override fun logout(userId: UUID) {
         refreshTokenRepository.deleteByUserId(userId)
+
         logger.info("로그아웃 - userId: $userId")
     }
 
@@ -90,6 +92,17 @@ class AuthService(
                 reason = reason,
                 reasonDetail = reasonDetail,
             ),
+        )
+
+        auditLogger.log(
+            actorId = userId,
+            actorType = ActorType.USER,
+            action = AuditAction.USER_WITHDREW,
+            payload =
+                mapOf(
+                    "reason" to reason.name,
+                    "reasonDetail" to (reasonDetail ?: ""),
+                ),
         )
     }
 
