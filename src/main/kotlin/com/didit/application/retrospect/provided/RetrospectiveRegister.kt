@@ -57,4 +57,10 @@ interface RetrospectiveRegister {
         retrospectiveId: UUID,
         userId: UUID,
     )
+
+    fun assignProject(
+        userId: UUID,
+        retrospectiveId: UUID,
+        projectId: UUID,
+    )
 }

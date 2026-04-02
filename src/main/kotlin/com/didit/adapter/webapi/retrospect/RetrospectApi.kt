@@ -246,4 +246,15 @@ class RetrospectApi(
         val histories = searchHistoryFinder.findRecent(userId)
         return SuccessResponse.of(histories.map { SearchHistoryResponse.from(it) })
     }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping("/{retrospectiveId}/assign-project")
+    fun assignProject(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+        @RequestParam projectId: UUID,
+    ) {
+        retrospectiveRegister.assignProject(userId, retrospectiveId, projectId)
+    }
 }

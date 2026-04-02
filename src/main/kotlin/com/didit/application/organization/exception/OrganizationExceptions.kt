@@ -10,3 +10,10 @@ class DuplicateProjectNameException(
         OrganizationErrorCode.DUPLICATED_PROJECT_NAME,
         "userId:$userId, projectName:$name",
     )
+
+class ProjectNotFoundException(
+    projectId: UUID,
+) : BusinessException(
+        OrganizationErrorCode.PROJECT_NOT_FOUND,
+        "projectId:$projectId not found",
+    )

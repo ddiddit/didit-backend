@@ -20,6 +20,7 @@ import com.didit.support.RetrospectiveFixture
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
@@ -126,8 +127,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     responseFields(
                         fieldWithPath("data.content").type(JsonFieldType.STRING).description("STT 변환 텍스트").optional(),
-                        fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
-                        fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
+                        fieldWithPath("data.nextQuestionType")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 타입")
+                            .optional(),
+                        fieldWithPath("data.nextQuestionContent")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 내용")
+                            .optional(),
                         fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
                     ),
                 ),
@@ -163,8 +170,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     responseFields(
                         fieldWithPath("data.content").type(JsonFieldType.STRING).description("STT 변환된 텍스트").optional(),
-                        fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
-                        fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
+                        fieldWithPath("data.nextQuestionType")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 타입")
+                            .optional(),
+                        fieldWithPath("data.nextQuestionContent")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 내용")
+                            .optional(),
                         fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
                     ),
                 ),
@@ -280,12 +293,24 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
                         fieldWithPath("data.summary").type(JsonFieldType.OBJECT).description("회고 요약").optional(),
-                        fieldWithPath("data.summary.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
+                        fieldWithPath("data.summary.feedback")
+                            .type(JsonFieldType.STRING)
+                            .description("AI 피드백")
+                            .optional(),
                         fieldWithPath("data.summary.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
                         fieldWithPath("data.summary.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
-                        fieldWithPath("data.summary.blockedPoint").type(JsonFieldType.STRING).description("막힌 지점").optional(),
-                        fieldWithPath("data.summary.solutionProcess").type(JsonFieldType.STRING).description("해결 과정").optional(),
-                        fieldWithPath("data.summary.lessonLearned").type(JsonFieldType.STRING).description("배운 점").optional(),
+                        fieldWithPath("data.summary.blockedPoint")
+                            .type(JsonFieldType.STRING)
+                            .description("막힌 지점")
+                            .optional(),
+                        fieldWithPath("data.summary.solutionProcess")
+                            .type(JsonFieldType.STRING)
+                            .description("해결 과정")
+                            .optional(),
+                        fieldWithPath("data.summary.lessonLearned")
+                            .type(JsonFieldType.STRING)
+                            .description("배운 점")
+                            .optional(),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
@@ -562,7 +587,10 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data[].feedback").type(JsonFieldType.STRING).description("AI 피드백 한 줄").optional(),
+                        fieldWithPath("data[].feedback")
+                            .type(JsonFieldType.STRING)
+                            .description("AI 피드백 한 줄")
+                            .optional(),
                         fieldWithPath("data[].createdAt").type(JsonFieldType.STRING).description("생성 시간").optional(),
                     ),
                 ),
@@ -605,5 +633,29 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
         mockMvc
             .perform(get("/api/v1/retrospectives/search/info"))
             .andExpect(status().isOk)
+    }
+
+    @Test
+    fun `회고 프로젝트 할당`() {
+        val projectId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                patch("/api/v1/retrospectives/{retrospectiveId}/assign-project?projectId=$projectId", retrospectiveId),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "retrospect/assign-project",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    queryParameters(
+                        parameterWithName("projectId").description("할당할 프로젝트 ID"),
+                    ),
+                ),
+            )
+        verify(retrospectiveRegister).assignProject(userId, retrospectiveId, projectId)
     }
 }

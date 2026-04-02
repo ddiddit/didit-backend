@@ -2,9 +2,11 @@ package com.didit.application.retrospect
 
 import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.exception.DailyLimitExceededException
 import com.didit.application.retrospect.exception.RetrospectiveAlreadyCompletedException
+import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.exception.RetrospectiveNotInProgressException
 import com.didit.application.retrospect.exception.SpeechEmptyFileException
 import com.didit.application.retrospect.exception.SpeechEmptyResultException
@@ -39,19 +41,29 @@ import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
 class RetrospectServiceTest {
-    @Mock lateinit var retrospectiveRepository: RetrospectiveRepository
+    @Mock
+    lateinit var retrospectiveRepository: RetrospectiveRepository
 
-    @Mock lateinit var retrospectiveFinder: RetrospectiveFinder
+    @Mock
+    lateinit var retrospectiveFinder: RetrospectiveFinder
 
-    @Mock lateinit var speechClient: SpeechClient
+    @Mock
+    lateinit var speechClient: SpeechClient
 
-    @Mock lateinit var aiClient: AIClient
+    @Mock
+    lateinit var aiClient: AIClient
 
-    @Mock lateinit var userFinder: UserFinder
+    @Mock
+    lateinit var userFinder: UserFinder
 
-    @Mock lateinit var eventPublisher: ApplicationEventPublisher
+    @Mock
+    lateinit var eventPublisher: ApplicationEventPublisher
 
-    @Mock lateinit var auditLogger: AuditLogger
+    @Mock
+    lateinit var auditLogger: AuditLogger
+
+    @Mock
+    lateinit var projectRepository: ProjectRepository
 
     private lateinit var retrospectService: RetrospectService
 
@@ -69,6 +81,7 @@ class RetrospectServiceTest {
                 userFinder = userFinder,
                 eventPublisher = eventPublisher,
                 auditLogger = auditLogger,
+                projectRepository = projectRepository,
             )
     }
 
@@ -371,6 +384,50 @@ class RetrospectServiceTest {
         retrospectService.exit(retrospectiveId, userId)
 
         assertThat(retro.isDeleted()).isFalse()
+        verify(retrospectiveRepository, never()).save(any())
+    }
+
+    @Test
+    fun `assignProject - 정상적으로 프로젝트를 회고에 할당한다`() {
+        val retro = inProgressRetrospective()
+        val projectId = UUID.randomUUID()
+        val project =
+            com.didit.domain.organization.Project
+                .create(userId, "프로젝트")
+
+        whenever(retrospectiveRepository.findByIdAndDeletedAtIsNull(retrospectiveId)).thenReturn(retro)
+        whenever(projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)).thenReturn(project)
+        whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        retrospectService.assignProject(userId, retrospectiveId, projectId)
+
+        assertThat(retro.projectId).isEqualTo(projectId)
+        verify(retrospectiveRepository).save(retro)
+    }
+
+    @Test
+    fun `assignProject - 회고가 존재하지 않으면 RetrospectiveNotFoundException`() {
+        val projectId = UUID.randomUUID()
+
+        whenever(retrospectiveRepository.findByIdAndDeletedAtIsNull(retrospectiveId)).thenReturn(null)
+
+        assertThrows<RetrospectiveNotFoundException> {
+            retrospectService.assignProject(userId, retrospectiveId, projectId)
+        }
+        verify(retrospectiveRepository, never()).save(any())
+    }
+
+    @Test
+    fun `assignProject - 프로젝트가 존재하지 않으면 ProjectNotFoundException`() {
+        val retro = inProgressRetrospective()
+        val projectId = UUID.randomUUID()
+
+        whenever(retrospectiveRepository.findByIdAndDeletedAtIsNull(retrospectiveId)).thenReturn(retro)
+        whenever(projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)).thenReturn(null)
+
+        assertThrows<com.didit.application.organization.exception.ProjectNotFoundException> {
+            retrospectService.assignProject(userId, retrospectiveId, projectId)
+        }
         verify(retrospectiveRepository, never()).save(any())
     }
 }
