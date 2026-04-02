@@ -8,6 +8,8 @@ import com.didit.adapter.webapi.auth.dto.UpdateProfileRequest
 import com.didit.adapter.webapi.auth.dto.UserProfileResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.achievement.provided.BadgeFinder
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import jakarta.validation.Valid
@@ -37,6 +39,7 @@ class UserApi(
         return SuccessResponse.of(NicknameCheckResponse(isDuplicate = isDuplicate))
     }
 
+    @Audit(AuditAction.USER_SIGNED_UP)
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/onboarding")
@@ -64,6 +67,7 @@ class UserApi(
         return SuccessResponse.of(UserProfileResponse.from(user, recentBadges))
     }
 
+    @Audit(AuditAction.USER_PROFILE_UPDATED)
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PatchMapping("/profile")

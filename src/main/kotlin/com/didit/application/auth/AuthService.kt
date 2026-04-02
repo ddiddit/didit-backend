@@ -1,5 +1,8 @@
 package com.didit.application.auth
 
+import com.didit.application.audit.ActorType
+import com.didit.application.audit.AuditAction
+import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.dto.RefreshResponse
 import com.didit.application.auth.dto.TokenResponse
 import com.didit.application.auth.exception.ExpiredRefreshTokenException
@@ -30,6 +33,7 @@ class AuthService(
     private val oAuthClientFactory: OAuthClientFactory,
     private val tokenProvider: TokenProvider,
     private val withdrawalRecordRepository: WithdrawalRecordRepository,
+    private val auditLogger: AuditLogger,
 ) : Auth {
     @Transactional
     override fun login(
@@ -37,8 +41,17 @@ class AuthService(
         oauthToken: String,
     ): TokenResponse {
         val client = oAuthClientFactory.getClient(provider)
+
         val userInfo = client.getUserInfo(oauthToken)
+
         val (user, isNewUser) = resolveUser(provider, userInfo.providerId, userInfo.email)
+
+        auditLogger.log(
+            actorId = user.id,
+            actorType = ActorType.USER,
+            action = AuditAction.USER_LOGGED_IN,
+        )
+
         return issueTokens(user, isNewUser)
     }
 

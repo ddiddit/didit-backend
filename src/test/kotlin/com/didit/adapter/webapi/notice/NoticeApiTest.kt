@@ -23,7 +23,7 @@ import kotlin.test.Test
 class NoticeApiTest : AuthenticatedRestDocsSupport() {
     private val noticeFinder: NoticeFinder = mock(NoticeFinder::class.java)
 
-    override fun initController() = NoticeApi(noticeFinder)
+    override fun initController() = NoticeUserApi(noticeFinder)
 
     @Test
     fun `공지사항 목록 조회`() {

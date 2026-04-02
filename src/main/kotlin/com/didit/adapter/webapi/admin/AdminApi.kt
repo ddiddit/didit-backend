@@ -9,6 +9,8 @@ import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.admin.provided.AdminFinder
 import com.didit.application.admin.provided.AdminInviteManager
 import com.didit.application.admin.provided.AdminManager
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -29,6 +31,7 @@ class AdminApi(
     private val adminManager: AdminManager,
     private val adminInviteManager: AdminInviteManager,
 ) {
+    @Audit(AuditAction.ADMIN_INVITED)
     @RequireSuperAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/invite")
@@ -63,6 +66,7 @@ class AdminApi(
         return SuccessResponse.of(admins.map { AdminListResponse.from(it) })
     }
 
+    @Audit(AuditAction.ADMIN_APPROVED, targetType = "ADMIN")
     @RequireSuperAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/{adminId}/approve")
@@ -72,6 +76,7 @@ class AdminApi(
         adminManager.approve(adminId)
     }
 
+    @Audit(AuditAction.ADMIN_REJECTED, targetType = "ADMIN")
     @RequireSuperAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/{adminId}/reject")
@@ -81,6 +86,7 @@ class AdminApi(
         adminManager.reject(adminId)
     }
 
+    @Audit(AuditAction.ADMIN_DELETED, targetType = "ADMIN")
     @RequireSuperAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{adminId}")

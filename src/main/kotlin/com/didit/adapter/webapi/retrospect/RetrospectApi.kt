@@ -14,6 +14,8 @@ import com.didit.adapter.webapi.retrospect.dto.SearchHistoryResponse
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
@@ -47,6 +49,7 @@ class RetrospectApi(
     private val retrospectiveFinder: RetrospectiveFinder,
     private val searchHistoryFinder: SearchHistoryFinder,
 ) {
+    @Audit(AuditAction.RETROSPECTIVE_STARTED)
     @RequireAuth
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping
@@ -54,6 +57,7 @@ class RetrospectApi(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<StartRetrospectiveResponse> {
         val retrospective = retrospectiveRegister.start(userId)
+
         return SuccessResponse.of(StartRetrospectiveResponse.from(retrospective))
     }
 
@@ -122,6 +126,7 @@ class RetrospectApi(
         return SuccessResponse.of(result)
     }
 
+    @Audit(AuditAction.RETROSPECTIVE_SAVED, targetType = "RETROSPECTIVE")
     @RequireAuth
     @PostMapping("/{retrospectiveId}/save")
     fun save(
@@ -138,6 +143,7 @@ class RetrospectApi(
         return SuccessResponse.of(RetrospectiveDetailResponse.from(retrospective))
     }
 
+    @Audit(AuditAction.RETROSPECTIVE_RESTARTED, targetType = "RETROSPECTIVE")
     @RequireAuth
     @ResponseStatus(HttpStatus.CREATED)
     @PostMapping("/{retrospectiveId}/restart")
@@ -149,6 +155,7 @@ class RetrospectApi(
         return SuccessResponse.of(StartRetrospectiveResponse.from(retrospective))
     }
 
+    @Audit(AuditAction.RETROSPECTIVE_DELETED, targetType = "RETROSPECTIVE")
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{retrospectiveId}")

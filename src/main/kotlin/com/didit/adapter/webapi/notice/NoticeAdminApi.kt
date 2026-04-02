@@ -5,6 +5,8 @@ import com.didit.adapter.webapi.admin.annotation.RequireAdmin
 import com.didit.adapter.webapi.notice.dto.NoticeAdminDetailResponse
 import com.didit.adapter.webapi.notice.dto.NoticeAdminListResponse
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import com.didit.application.notice.provided.NoticeFinder
 import com.didit.application.notice.provided.NoticeModifier
 import com.didit.application.notice.provided.NoticeRegister
@@ -30,23 +32,23 @@ class NoticeAdminApi(
 ) {
     @RequireAdmin
     @GetMapping
-    fun findAll(
-        @CurrentAdminId adminId: UUID,
-    ): SuccessResponse<List<NoticeAdminListResponse>> {
+    fun findAll(): SuccessResponse<List<NoticeAdminListResponse>> {
         val notices = noticeFinder.findAllForAdmin()
+
         return SuccessResponse.of(notices.map { NoticeAdminListResponse.from(it) })
     }
 
     @RequireAdmin
     @GetMapping("/{noticeId}")
     fun findById(
-        @CurrentAdminId adminId: UUID,
         @PathVariable noticeId: UUID,
     ): SuccessResponse<NoticeAdminDetailResponse> {
         val notice = noticeFinder.findByIdForAdmin(noticeId)
+
         return SuccessResponse.of(NoticeAdminDetailResponse.of(notice))
     }
 
+    @Audit(AuditAction.NOTICE_REGISTERED)
     @RequireAdmin
     @PostMapping
     fun register(
@@ -67,6 +69,7 @@ class NoticeAdminApi(
         return SuccessResponse.of(NoticeAdminDetailResponse.of(notice))
     }
 
+    @Audit(AuditAction.NOTICE_UPDATED, targetType = "NOTICE")
     @RequireAdmin
     @PutMapping("/{noticeId}")
     fun update(

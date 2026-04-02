@@ -8,6 +8,8 @@ import com.didit.adapter.webapi.auth.dto.TokenRefreshRequest
 import com.didit.adapter.webapi.auth.dto.TokenRefreshResponse
 import com.didit.adapter.webapi.auth.dto.WithdrawRequest
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import com.didit.application.auth.provided.Auth
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -51,18 +53,20 @@ class AuthApi(
         )
     }
 
+    @Audit(AuditAction.USER_LOGGED_OUT)
+    @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/logout")
-    @RequireAuth
     fun logout(
         @CurrentUserId userId: UUID,
     ) {
         auth.logout(userId)
     }
 
+    @Audit(AuditAction.USER_WITHDREW)
+    @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/withdraw")
-    @RequireAuth
     fun withdraw(
         @CurrentUserId userId: UUID,
         @RequestBody request: WithdrawRequest,
