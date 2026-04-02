@@ -72,8 +72,7 @@ class RetrospectService(
         retrospectiveId: UUID,
         userId: UUID,
         content: String,
-        inputType: InputType,
-    ): SubmitAnswerResponse = processAnswer(retrospectiveId, userId, content, inputType)
+    ): SubmitAnswerResponse = processAnswer(retrospectiveId, userId, content, InputType.TEXT)
 
     @Transactional
     override fun submitVoiceAnswer(

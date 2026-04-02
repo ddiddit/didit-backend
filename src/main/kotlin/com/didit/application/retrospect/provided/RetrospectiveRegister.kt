@@ -2,7 +2,6 @@ package com.didit.application.retrospect.provided
 
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
-import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.Retrospective
 import java.util.UUID
 
@@ -13,7 +12,6 @@ interface RetrospectiveRegister {
         retrospectiveId: UUID,
         userId: UUID,
         content: String,
-        inputType: InputType,
     ): SubmitAnswerResponse
 
     fun submitVoiceAnswer(

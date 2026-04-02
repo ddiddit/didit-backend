@@ -69,7 +69,6 @@ class RetrospectApi(
                 retrospectiveId = retrospectiveId,
                 userId = userId,
                 content = request.content,
-                inputType = request.inputType,
             )
         return SuccessResponse.of(result)
     }

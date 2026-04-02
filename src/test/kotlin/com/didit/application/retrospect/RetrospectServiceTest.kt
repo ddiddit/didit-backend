@@ -124,7 +124,7 @@ class RetrospectServiceTest {
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        val result = retrospectService.submitAnswer(retrospectiveId, userId, "Q1 답변", InputType.TEXT)
+        val result = retrospectService.submitAnswer(retrospectiveId, userId, "Q1 답변")
 
         assertThat(retro.isInProgress()).isTrue()
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
@@ -141,7 +141,7 @@ class RetrospectServiceTest {
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        retrospectService.submitAnswer(retrospectiveId, userId, "음성 변환된 텍스트", InputType.STT)
+        retrospectService.submitAnswer(retrospectiveId, userId, "음성 변환된 텍스트")
 
         val userAnswer = retro.chatMessages.filter { it.sender == Sender.USER }.last()
         assertThat(userAnswer.inputType).isEqualTo(InputType.STT)
@@ -164,7 +164,7 @@ class RetrospectServiceTest {
         )
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        val result = retrospectService.submitAnswer(retrospectiveId, userId, "Q3 답변", InputType.TEXT)
+        val result = retrospectService.submitAnswer(retrospectiveId, userId, "Q3 답변")
 
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q4_DEEP)
         assertThat(result.isReadyToComplete).isFalse()
@@ -176,7 +176,7 @@ class RetrospectServiceTest {
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
 
         assertThrows<RetrospectiveAlreadyCompletedException> {
-            retrospectService.submitAnswer(retrospectiveId, userId, "답변", InputType.TEXT)
+            retrospectService.submitAnswer(retrospectiveId, userId, "답변")
         }
     }
 

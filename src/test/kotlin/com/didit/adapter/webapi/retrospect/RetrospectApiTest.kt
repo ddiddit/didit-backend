@@ -12,7 +12,6 @@ import com.didit.application.retrospect.provided.SearchHistoryFinder
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ChatMessage
-import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
@@ -98,14 +97,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `답변 제출`() {
-        val request = SubmitAnswerRequest(content = "로그인 API 연동 작업을 했습니다.", inputType = InputType.TEXT)
+        val request = SubmitAnswerRequest(content = "로그인 API 연동 작업을 했습니다.")
         val response =
             SubmitAnswerResponse(
                 nextQuestionType = QuestionType.Q2,
                 nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
                 isReadyToComplete = false,
             )
-        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, request.content, request.inputType))
+        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, request.content))
             .thenReturn(response)
 
         mockMvc
