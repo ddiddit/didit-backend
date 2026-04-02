@@ -10,3 +10,14 @@ include::{snippets}/project/create/request-fields.adoc[]
 === response
 
 include::{snippets}/project/create/http-response.adoc[]
+
+== 프로젝트 목록 조회
+
+=== request
+
+include::{snippets}/project/list/http-request.adoc[]
+
+=== response
+
+include::{snippets}/project/list/http-response.adoc[]
+include::{snippets}/project/list/response-fields.adoc[]
