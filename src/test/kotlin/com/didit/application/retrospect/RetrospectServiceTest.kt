@@ -19,6 +19,7 @@ import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
+import com.didit.domain.retrospect.Sender
 import com.didit.domain.shared.Job
 import com.didit.support.RetrospectiveFixture
 import org.assertj.core.api.Assertions.assertThat
@@ -144,7 +145,7 @@ class RetrospectServiceTest {
         assertThat(retro.isInProgress()).isTrue()
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
 
-        val userAnswer = retro.chatMessages.filter { it.sender == Sender.USER }.last()
+        val userAnswer = retro.chatMessages.last { it.sender == Sender.USER }
         assertThat(userAnswer.inputType).isEqualTo(InputType.STT)
     }
 
