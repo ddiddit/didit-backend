@@ -28,8 +28,8 @@ class BadgeApiTest : AuthenticatedRestDocsSupport() {
         acquiredAt: LocalDateTime? = null,
     ) = BadgeResponse(
         id = UUID.randomUUID(),
-        name = conditionType.name,
-        description = "설명",
+        name = "첫 기록",
+        description = "첫 회고 저장 완료",
         conditionType = conditionType.name,
         acquired = acquired,
         acquiredAt = acquiredAt,
