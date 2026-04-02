@@ -1,0 +1,15 @@
+package com.didit.application.audit
+
+enum class AuditAction {
+    USER_SIGNED_UP,
+    USER_PROFILE_UPDATED,
+    USER_WITHDREW,
+    USER_LOGGED_OUT,
+
+    RETROSPECTIVE_STARTED,
+    RETROSPECTIVE_SAVED,
+    RETROSPECTIVE_DELETED,
+    RETROSPECTIVE_RESTARTED,
+
+    BADGE_ACQUIRED,
+}
