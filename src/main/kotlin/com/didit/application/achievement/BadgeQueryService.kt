@@ -36,4 +36,18 @@ class BadgeQueryService(
             }
         }
     }
+
+    override fun findUnnotified(userId: UUID): List<BadgeResponse> {
+        val unnotifiedUserBadges = userBadgeRepository.findAllByUserIdAndIsNotifiedFalse(userId)
+        val badgeMap = badgeRepository.findAll().associateBy { it.id }
+
+        return unnotifiedUserBadges
+            .onEach { it.markAsNotified() }
+            .onEach { userBadgeRepository.save(it) }
+            .mapNotNull { userBadge ->
+                badgeMap[userBadge.badgeId]?.let { badge ->
+                    BadgeResponse.of(badge, userBadge)
+                }
+            }
+    }
 }

@@ -61,4 +61,20 @@ class BadgeFinderTest {
         assertThat(result).hasSize(3)
         assertThat(result).allMatch { it.acquired }
     }
+
+    @Test
+    fun `findUnnotified - 미알림 배지 목록을 반환한다`() {
+        val badges =
+            listOf(
+                badgeResponse(acquired = true, conditionType = BadgeConditionType.FIRST_RETRO),
+                badgeResponse(acquired = true, conditionType = BadgeConditionType.STREAK_3_DAYS),
+            )
+        whenever(badgeFinder.findUnnotified(userId)).thenReturn(badges)
+
+        val result = badgeFinder.findUnnotified(userId)
+
+        verify(badgeFinder).findUnnotified(userId)
+        assertThat(result).hasSize(2)
+        assertThat(result).allMatch { it.acquired }
+    }
 }

@@ -7,6 +7,7 @@ import com.didit.adapter.webapi.auth.dto.OnboardingRequest
 import com.didit.adapter.webapi.auth.dto.UpdateProfileRequest
 import com.didit.adapter.webapi.auth.dto.UserProfileResponse
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.achievement.provided.BadgeFinder
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import jakarta.validation.Valid
@@ -26,6 +27,7 @@ import java.util.UUID
 class UserApi(
     private val userFinder: UserFinder,
     private val userRegister: UserRegister,
+    private val badgeFinder: BadgeFinder,
 ) {
     @GetMapping("/nickname/check")
     fun checkNickname(
@@ -57,7 +59,9 @@ class UserApi(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<UserProfileResponse> {
         val user = userFinder.findByIdOrThrow(userId)
-        return SuccessResponse.of(UserProfileResponse.from(user))
+        val recentBadges = badgeFinder.findRecent(userId)
+
+        return SuccessResponse.of(UserProfileResponse.from(user, recentBadges))
     }
 
     @RequireAuth

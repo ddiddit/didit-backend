@@ -1,0 +1,2 @@
+ALTER TABLE user_badges
+    ADD COLUMN is_notified BOOLEAN NOT NULL DEFAULT FALSE;

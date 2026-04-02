@@ -63,6 +63,22 @@ class UserBadgeRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
+    fun `findAllByUserIdAndIsNotifiedFalse - 미알림 배지만 반환한다`() {
+        val badge1 = savedBadge(BadgeConditionType.FIRST_RETRO)
+        val badge2 = savedBadge(BadgeConditionType.STREAK_3_DAYS)
+
+        val userBadge1 = userBadgeRepository.save(UserBadge.create(userId, badge1.id))
+        val userBadge2 = userBadgeRepository.save(UserBadge.create(userId, badge2.id))
+        userBadge2.markAsNotified()
+        userBadgeRepository.save(userBadge2)
+
+        val result = userBadgeRepository.findAllByUserIdAndIsNotifiedFalse(userId)
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].badgeId).isEqualTo(badge1.id)
+    }
+
+    @Test
     fun `findTop3ByUserIdOrderByAcquiredAtDesc - 최근 3개만 반환한다`() {
         repeat(5) {
             val badge = savedBadge(BadgeConditionType.entries[it])

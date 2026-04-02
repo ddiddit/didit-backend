@@ -114,4 +114,35 @@ class BadgeQueryServiceTest {
 
         assertThat(result).isEmpty()
     }
+
+    @Test
+    fun `findUnnotified - 미알림 배지를 반환하고 알림 처리한다`() {
+        val badge1 = badge(BadgeConditionType.FIRST_RETRO)
+        val badge2 = badge(BadgeConditionType.STREAK_3_DAYS)
+        val userBadge1 = UserBadge.create(userId, badge1.id)
+        val userBadge2 = UserBadge.create(userId, badge2.id)
+
+        whenever(userBadgeRepository.findAllByUserIdAndIsNotifiedFalse(userId))
+            .thenReturn(listOf(userBadge1, userBadge2))
+        whenever(badgeRepository.findAll()).thenReturn(listOf(badge1, badge2))
+        whenever(userBadgeRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        val result = badgeQueryService.findUnnotified(userId)
+
+        assertThat(result).hasSize(2)
+        assertThat(userBadge1.isNotified).isTrue()
+        assertThat(userBadge2.isNotified).isTrue()
+        verify(userBadgeRepository, times(2)).save(any())
+    }
+
+    @Test
+    fun `findUnnotified - 미알림 배지가 없으면 빈 목록을 반환한다`() {
+        whenever(userBadgeRepository.findAllByUserIdAndIsNotifiedFalse(userId)).thenReturn(emptyList())
+        whenever(badgeRepository.findAll()).thenReturn(emptyList())
+
+        val result = badgeQueryService.findUnnotified(userId)
+
+        assertThat(result).isEmpty()
+        verify(userBadgeRepository, never()).save(any())
+    }
 }

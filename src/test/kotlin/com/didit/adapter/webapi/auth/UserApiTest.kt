@@ -1,5 +1,6 @@
 package com.didit.adapter.webapi.auth
 
+import com.didit.application.achievement.provided.BadgeFinder
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import com.didit.docs.ApiDocumentUtils
@@ -25,8 +26,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 class UserApiTest : AuthenticatedRestDocsSupport() {
     private val userFinder: UserFinder = mock(UserFinder::class.java)
     private val userRegister: UserRegister = mock(UserRegister::class.java)
+    private val badgeFinder: BadgeFinder = mock(BadgeFinder::class.java)
 
-    override fun initController() = UserApi(userFinder, userRegister)
+    override fun initController() = UserApi(userFinder, userRegister, badgeFinder)
 
     @Test
     fun `닉네임 중복 확인`() {
@@ -101,6 +103,7 @@ class UserApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.job").type(JsonFieldType.STRING).description("직무 (DEVELOPER, PLANNER, DESIGNER)"),
                         fieldWithPath("data.email").type(JsonFieldType.STRING).description("이메일"),
                         fieldWithPath("data.provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자 (KAKAO, GOOGLE, APPLE)"),
+                        fieldWithPath("data.recentBadges").type(JsonFieldType.ARRAY).description("최근 획득 배지 목록"),
                     ),
                 ),
             )

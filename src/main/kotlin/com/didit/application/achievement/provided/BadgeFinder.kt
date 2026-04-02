@@ -7,4 +7,6 @@ interface BadgeFinder {
     fun findAll(userId: UUID): List<BadgeResponse>
 
     fun findRecent(userId: UUID): List<BadgeResponse>
+
+    fun findUnnotified(userId: UUID): List<BadgeResponse>
 }

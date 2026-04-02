@@ -9,5 +9,7 @@ interface UserBadgeRepository : Repository<UserBadge, UUID> {
 
     fun findTop3ByUserIdOrderByAcquiredAtDesc(userId: UUID): List<UserBadge>
 
+    fun findAllByUserIdAndIsNotifiedFalse(userId: UUID): List<UserBadge>
+
     fun save(userBadge: UserBadge): UserBadge
 }
