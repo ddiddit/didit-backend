@@ -70,13 +70,13 @@ class BadgeServiceTest {
         whenever(retrospectAchievementReader.countByDayOfWeek(userId)).thenReturn(emptyMap())
         whenever(retrospectAchievementReader.countWeeklyGoalAchievedWeeks(userId)).thenReturn(weeklyGoalAchievedWeeks)
         whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
-        whenever(userBadgeRepository.save(any())).thenAnswer { it.arguments[0] }
     }
 
     @Test
     fun `awardBadges - 첫 회고 시 FIRST_RETRO 배지를 부여한다`() {
         defaultMocks(totalRetroCount = 1)
         whenever(badgeRepository.findAll()).thenReturn(listOf(badge(BadgeConditionType.FIRST_RETRO)))
+        whenever(userBadgeRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = badgeService.awardBadges(userId, today)
 
@@ -109,6 +109,7 @@ class BadgeServiceTest {
             }
         defaultMocks(existingStreak = streak)
         whenever(badgeRepository.findAll()).thenReturn(listOf(badge(BadgeConditionType.STREAK_3_DAYS)))
+        whenever(userBadgeRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = badgeService.awardBadges(userId, today)
 
@@ -129,8 +130,13 @@ class BadgeServiceTest {
 
     @Test
     fun `awardBadges - 스트릭이 없으면 새로 생성한다`() {
-        defaultMocks(totalRetroCount = 1)
         whenever(streakRepository.findByUserId(userId)).thenReturn(null)
+        whenever(streakRepository.save(any())).thenAnswer { it.arguments[0] }
+        whenever(retrospectAchievementReader.countCompletedRetros(userId)).thenReturn(1)
+        whenever(retrospectAchievementReader.countDeepQuestionAnswers(userId)).thenReturn(0)
+        whenever(retrospectAchievementReader.countByDayOfWeek(userId)).thenReturn(emptyMap())
+        whenever(retrospectAchievementReader.countWeeklyGoalAchievedWeeks(userId)).thenReturn(0)
+        whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
         whenever(badgeRepository.findAll()).thenReturn(emptyList())
 
         badgeService.awardBadges(userId, today)
