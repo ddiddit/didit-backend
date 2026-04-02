@@ -18,6 +18,7 @@ import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveCompletedEvent
 import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.domain.shared.Job
 import com.didit.support.RetrospectiveFixture
@@ -32,6 +33,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.context.ApplicationEventPublisher
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -45,6 +47,8 @@ class RetrospectServiceTest {
     @Mock lateinit var aiClient: AIClient
 
     @Mock lateinit var userFinder: UserFinder
+
+    @Mock lateinit var eventPublisher: ApplicationEventPublisher
 
     private lateinit var retrospectService: RetrospectService
 
@@ -60,6 +64,7 @@ class RetrospectServiceTest {
                 speechClient = speechClient,
                 aiClient = aiClient,
                 userFinder = userFinder,
+                eventPublisher = eventPublisher,
             )
     }
 
@@ -226,10 +231,6 @@ class RetrospectServiceTest {
         }
     }
 
-    // ========================
-    // skipDeepQuestion
-    // ========================
-
     @Test
     fun `skipDeepQuestion - 심화 질문을 스킵한다`() {
         val retro = inProgressRetrospective()
@@ -280,7 +281,7 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `save - 제목으로 회고를 완료 처리한다`() {
+    fun `save - 제목으로 회고를 완료 처리하고 이벤트를 발행한다`() {
         val retro = inProgressRetrospective().apply { saveSummary(summaryFixture()) }
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
@@ -289,6 +290,7 @@ class RetrospectServiceTest {
 
         assertThat(result.isCompleted()).isTrue()
         assertThat(result.title).isEqualTo("오늘의 회고")
+        verify(eventPublisher).publishEvent(any<RetrospectiveCompletedEvent>())
     }
 
     @Test

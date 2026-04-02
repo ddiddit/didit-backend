@@ -19,9 +19,11 @@ import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveCompletedEvent
 import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.domain.retrospect.Sender
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -36,6 +38,7 @@ class RetrospectService(
     private val speechClient: SpeechClient,
     private val aiClient: AIClient,
     private val userFinder: UserFinder,
+    private val eventPublisher: ApplicationEventPublisher,
 ) : RetrospectiveRegister {
     companion object {
         private val logger = LoggerFactory.getLogger(RetrospectService::class.java)
@@ -190,7 +193,15 @@ class RetrospectService(
         if (retrospective.summary == null) throw SummaryNotGeneratedException(retrospectiveId)
 
         retrospective.complete(title = title)
-        return retrospectiveRepository.save(retrospective)
+        val saved = retrospectiveRepository.save(retrospective)
+
+        eventPublisher.publishEvent(
+            RetrospectiveCompletedEvent(
+                userId = userId,
+                retroDate = LocalDate.now(),
+            ),
+        )
+        return saved
     }
 
     @Transactional

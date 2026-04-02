@@ -4,7 +4,7 @@ CREATE TABLE badges
     name           VARCHAR(50)  NOT NULL,
     description    VARCHAR(255) NOT NULL,
     condition_type VARCHAR(50)  NOT NULL,
-    created_at     DATETIME     NOT NULL,
+    created_at     DATETIME     NOT NULL
 );
 
 CREATE TABLE user_badges
@@ -25,5 +25,5 @@ CREATE TABLE streaks
     current_streak INT        NOT NULL DEFAULT 0,
     longest_streak INT        NOT NULL DEFAULT 0,
     last_retro_date DATE,
-    updated_at     DATETIME   NOT NULL,
+    updated_at     DATETIME   NOT NULL
 );
