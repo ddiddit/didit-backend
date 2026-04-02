@@ -6,15 +6,11 @@ import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.exception.DailyLimitExceededException
 import com.didit.application.retrospect.exception.RetrospectiveAlreadyCompletedException
 import com.didit.application.retrospect.exception.RetrospectiveNotInProgressException
-import com.didit.application.retrospect.exception.SpeechEmptyFileException
-import com.didit.application.retrospect.exception.SpeechEmptyResultException
-import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.required.AIClient
 import com.didit.application.retrospect.required.RetrospectiveRepository
-import com.didit.application.retrospect.required.SpeechClient
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
@@ -33,7 +29,6 @@ import java.util.UUID
 class RetrospectService(
     private val retrospectiveRepository: RetrospectiveRepository,
     private val retrospectiveFinder: RetrospectiveFinder,
-    private val speechClient: SpeechClient,
     private val aiClient: AIClient,
     private val userFinder: UserFinder,
 ) : RetrospectiveRegister {
@@ -68,33 +63,12 @@ class RetrospectService(
     }
 
     @Transactional
-    override fun submitTextAnswer(
+    override fun submitAnswer(
         retrospectiveId: UUID,
         userId: UUID,
         content: String,
-    ): SubmitAnswerResponse = processAnswer(retrospectiveId, userId, content, InputType.TEXT)
-
-    @Transactional
-    override fun submitVoiceAnswer(
-        retrospectiveId: UUID,
-        userId: UUID,
-        audioBytes: ByteArray,
-        filename: String,
-    ): SubmitAnswerResponse {
-        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-        validateRetrospectiveInProgress(retrospective, retrospectiveId)
-
-        val currentQuestionType =
-            retrospective.currentQuestionType()
-                ?: throw RetrospectiveNotInProgressException(retrospectiveId)
-
-        if (retrospective.isPending()) retrospective.startProgress()
-
-        val content = transcribe(audioBytes, filename)
-        saveUserAnswer(retrospective, content, currentQuestionType, InputType.STT)
-
-        return routeAnswer(retrospective, currentQuestionType)
-    }
+        inputType: InputType,
+    ): SubmitAnswerResponse = processAnswer(retrospectiveId, userId, content, inputType)
 
     @Async
     @Transactional
@@ -173,7 +147,6 @@ class RetrospectService(
                 lessonLearned = summary.lessonLearned,
             ),
         )
-
         retrospective.addTokens(summary.inputTokens, summary.outputTokens)
         retrospectiveRepository.save(retrospective)
         return summary
@@ -264,18 +237,6 @@ class RetrospectService(
             QuestionType.Q4_DEEP -> handleQ4Answer(retrospective)
             else -> handleRegularAnswer(retrospective, currentQuestionType)
         }
-
-    private fun transcribe(
-        audioBytes: ByteArray,
-        filename: String,
-    ): String {
-        if (audioBytes.isEmpty()) throw SpeechEmptyFileException()
-        if (!filename.lowercase().endsWith(".wav")) throw SpeechUnsupportedFileException(filename, null)
-
-        val text = speechClient.transcribe(audioBytes, filename).trim()
-        if (text.isBlank()) throw SpeechEmptyResultException()
-        return text
-    }
 
     private fun validateRetrospectiveInProgress(
         retrospective: Retrospective,

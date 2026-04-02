@@ -2,6 +2,7 @@ package com.didit.application.retrospect.provided
 
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import org.assertj.core.api.Assertions.assertThat
@@ -30,6 +31,8 @@ class RetrospectiveRegisterTest {
             blockedPoint = "막힌 지점",
             solutionProcess = "해결 과정",
             lessonLearned = "배운 점",
+            inputTokens = 100,
+            outputTokens = 50,
         )
 
     @Test
@@ -44,59 +47,57 @@ class RetrospectiveRegisterTest {
     }
 
     @Test
-    fun `submitTextAnswer - 텍스트 답변을 제출하고 다음 질문을 반환한다`() {
+    fun `submitAnswer - 텍스트 답변을 제출하고 다음 질문을 반환한다`() {
         val response =
             SubmitAnswerResponse(
                 nextQuestionType = QuestionType.Q2,
                 nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
                 isReadyToComplete = false,
             )
-        whenever(retrospectiveRegister.submitTextAnswer(retrospectiveId, userId, "열심히 했습니다."))
+        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, "열심히 했습니다.", InputType.TEXT))
             .thenReturn(response)
 
-        val result = retrospectiveRegister.submitTextAnswer(retrospectiveId, userId, "열심히 했습니다.")
+        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, "열심히 했습니다.", InputType.TEXT)
 
-        verify(retrospectiveRegister).submitTextAnswer(retrospectiveId, userId, "열심히 했습니다.")
+        verify(retrospectiveRegister).submitAnswer(retrospectiveId, userId, "열심히 했습니다.", InputType.TEXT)
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
         assertThat(result.isReadyToComplete).isFalse()
     }
 
     @Test
-    fun `submitTextAnswer - Q4 답변 후 완료 준비 상태를 반환한다`() {
+    fun `submitAnswer - STT 답변을 제출하고 다음 질문을 반환한다`() {
+        val response =
+            SubmitAnswerResponse(
+                nextQuestionType = QuestionType.Q2,
+                nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
+                isReadyToComplete = false,
+            )
+        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, "음성 변환된 텍스트", InputType.STT))
+            .thenReturn(response)
+
+        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, "음성 변환된 텍스트", InputType.STT)
+
+        verify(retrospectiveRegister).submitAnswer(retrospectiveId, userId, "음성 변환된 텍스트", InputType.STT)
+        assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
+        assertThat(result.isReadyToComplete).isFalse()
+    }
+
+    @Test
+    fun `submitAnswer - Q4 답변 후 완료 준비 상태를 반환한다`() {
         val response =
             SubmitAnswerResponse(
                 nextQuestionType = null,
                 nextQuestionContent = null,
                 isReadyToComplete = true,
             )
-        whenever(retrospectiveRegister.submitTextAnswer(retrospectiveId, userId, "Q4 답변"))
+        whenever(retrospectiveRegister.submitAnswer(retrospectiveId, userId, "Q4 답변", InputType.TEXT))
             .thenReturn(response)
 
-        val result = retrospectiveRegister.submitTextAnswer(retrospectiveId, userId, "Q4 답변")
+        val result = retrospectiveRegister.submitAnswer(retrospectiveId, userId, "Q4 답변", InputType.TEXT)
 
-        verify(retrospectiveRegister).submitTextAnswer(retrospectiveId, userId, "Q4 답변")
+        verify(retrospectiveRegister).submitAnswer(retrospectiveId, userId, "Q4 답변", InputType.TEXT)
         assertThat(result.isReadyToComplete).isTrue()
         assertThat(result.nextQuestionType).isNull()
-    }
-
-    @Test
-    fun `submitVoiceAnswer - 음성 답변을 제출하고 다음 질문을 반환한다`() {
-        val audioBytes = ByteArray(100)
-        val filename = "voice.wav"
-        val response =
-            SubmitAnswerResponse(
-                nextQuestionType = QuestionType.Q2,
-                nextQuestionContent = "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
-                isReadyToComplete = false,
-            )
-        whenever(retrospectiveRegister.submitVoiceAnswer(retrospectiveId, userId, audioBytes, filename))
-            .thenReturn(response)
-
-        val result = retrospectiveRegister.submitVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
-
-        verify(retrospectiveRegister).submitVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
-        assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
-        assertThat(result.isReadyToComplete).isFalse()
     }
 
     @Test

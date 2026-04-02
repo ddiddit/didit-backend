@@ -2,23 +2,18 @@ package com.didit.application.retrospect.provided
 
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.Retrospective
 import java.util.UUID
 
 interface RetrospectiveRegister {
     fun start(userId: UUID): Retrospective
 
-    fun submitTextAnswer(
+    fun submitAnswer(
         retrospectiveId: UUID,
         userId: UUID,
         content: String,
-    ): SubmitAnswerResponse
-
-    fun submitVoiceAnswer(
-        retrospectiveId: UUID,
-        userId: UUID,
-        audioBytes: ByteArray,
-        filename: String,
+        inputType: InputType,
     ): SubmitAnswerResponse
 
     fun skipDeepQuestion(

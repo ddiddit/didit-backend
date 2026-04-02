@@ -86,13 +86,12 @@ class InquiryFinderServiceTest {
         whenever(inquiryRepository.findByIdAndDeletedAtIsNull(inquiryId))
             .thenReturn(null)
 
-        val exception =
-            assertThatThrownBy {
-                inquiryFinderService.findById(inquiryId)
-            }.isInstanceOf(InquiryNotFoundException::class.java)
-                .extracting { it as InquiryNotFoundException }
-                .extracting("errorCode")
-                .isEqualTo(InquiryErrorCode.INQUIRY_NOT_FOUND)
+        assertThatThrownBy {
+            inquiryFinderService.findById(inquiryId)
+        }.isInstanceOf(InquiryNotFoundException::class.java)
+            .extracting { it as InquiryNotFoundException }
+            .extracting("errorCode")
+            .isEqualTo(InquiryErrorCode.INQUIRY_NOT_FOUND)
     }
 
     private fun createInquiry(userId: UUID = UUID.randomUUID()): Inquiry {

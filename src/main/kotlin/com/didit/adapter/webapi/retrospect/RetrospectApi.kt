@@ -11,6 +11,7 @@ import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveSearchResponse
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.SearchHistoryResponse
+import com.didit.adapter.webapi.retrospect.dto.SpeechTranscribeResponse
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
@@ -19,6 +20,7 @@ import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.provided.SearchHistoryFinder
+import com.didit.application.retrospect.provided.SpeechTranscriber
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
@@ -45,6 +47,7 @@ class RetrospectApi(
     private val retrospectiveRegister: RetrospectiveRegister,
     private val retrospectiveFinder: RetrospectiveFinder,
     private val searchHistoryFinder: SearchHistoryFinder,
+    private val speechTranscriber: SpeechTranscriber,
 ) {
     @RequireAuth
     @ResponseStatus(HttpStatus.CREATED)
@@ -58,30 +61,30 @@ class RetrospectApi(
 
     @RequireAuth
     @PostMapping("/{retrospectiveId}/answers")
-    fun submitTextAnswer(
+    fun submitAnswer(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
         @RequestBody request: SubmitAnswerRequest,
     ): SuccessResponse<SubmitAnswerResponse> {
-        val result = retrospectiveRegister.submitTextAnswer(retrospectiveId, userId, request.content)
+        val result =
+            retrospectiveRegister.submitAnswer(
+                retrospectiveId = retrospectiveId,
+                userId = userId,
+                content = request.content,
+                inputType = request.inputType,
+            )
         return SuccessResponse.of(result)
     }
 
     @RequireAuth
-    @PostMapping("/{retrospectiveId}/answers/voice", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    fun submitVoiceAnswer(
+    @PostMapping("/voice/transcribe", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun transcribeVoice(
         @CurrentUserId userId: UUID,
-        @PathVariable retrospectiveId: UUID,
         @RequestPart("file") file: MultipartFile,
-    ): SuccessResponse<SubmitAnswerResponse> {
-        val result =
-            retrospectiveRegister.submitVoiceAnswer(
-                retrospectiveId = retrospectiveId,
-                userId = userId,
-                audioBytes = file.bytes,
-                filename = file.originalFilename ?: "voice.wav",
-            )
-        return SuccessResponse.of(result)
+    ): SuccessResponse<SpeechTranscribeResponse> {
+        val text = speechTranscriber.transcribe(file)
+
+        return SuccessResponse.of(SpeechTranscribeResponse(text))
     }
 
     @RequireAuth
