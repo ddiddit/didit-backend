@@ -8,6 +8,8 @@ import com.didit.adapter.webapi.admin.dto.AdminTokenRefreshRequest
 import com.didit.adapter.webapi.admin.dto.AdminTokenRefreshResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.admin.provided.AdminAuth
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -47,6 +49,7 @@ class AdminAuthApi(
         )
     }
 
+    @Audit(AuditAction.ADMIN_LOGGED_OUT)
     @RequireAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/logout")

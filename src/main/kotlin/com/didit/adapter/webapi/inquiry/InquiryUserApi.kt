@@ -5,6 +5,8 @@ import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.inquiry.dto.InquiryListResponse
 import com.didit.adapter.webapi.inquiry.dto.InquiryRequest
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import com.didit.application.inquiry.provided.InquiryFinder
 import com.didit.application.inquiry.provided.InquiryInfoFinder
 import com.didit.application.inquiry.provided.InquiryModifier
@@ -35,9 +37,10 @@ class InquiryUserApi(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<String?> = SuccessResponse.of(inquiryInfoFinder.findEmail(userId))
 
+    @Audit(AuditAction.INQUIRY_REGISTERED)
     @RequireAuth
-    @PostMapping
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PostMapping
     fun register(
         @CurrentUserId userId: UUID,
         @RequestBody request: InquiryRequest,
@@ -65,6 +68,7 @@ class InquiryUserApi(
         return SuccessResponse.of(inquiries.map { InquiryListResponse.from(it) })
     }
 
+    @Audit(AuditAction.INQUIRY_DELETED, targetType = "INQUIRY")
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @DeleteMapping("/{inquiryId}")

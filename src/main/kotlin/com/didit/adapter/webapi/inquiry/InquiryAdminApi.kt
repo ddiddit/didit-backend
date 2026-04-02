@@ -6,6 +6,8 @@ import com.didit.adapter.webapi.inquiry.dto.InquiryAdminListResponse
 import com.didit.adapter.webapi.inquiry.dto.InquiryAnswerRequest
 import com.didit.adapter.webapi.inquiry.dto.InquiryResponse
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import com.didit.application.inquiry.provided.InquiryFinder
 import com.didit.application.inquiry.provided.InquiryModifier
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -24,6 +26,7 @@ class InquiryAdminApi(
     private val inquiryModifier: InquiryModifier,
     private val inquiryFinder: InquiryFinder,
 ) {
+    @Audit(AuditAction.INQUIRY_ANSWERED, targetType = "INQUIRY")
     @RequireAdmin
     @PostMapping("/{inquiryId}")
     fun answer(
@@ -36,6 +39,7 @@ class InquiryAdminApi(
         return SuccessResponse.of(InquiryResponse.of(inquiry))
     }
 
+    @Audit(AuditAction.INQUIRY_ANSWER_UPDATED, targetType = "INQUIRY")
     @RequireAdmin
     @PatchMapping("/{inquiryId}")
     fun updateAnswer(
@@ -47,6 +51,7 @@ class InquiryAdminApi(
         return SuccessResponse.of(InquiryResponse.of(inquiry))
     }
 
+    @Audit(AuditAction.INQUIRY_ANSWER_DELETED, targetType = "INQUIRY")
     @RequireAdmin
     @DeleteMapping("/{inquiryId}")
     fun deleteAnswer(

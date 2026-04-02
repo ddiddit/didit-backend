@@ -13,6 +13,9 @@ import com.didit.application.admin.required.AdminRefreshTokenRepository
 import com.didit.application.admin.required.AdminRepository
 import com.didit.application.admin.required.AdminTokenProvider
 import com.didit.application.admin.required.PasswordEncryptor
+import com.didit.application.audit.ActorType
+import com.didit.application.audit.AuditAction
+import com.didit.application.audit.AuditLogger
 import com.didit.domain.admin.AdminRefreshToken
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -26,6 +29,7 @@ class AdminAuthService(
     private val adminFinder: AdminFinder,
     private val adminTokenProvider: AdminTokenProvider,
     private val passwordEncryptor: PasswordEncryptor,
+    private val auditLogger: AuditLogger,
 ) : AdminAuth {
     @Transactional
     override fun login(
@@ -40,6 +44,12 @@ class AdminAuthService(
         val newRefreshToken = adminTokenProvider.generateRefreshToken()
         adminRefreshTokenRepository.save(
             AdminRefreshToken.create(admin.id, newRefreshToken, adminTokenProvider.getRefreshTokenExpiresAt()),
+        )
+
+        auditLogger.log(
+            actorId = admin.id,
+            actorType = ActorType.ADMIN,
+            action = AuditAction.ADMIN_LOGGED_IN,
         )
 
         return AdminTokenResponse(
