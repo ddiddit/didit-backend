@@ -8,6 +8,7 @@ import com.didit.application.achievement.required.UserBadgeRepository
 import com.didit.domain.achievement.Badge
 import com.didit.domain.achievement.Streak
 import com.didit.domain.achievement.UserBadge
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
@@ -22,6 +23,10 @@ class BadgeAwarderService(
     private val retrospectAchievementReader: RetrospectAchievementReader,
     private val badgeConditionChecker: BadgeConditionChecker,
 ) : BadgeAwarder {
+    companion object {
+        private val logger = LoggerFactory.getLogger(BadgeAwarderService::class.java)
+    }
+
     @Transactional
     override fun awardBadges(
         userId: UUID,
@@ -33,10 +38,17 @@ class BadgeAwarderService(
         val allBadges = badgeRepository.findAll()
         val acquiredBadgeIds = userBadgeRepository.findAllByUserId(userId).map { it.badgeId }.toSet()
 
-        return allBadges
-            .filter { badge -> badge.id !in acquiredBadgeIds }
-            .filter { badge -> badgeConditionChecker.isSatisfied(badge.conditionType, context) }
-            .onEach { badge -> userBadgeRepository.save(UserBadge.create(userId, badge.id)) }
+        val newBadges =
+            allBadges
+                .filter { badge -> badge.id !in acquiredBadgeIds }
+                .filter { badge -> badgeConditionChecker.isSatisfied(badge.conditionType, context) }
+                .onEach { badge -> userBadgeRepository.save(UserBadge.create(userId, badge.id)) }
+
+        if (newBadges.isNotEmpty()) {
+            logger.info("배지 획득 - userId: $userId, badges: ${newBadges.map { it.name }}")
+        }
+
+        return newBadges
     }
 
     private fun updateStreak(
@@ -44,7 +56,9 @@ class BadgeAwarderService(
         retroDate: LocalDate,
     ): Streak {
         val streak = streakRepository.findByUserId(userId) ?: Streak.create(userId)
+
         streak.update(retroDate)
+
         return streakRepository.save(streak)
     }
 

@@ -57,6 +57,7 @@ class RetrospectService(
     @Transactional
     override fun start(userId: UUID): Retrospective {
         val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())
+
         if (todayCount >= DAILY_LIMIT) throw DailyLimitExceededException(userId)
 
         val retrospective = Retrospective.create(userId)
@@ -67,7 +68,12 @@ class RetrospectService(
                 questionType = QuestionType.Q1,
             ),
         )
-        return retrospectiveRepository.save(retrospective)
+
+        val saved = retrospectiveRepository.save(retrospective)
+
+        logger.info("회고 시작 - userId: $userId, retrospectiveId: ${saved.id}")
+
+        return saved
     }
 
     @Transactional
@@ -96,8 +102,7 @@ class RetrospectService(
         val content = transcribe(audioBytes, filename)
         saveUserAnswer(retrospective, content, currentQuestionType, InputType.STT)
 
-        return routeAnswer(retrospective, currentQuestionType)
-            .copy(content = content)
+        return routeAnswer(retrospective, currentQuestionType).copy(content = content)
     }
 
     @Async
@@ -148,6 +153,8 @@ class RetrospectService(
             ),
         )
         retrospectiveRepository.save(retrospective)
+
+        logger.info("심화 질문 스킵 - userId: $userId, retrospectiveId: $retrospectiveId")
     }
 
     @Transactional
@@ -159,6 +166,7 @@ class RetrospectService(
         validateRetrospectiveInProgress(retrospective, retrospectiveId)
 
         val job = userFinder.getJobByUserId(userId)
+
         val summary =
             try {
                 aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers())
@@ -178,7 +186,11 @@ class RetrospectService(
             ),
         )
         retrospective.addTokens(summary.inputTokens, summary.outputTokens)
+
         retrospectiveRepository.save(retrospective)
+
+        logger.info("회고 완료 - userId: $userId, retrospectiveId: $retrospectiveId")
+
         return summary
     }
 
@@ -201,6 +213,9 @@ class RetrospectService(
                 retroDate = LocalDate.now(),
             ),
         )
+
+        logger.info("회고 저장 - userId: $userId, retrospectiveId: $retrospectiveId, title: $title")
+
         return saved
     }
 
@@ -210,8 +225,13 @@ class RetrospectService(
         userId: UUID,
     ): Retrospective {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+
         retrospective.softDelete()
+
         retrospectiveRepository.save(retrospective)
+
+        logger.info("회고 다시 시작 - userId: $userId, retrospectiveId: $retrospectiveId")
+
         return start(userId)
     }
 
@@ -222,8 +242,12 @@ class RetrospectService(
         title: String,
     ) {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+
         retrospective.updateTitle(title)
+
         retrospectiveRepository.save(retrospective)
+
+        logger.info("회고 제목 수정 - userId: $userId, retrospectiveId: $retrospectiveId, title: $title")
     }
 
     @Transactional
@@ -232,8 +256,12 @@ class RetrospectService(
         userId: UUID,
     ) {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+
         retrospective.softDelete()
+
         retrospectiveRepository.save(retrospective)
+
+        logger.info("회고 삭제 - userId: $userId, retrospectiveId: $retrospectiveId")
     }
 
     @Transactional
@@ -242,9 +270,14 @@ class RetrospectService(
         userId: UUID,
     ) {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+
         if (!retrospective.isPending()) return
+
         retrospective.softDelete()
+
         retrospectiveRepository.save(retrospective)
+
+        logger.info("회고 나가기 - userId: $userId, retrospectiveId: $retrospectiveId")
     }
 
     private fun processAnswer(
@@ -263,6 +296,7 @@ class RetrospectService(
         if (retrospective.isPending()) retrospective.startProgress()
 
         saveUserAnswer(retrospective, content, currentQuestionType, inputType)
+
         return routeAnswer(retrospective, currentQuestionType)
     }
 
@@ -284,7 +318,9 @@ class RetrospectService(
         if (!filename.lowercase().endsWith(".wav")) throw SpeechUnsupportedFileException(filename, null)
 
         val text = speechClient.transcribe(audioBytes, filename).trim()
+
         if (text.isBlank()) throw SpeechEmptyResultException()
+
         return text
     }
 
@@ -326,20 +362,17 @@ class RetrospectService(
         val deepQuestion =
             retrospective.chatMessages
                 .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
+                ?: return SubmitAnswerResponse(
+                    nextQuestionType = QuestionType.Q4_DEEP,
+                    nextQuestionContent = DEEP_QUESTION_GENERATING_MESSAGE,
+                    isReadyToComplete = false,
+                )
 
-        return if (deepQuestion != null) {
-            SubmitAnswerResponse(
-                nextQuestionType = QuestionType.Q4_DEEP,
-                nextQuestionContent = deepQuestion.content,
-                isReadyToComplete = true,
-            )
-        } else {
-            SubmitAnswerResponse(
-                nextQuestionType = QuestionType.Q4_DEEP,
-                nextQuestionContent = DEEP_QUESTION_GENERATING_MESSAGE,
-                isReadyToComplete = false,
-            )
-        }
+        return SubmitAnswerResponse(
+            nextQuestionType = QuestionType.Q4_DEEP,
+            nextQuestionContent = deepQuestion.content,
+            isReadyToComplete = true,
+        )
     }
 
     private fun handleRegularAnswer(
@@ -356,6 +389,7 @@ class RetrospectService(
                 questionType = nextQuestionType,
             ),
         )
+
         retrospectiveRepository.save(retrospective)
 
         return SubmitAnswerResponse(

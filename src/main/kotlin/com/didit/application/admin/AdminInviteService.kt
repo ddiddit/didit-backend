@@ -13,6 +13,7 @@ import com.didit.domain.admin.AdminInvite
 import com.didit.domain.admin.AdminInviteCreateRequest
 import com.didit.domain.admin.AdminPosition
 import com.didit.domain.admin.AdminRegisterRequest
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Service
@@ -30,6 +31,10 @@ class AdminInviteService(
     @param:Value("\${admin.invite.expiry-hours:48}") private val expiryHours: Long,
     @param:Value("\${admin.invite.base-url}") private val baseUrl: String,
 ) : AdminInviteManager {
+    companion object {
+        private val logger = LoggerFactory.getLogger(AdminInviteService::class.java)
+    }
+
     @Transactional
     override fun invite(
         invitedBy: UUID,
@@ -56,6 +61,8 @@ class AdminInviteService(
             subject = "[didit] 관리자 초대",
             body = buildInviteEmailBody(invite.token),
         )
+
+        logger.info("어드민 초대 이메일 발송 - invitedBy: $invitedBy, email: $email, position: $position")
     }
 
     @Transactional
@@ -68,6 +75,7 @@ class AdminInviteService(
         invite.use()
 
         adminInviteRepository.save(invite)
+
         adminRepository.save(
             Admin.register(
                 AdminRegisterRequest(
@@ -77,6 +85,8 @@ class AdminInviteService(
                 ),
             ),
         )
+
+        logger.info("어드민 등록 완료 - email: $email, position: ${invite.position}")
     }
 
     private fun buildInviteEmailBody(token: UUID): String {

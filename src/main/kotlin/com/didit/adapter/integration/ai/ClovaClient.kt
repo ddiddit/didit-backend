@@ -6,6 +6,7 @@ import com.didit.application.retrospect.required.GeneratedDeepQuestion
 import com.didit.domain.shared.Job
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
@@ -20,6 +21,7 @@ class ClovaClient(
     @param:Value("\${clova.api.api-key}") private val apiKey: String,
 ) : AIClient {
     companion object {
+        private val logger = LoggerFactory.getLogger(ClovaClient::class.java)
         private const val SYSTEM_PROMPT = "당신은 전문 회고 코치입니다."
     }
 
@@ -41,32 +43,29 @@ class ClovaClient(
         return parseSummary(result)
     }
 
-    private fun callWithResult(prompt: String): ClovaResult {
-        val request =
-            ClovaRequest(
-                messages =
-                    listOf(
-                        ClovaMessage(role = "system", content = SYSTEM_PROMPT),
-                        ClovaMessage(role = "user", content = prompt),
-                    ),
-                maxTokens = 500,
-                temperature = 0.7,
-                topP = 0.8,
-                repetitionPenalty = 1.1,
-                topK = 0,
-            )
-
-        return restClient
+    private fun callWithResult(prompt: String): ClovaResult =
+        restClient
             .post()
             .uri(apiUrl)
             .header("Authorization", "Bearer $apiKey")
             .contentType(MediaType.APPLICATION_JSON)
-            .body(request)
-            .retrieve()
+            .body(
+                ClovaRequest(
+                    messages =
+                        listOf(
+                            ClovaMessage(role = "system", content = SYSTEM_PROMPT),
+                            ClovaMessage(role = "user", content = prompt),
+                        ),
+                    maxTokens = 500,
+                    temperature = 0.7,
+                    topP = 0.8,
+                    repetitionPenalty = 1.1,
+                    topK = 0,
+                ),
+            ).retrieve()
             .body<ClovaResponse>()
             ?.result
             ?: throw RuntimeException("Clova 응답을 받지 못했습니다.")
-    }
 
     private fun parseDeepQuestion(result: ClovaResult): GeneratedDeepQuestion =
         runCatching {
@@ -75,6 +74,8 @@ class ClovaClient(
             )
 
             val question = objectMapper.readValue<DeepQuestionDto>(result.message.content).question
+
+            logger.debug("심화 질문 토큰 사용량 - inputLength: ${result.inputLength}, outputLength: ${result.outputLength}")
 
             GeneratedDeepQuestion(
                 content = question,
@@ -92,6 +93,8 @@ class ClovaClient(
                     .replace(Regex("```json"), "")
                     .replace(Regex("```"), "")
                     .trim()
+
+            logger.debug("회고 요약 토큰 사용량 - inputLength: ${result.inputLength}, outputLength: ${result.outputLength}")
 
             objectMapper.readValue<AISummaryResponse>(cleanResponse).copy(
                 inputTokens = result.inputLength,

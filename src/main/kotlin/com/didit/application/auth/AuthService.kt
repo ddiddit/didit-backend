@@ -20,6 +20,7 @@ import com.didit.domain.auth.User
 import com.didit.domain.auth.UserRegisterRequest
 import com.didit.domain.auth.WithdrawalReason
 import com.didit.domain.auth.WithdrawalRecord
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -35,6 +36,10 @@ class AuthService(
     private val withdrawalRecordRepository: WithdrawalRecordRepository,
     private val auditLogger: AuditLogger,
 ) : Auth {
+    companion object {
+        private val logger = LoggerFactory.getLogger(AuthService::class.java)
+    }
+
     @Transactional
     override fun login(
         provider: Provider,
@@ -45,6 +50,8 @@ class AuthService(
         val userInfo = client.getUserInfo(oauthToken)
 
         val (user, isNewUser) = resolveUser(provider, userInfo.providerId, userInfo.email)
+
+        logger.info("로그인 성공 - userId: ${user.id}, provider: $provider, isNewUser: $isNewUser")
 
         auditLogger.log(
             actorId = user.id,
@@ -58,6 +65,7 @@ class AuthService(
     @Transactional
     override fun logout(userId: UUID) {
         refreshTokenRepository.deleteByUserId(userId)
+        logger.info("로그아웃 - userId: $userId")
     }
 
     @Transactional
@@ -66,10 +74,16 @@ class AuthService(
         reason: WithdrawalReason,
         reasonDetail: String?,
     ) {
+        logger.info("회원 탈퇴 - userId: $userId, reason: $reason")
+
         val user = userFinder.findByIdOrThrow(userId)
+
         user.withdraw()
+
         userRepository.save(user)
+
         refreshTokenRepository.deleteByUserId(userId)
+
         withdrawalRecordRepository.save(
             WithdrawalRecord.create(
                 userId = userId,
@@ -88,9 +102,13 @@ class AuthService(
         if (storedToken.isExpired()) throw ExpiredRefreshTokenException()
 
         val user = userFinder.findByIdOrThrow(storedToken.userId)
+
         val newRefreshToken = tokenProvider.generateRefreshToken()
         storedToken.rotate(newRefreshToken, tokenProvider.getRefreshTokenExpiresAt())
+
         refreshTokenRepository.save(storedToken)
+
+        logger.debug("토큰 재발급 - userId: ${user.id}")
 
         return RefreshResponse(
             accessToken = tokenProvider.generateAccessToken(user.id),
@@ -116,13 +134,19 @@ class AuthService(
         provider: Provider,
         providerId: String,
         email: String?,
-    ): User =
-        userRepository.save(
+    ): User {
+        logger.info("신규 유저 생성 - provider: $provider, providerId: $providerId")
+
+        return userRepository.save(
             User.register(UserRegisterRequest(provider = provider, providerId = providerId, email = email)),
         )
+    }
 
     private fun rejoinUser(user: User): User {
+        logger.info("재가입 유저 - userId: ${user.id}")
+
         user.rejoin()
+
         return userRepository.save(user)
     }
 
@@ -131,10 +155,13 @@ class AuthService(
         isNewUser: Boolean,
     ): TokenResponse {
         refreshTokenRepository.deleteByUserId(user.id)
+
         val newRefreshToken = tokenProvider.generateRefreshToken()
+
         refreshTokenRepository.save(
             RefreshToken.create(user.id, newRefreshToken, tokenProvider.getRefreshTokenExpiresAt()),
         )
+
         return TokenResponse(
             accessToken = tokenProvider.generateAccessToken(user.id),
             refreshToken = newRefreshToken,

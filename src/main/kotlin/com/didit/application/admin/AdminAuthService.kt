@@ -17,6 +17,7 @@ import com.didit.application.audit.ActorType
 import com.didit.application.audit.AuditAction
 import com.didit.application.audit.AuditLogger
 import com.didit.domain.admin.AdminRefreshToken
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -31,6 +32,10 @@ class AdminAuthService(
     private val passwordEncryptor: PasswordEncryptor,
     private val auditLogger: AuditLogger,
 ) : AdminAuth {
+    companion object {
+        private val logger = LoggerFactory.getLogger(AdminAuthService::class.java)
+    }
+
     @Transactional
     override fun login(
         email: String,
@@ -41,10 +46,14 @@ class AdminAuthService(
         check(passwordEncryptor.matches(password, admin.password)) { throw AdminInvalidPasswordException() }
 
         adminRefreshTokenRepository.deleteByAdminId(admin.id)
+
         val newRefreshToken = adminTokenProvider.generateRefreshToken()
+
         adminRefreshTokenRepository.save(
             AdminRefreshToken.create(admin.id, newRefreshToken, adminTokenProvider.getRefreshTokenExpiresAt()),
         )
+
+        logger.info("어드민 로그인 성공 - adminId: ${admin.id}, email: $email")
 
         auditLogger.log(
             actorId = admin.id,
@@ -66,6 +75,8 @@ class AdminAuthService(
     @Transactional
     override fun logout(adminId: UUID) {
         adminRefreshTokenRepository.deleteByAdminId(adminId)
+
+        logger.info("어드민 로그아웃 - adminId: $adminId")
     }
 
     @Transactional
@@ -77,9 +88,13 @@ class AdminAuthService(
         if (storedToken.isExpired()) throw ExpiredAdminRefreshTokenException()
 
         val admin = adminFinder.findByIdOrThrow(storedToken.adminId)
+
         val newRefreshToken = adminTokenProvider.generateRefreshToken()
         storedToken.rotate(newRefreshToken, adminTokenProvider.getRefreshTokenExpiresAt())
+
         adminRefreshTokenRepository.save(storedToken)
+
+        logger.debug("어드민 토큰 재발급 - adminId: ${admin.id}")
 
         return AdminRefreshResponse(
             accessToken =
