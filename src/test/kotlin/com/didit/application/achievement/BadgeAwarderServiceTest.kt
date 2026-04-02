@@ -22,7 +22,7 @@ import java.time.LocalDate
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
-class BadgeServiceTest {
+class BadgeAwarderServiceTest {
     @Mock lateinit var badgeRepository: BadgeRepository
 
     @Mock lateinit var userBadgeRepository: UserBadgeRepository
@@ -31,7 +31,7 @@ class BadgeServiceTest {
 
     @Mock lateinit var retrospectAchievementReader: RetrospectAchievementReader
 
-    private lateinit var badgeService: BadgeService
+    private lateinit var badgeService: BadgeAwarderService
     private lateinit var badgeConditionChecker: BadgeConditionChecker
 
     private val userId = UUID.randomUUID()
@@ -41,7 +41,7 @@ class BadgeServiceTest {
     fun setUp() {
         badgeConditionChecker = BadgeConditionChecker()
         badgeService =
-            BadgeService(
+            BadgeAwarderService(
                 badgeRepository = badgeRepository,
                 userBadgeRepository = userBadgeRepository,
                 streakRepository = streakRepository,
