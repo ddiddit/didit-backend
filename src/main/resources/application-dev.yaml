@@ -35,11 +35,6 @@ management:
     health:
       show-details: always
 
-logging:
-  level:
-    root: INFO
-    com.didit: DEBUG
-
 firebase:
   service-account-path: /home/didit-dev/didit/firebase/firebase-service-account.json
 

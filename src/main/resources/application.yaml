@@ -31,10 +31,6 @@ management:
     health:
       show-details: never
 
-logging:
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{requestId}] %logger - %msg%n"
-
 oauth:
   kakao:
     user-info-url: https://kapi.kakao.com/v2/user/me
