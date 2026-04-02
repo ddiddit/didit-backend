@@ -6,6 +6,7 @@ import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.Repository
 import org.springframework.data.repository.query.Param
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -56,4 +57,14 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         @Param("userId") userId: UUID,
         @Param("keyword") keyword: String,
     ): List<Retrospective>
+
+    fun countByUserIdAndStatusAndDeletedAtIsNull(
+        userId: UUID,
+        status: RetroStatus,
+    ): Int
+
+    fun findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(
+        userId: UUID,
+        status: RetroStatus,
+    ): List<LocalDate>
 }

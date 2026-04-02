@@ -108,6 +108,8 @@ class Retrospective(
         this.deletedAt = LocalDateTime.now()
     }
 
+    fun countDeepQuestionAnswers(): Int = validUserAnswers().count { it.questionType == QuestionType.Q4_DEEP }
+
     private fun aiMessages(): List<ChatMessage> = chatMessages.filter { it.sender == Sender.AI }
 
     private fun validUserAnswers(): List<ChatMessage> = chatMessages.filter { it.sender == Sender.USER && !it.isSkipped }
