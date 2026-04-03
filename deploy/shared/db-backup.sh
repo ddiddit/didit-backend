@@ -14,7 +14,6 @@ fi
 
 mkdir -p $BACKUP_DIR
 
-# mysqldump 실행 + 압축
 docker exec didit-prod-db mysqldump \
   -u$DB_USER \
   -p$DB_PASSWORD \
@@ -24,7 +23,7 @@ if [ $? -ne 0 ]; then
   echo "[ERROR] DB 백업 실패 - $DATE"
   curl -s -H "Content-Type: application/json" \
     -X POST \
-    -d "{\"username\": \"Didit Bot\", \"content\": \"DB 백업 실패 - $DATE\"}" \
+    -d "{\"username\": \"Didit Bot\", \"content\": \"@here DB 백업 실패 - $DATE\"}" \
     "$DISCORD_MONITOR_WEBHOOK_URL" > /dev/null
   exit 1
 fi
@@ -37,7 +36,7 @@ if [ $? -ne 0 ]; then
   echo "[ERROR] Object Storage 업로드 실패 - $DATE"
   curl -s -H "Content-Type: application/json" \
     -X POST \
-    -d "{\"username\": \"Didit Bot\", \"content\": \"DB 백업 업로드 실패 - $DATE\"}" \
+    -d "{\"username\": \"Didit Bot\", \"content\": \"@here DB 백업 업로드 실패 - $DATE\"}" \
     "$DISCORD_MONITOR_WEBHOOK_URL" > /dev/null
   exit 1
 fi
@@ -58,3 +57,9 @@ s3cmd ls s3://$BUCKET/ | awk '{print $4}' | while read file; do
 done
 
 echo "[INFO] DB 백업 프로세스 완료 - $DATE"
+
+# 백업 성공 알림
+curl -s -H "Content-Type: application/json" \
+  -X POST \
+  -d "{\"username\": \"Didit Bot\", \"embeds\": [{\"title\": \"DB 백업 완료\", \"color\": 3066993, \"fields\": [{\"name\": \"날짜\", \"value\": \"$DATE\", \"inline\": true}, {\"name\": \"파일\", \"value\": \"didit-$DATE.sql.gz\", \"inline\": true}]}]}" \
+  "$DISCORD_MONITOR_WEBHOOK_URL" > /dev/null
