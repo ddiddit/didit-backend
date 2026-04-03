@@ -108,7 +108,7 @@ docker image prune -f || true
 
 if [ ! -z "${DISCORD_WEBHOOK_URL:-}" ] && [ -f "$WORK_DIR/deploy/shared/discord-notify.sh" ]; then
   source "$WORK_DIR/deploy/shared/discord-notify.sh"
-  notify_deploy_success "$NEW_IMAGE" "$COMMIT_MESSAGE" "$DEPLOYER" "dev"
+  notify_deploy_success "$NEW_IMAGE" "$COMMIT_MESSAGE" "$DEPLOYER"
 fi
 
 echo -e "${GREEN}========================================${NC}"

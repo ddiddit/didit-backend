@@ -56,13 +56,13 @@ if [ "$HEALTH_OK" = true ]; then
   echo -e "${GREEN}  롤백 성공${NC}"
   if [ ! -z "${DISCORD_WEBHOOK_URL:-}" ] && [ -f "$WORK_DIR/deploy/shared/discord-notify.sh" ]; then
     source "$WORK_DIR/deploy/shared/discord-notify.sh"
-    notify_rollback_success "dev"
+    notify_rollback_success
   fi
 else
   echo -e "${RED}  롤백 실패 - 수동 복구 필요${NC}"
   if [ ! -z "${DISCORD_WEBHOOK_URL:-}" ] && [ -f "$WORK_DIR/deploy/shared/discord-notify.sh" ]; then
     source "$WORK_DIR/deploy/shared/discord-notify.sh"
-    notify_rollback_failed "dev"
+    notify_rollback_failed
   fi
   exit 1
 fi

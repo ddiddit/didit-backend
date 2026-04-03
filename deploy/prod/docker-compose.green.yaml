@@ -1,0 +1,20 @@
+services:
+  didit-api-green:
+    image: ghcr.io/ddiddit/didit-backend:latest
+    container_name: didit-api-green
+    restart: always
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+    networks:
+      - didit-network
+    env_file:
+      - .env
+    ports:
+      - "127.0.0.1:8082:8080"
+    volumes:
+      - /home/didit-prod/didit/firebase:/home/didit-prod/didit/firebase
+      - /home/didit-prod/logs/didit-api:/home/didit-prod/logs/didit-api
+
+networks:
+  didit-network:
+    external: true
