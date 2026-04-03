@@ -1,0 +1,33 @@
+services:
+  didit-prod-db:
+    image: mysql:8.0
+    container_name: didit-prod-db
+    restart: always
+    networks:
+      - didit-network
+    ports:
+      - "127.0.0.1:3306:3306"
+    env_file:
+      - .env
+    environment:
+      MYSQL_DATABASE: didit
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      TZ: Asia/Seoul
+    volumes:
+      - mysql-data:/var/lib/mysql
+    command:
+      [
+        "--character-set-server=utf8mb4",
+        "--collation-server=utf8mb4_unicode_ci",
+        "--default-time-zone=Asia/Seoul"
+      ]
+
+networks:
+  didit-network:
+    external: true
+
+volumes:
+  mysql-data:
+    driver: local
