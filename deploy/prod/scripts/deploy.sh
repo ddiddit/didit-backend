@@ -54,10 +54,12 @@ if [ ! -z "${OLD_IMAGES:-}" ]; then
   echo "$OLD_IMAGES" | xargs docker rmi -f 2>/dev/null || true
 fi
 
+# 1. git-sha 태그로 pull
 echo -e "${YELLOW}[2/8] 최신 이미지 다운로드${NC}"
-docker pull ${REGISTRY}:latest
+docker pull ${REGISTRY}:${GIT_SHA}
+docker tag ${REGISTRY}:${GIT_SHA} ${REGISTRY}:latest
 NEW_IMAGE=$(docker images ${REGISTRY}:latest -q || true)
-echo -e "${GREEN}[SUCCESS] 새 이미지: ${NEW_IMAGE}${NC}"
+echo -e "${GREEN}[SUCCESS] 새 이미지: ${NEW_IMAGE} (sha: ${GIT_SHA})${NC}"
 
 cd "$DEPLOY_DIR" || exit 1
 
@@ -69,14 +71,18 @@ else
   echo -e "${GREEN}[SUCCESS] DB 컨테이너 이미 실행 중${NC}"
 fi
 
+# 2. set -e 우회해서 $? 체크
 echo -e "${YELLOW}[4/8] 새 컨테이너($NEXT) 시작${NC}"
+set +e
 docker compose -f "$NEXT_COMPOSE" up -d
-if [ $? -ne 0 ]; then
+COMPOSE_EXIT=$?
+set -e
+if [ $COMPOSE_EXIT -ne 0 ]; then
   echo -e "${RED}[ERROR] 컨테이너 시작 실패${NC}"
   docker compose -f "$NEXT_COMPOSE" down 2>/dev/null || true
   if [ ! -z "${DISCORD_WEBHOOK_URL:-}" ] && [ -f "$WORK_DIR/deploy/shared/discord-notify.sh" ]; then
     source "$WORK_DIR/deploy/shared/discord-notify.sh"
-    notify_rollback_failed "prod"
+    notify_rollback_failed
   fi
   exit 1
 fi
@@ -105,7 +111,7 @@ if [ "$HEALTH_OK" = false ]; then
   docker compose -f "$NEXT_COMPOSE" down 2>/dev/null || true
   if [ ! -z "${DISCORD_WEBHOOK_URL:-}" ] && [ -f "$WORK_DIR/deploy/shared/discord-notify.sh" ]; then
     source "$WORK_DIR/deploy/shared/discord-notify.sh"
-    notify_rollback_failed "prod"
+    notify_rollback_failed
   fi
   exit 1
 fi
@@ -125,7 +131,7 @@ docker image prune -f || true
 
 if [ ! -z "${DISCORD_WEBHOOK_URL:-}" ] && [ -f "$WORK_DIR/deploy/shared/discord-notify.sh" ]; then
   source "$WORK_DIR/deploy/shared/discord-notify.sh"
-  notify_deploy_success "$NEW_IMAGE" "$COMMIT_MESSAGE" "$DEPLOYER" "prod"
+  notify_deploy_success "$NEW_IMAGE" "$COMMIT_MESSAGE" "$DEPLOYER"
 fi
 
 echo -e "${GREEN}========================================${NC}"
