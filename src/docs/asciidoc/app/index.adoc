@@ -1,10 +1,23 @@
-= Didit App API Docs
+= didit App API Docs
 :doctype: book
 :icons: font
 :source-highlighter: highlightjs
 :toc: left
-:toclevels: 2
+:toclevels: 3
 :sectlinks:
 :sectanchors:
 
 :snippets: ../../../build/generated-snippets
+
+include::../shared/overview.adoc[]
+include::app-config.adoc[]
+include::home.adoc[]
+include::device-token.adoc[]
+include::notification.adoc[]
+include::auth.adoc[]
+include::user.adoc[]
+include::retrospect.adoc[]
+include::badge.adoc[]
+include::notice.adoc[]
+include::inquiry.adoc[]
+include::project.adoc[]

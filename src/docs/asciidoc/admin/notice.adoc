@@ -1,0 +1,60 @@
+= 관리자 공지사항 API
+
+== 공지사항 목록 조회
+
+=== Request
+
+include::{snippets}/admin-notice/list/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/admin-notice/list/http-response.adoc[]
+include::{snippets}/admin-notice/list/response-fields.adoc[]
+
+== 공지사항 상세 조회
+
+=== Request
+
+include::{snippets}/admin-notice/detail/http-request.adoc[]
+include::{snippets}/admin-notice/detail/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/admin-notice/detail/http-response.adoc[]
+include::{snippets}/admin-notice/detail/response-fields.adoc[]
+
+== 공지사항 생성
+
+=== Request
+
+include::{snippets}/admin-notice/register/http-request.adoc[]
+include::{snippets}/admin-notice/register/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/admin-notice/register/http-response.adoc[]
+include::{snippets}/admin-notice/register/response-fields.adoc[]
+
+== 공지사항 수정
+
+=== Request
+
+include::{snippets}/admin-notice/update/http-request.adoc[]
+include::{snippets}/admin-notice/update/path-parameters.adoc[]
+include::{snippets}/admin-notice/update/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/admin-notice/update/http-response.adoc[]
+include::{snippets}/admin-notice/update/response-fields.adoc[]
+
+== 공지사항 삭제
+
+=== Request
+
+include::{snippets}/admin-notice/delete/http-request.adoc[]
+include::{snippets}/admin-notice/delete/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/admin-notice/delete/http-response.adoc[]

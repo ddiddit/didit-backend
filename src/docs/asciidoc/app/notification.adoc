@@ -1,0 +1,77 @@
+= 알림 API
+
+== 알림 히스토리 조회
+
+=== Request
+
+include::{snippets}/notification-history/find-all/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/notification-history/find-all/http-response.adoc[]
+include::{snippets}/notification-history/find-all/response-fields.adoc[]
+
+== 알림 전체 읽음 처리
+
+=== Request
+
+include::{snippets}/notification-history/read-all/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/notification-history/read-all/http-response.adoc[]
+
+== 알림 개별 읽음 처리
+
+=== Request
+
+include::{snippets}/notification-history/read/http-request.adoc[]
+include::{snippets}/notification-history/read/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/notification-history/read/http-response.adoc[]
+
+== 알림 설정 조회
+
+=== Request
+
+include::{snippets}/notification-setting/find/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/notification-setting/find/http-response.adoc[]
+include::{snippets}/notification-setting/find/response-fields.adoc[]
+
+== 알림 설정 수정
+
+=== Request
+
+include::{snippets}/notification-setting/update/http-request.adoc[]
+include::{snippets}/notification-setting/update/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/notification-setting/update/http-response.adoc[]
+
+== 야간 푸시 동의 수정
+
+=== Request
+
+include::{snippets}/notification-setting/night-push-consent/http-request.adoc[]
+include::{snippets}/notification-setting/night-push-consent/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/notification-setting/night-push-consent/http-response.adoc[]
+
+== 마케팅 정보 수신 동의 수정
+
+=== Request
+
+include::{snippets}/notification-setting/marketing-consent/http-request.adoc[]
+include::{snippets}/notification-setting/marketing-consent/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/notification-setting/marketing-consent/http-response.adoc[]

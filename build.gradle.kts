@@ -10,7 +10,7 @@ plugins {
 
 group = "com.didit"
 version = "0.0.1-SNAPSHOT"
-description = "Didit backend service"
+description = "didit backend service"
 
 java {
     toolchain {
@@ -28,26 +28,44 @@ repositories {
 
 val snippetsDir = file("build/generated-snippets")
 val appDocsOutDir = layout.buildDirectory.dir("docs/app")
+val adminDocsOutDir = layout.buildDirectory.dir("docs/admin")
 
 dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
     implementation("org.springframework.boot:spring-boot-starter-validation")
     implementation("org.springframework.boot:spring-boot-starter-web")
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+    implementation("org.springframework.boot:spring-boot-starter-actuator")
+    implementation("org.springframework.boot:spring-boot-starter-security")
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("org.springframework.boot:spring-boot-starter-mail")
+
     implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
+
+    implementation("com.google.firebase:firebase-admin:9.2.0")
+    implementation("io.jsonwebtoken:jjwt-api:0.12.6")
+    implementation("me.paulschwarz:spring-dotenv:4.0.0")
+
+    implementation("org.flywaydb:flyway-core")
+    implementation("org.flywaydb:flyway-mysql")
 
     developmentOnly("org.springframework.boot:spring-boot-docker-compose")
 
+    runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
+    runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
     runtimeOnly("com.mysql:mysql-connector-j")
 
-    testRuntimeOnly("com.h2database:h2")
-
     testImplementation("org.springframework.boot:spring-boot-starter-test")
-    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
+    testImplementation("org.springframework.security:spring-security-test")
+
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
+    testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
     testImplementation("com.tngtech.archunit:archunit-junit5:1.4.1")
+    testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+    testImplementation("com.fasterxml.jackson.datatype:jackson-datatype-jsr310")
 
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    testRuntimeOnly("com.h2database:h2")
 
     "asciidoctorExt"("org.springframework.restdocs:spring-restdocs-asciidoctor")
 }
@@ -98,6 +116,8 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {
     configurations("asciidoctorExt")
     baseDirFollowsSourceFile()
 
+    attributes(mapOf("snippets" to snippetsDir.absolutePath))
+
     setSourceDir(file("src/docs/asciidoc/app"))
 
     sources {
@@ -107,10 +127,33 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {
     setOutputDir(appDocsOutDir.get().asFile)
 }
 
+tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorAdmin") {
+    group = "documentation"
+    description = "Generate Admin API docs"
+
+    inputs.dir(snippetsDir)
+    dependsOn(tasks.test)
+    configurations("asciidoctorExt")
+    baseDirFollowsSourceFile()
+
+    attributes(mapOf("snippets" to snippetsDir.absolutePath))
+
+    setSourceDir(file("src/docs/asciidoc/admin"))
+
+    sources {
+        include("index.adoc")
+    }
+
+    setOutputDir(adminDocsOutDir.get().asFile)
+}
+
 tasks.bootJar {
-    dependsOn(tasks.named("asciidoctorApp"))
+    dependsOn(tasks.named("asciidoctorApp"), tasks.named("asciidoctorAdmin"))
 
     from(appDocsOutDir.get().asFile) {
         into("static/docs/app")
+    }
+    from(adminDocsOutDir.get().asFile) {
+        into("static/docs/admin")
     }
 }

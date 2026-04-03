@@ -1,0 +1,18 @@
+ifndef::snippets[]
+:snippets: ../../build/generated-snippets
+endif::[]
+= didit Admin API Docs
+:doctype: book
+:icons: font
+:source-highlighter: highlightjs
+:toc: left
+:toc-title: 목차
+:toclevels: 2
+:sectlinks:
+
+include::../shared/overview.adoc[]
+include::setting.adoc[]
+include::auth.adoc[]
+include::management.adoc[]
+include::notice.adoc[]
+include::inquiry.adoc[]

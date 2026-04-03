@@ -1,0 +1,45 @@
+= 문의 API
+
+== 문의 접근 시 사용자 이메일 조회
+
+=== Request
+
+include::{snippets}/inquiry/user/info/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/inquiry/user/info/http-response.adoc[]
+include::{snippets}/inquiry/user/info/response-fields.adoc[]
+
+== 문의 등록
+
+=== Request
+
+include::{snippets}/inquiry/user/register/http-request.adoc[]
+include::{snippets}/inquiry/user/register/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/inquiry/user/register/http-response.adoc[]
+
+== 문의 리스트 조회
+
+=== Request
+
+include::{snippets}/inquiry/user/list/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/inquiry/user/list/http-response.adoc[]
+include::{snippets}/inquiry/user/list/response-fields.adoc[]
+
+== 문의내역 삭제
+
+=== Request
+
+include::{snippets}/inquiry/user/delete/http-request.adoc[]
+include::{snippets}/inquiry/user/delete/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/inquiry/user/delete/http-response.adoc[]

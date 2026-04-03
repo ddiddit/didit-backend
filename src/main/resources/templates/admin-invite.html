@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>관리자 초대 — didit</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;-webkit-font-smoothing:antialiased;">
+
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#f5f5f5;padding:40px 0;">
+  <tr>
+    <td align="center">
+      <table width="520" cellpadding="0" cellspacing="0" border="0" style="max-width:520px;width:100%;">
+
+        <tr>
+          <td style="background-color:#3DDB99;border-radius:12px 12px 0 0;padding:24px 36px;">
+            <table cellpadding="0" cellspacing="0" border="0">
+              <tr>
+                <td style="vertical-align:middle;">
+                  <div style="font-size:20px;font-weight:700;color:#111111;letter-spacing:-0.02em;">didit</div>
+                  <div style="font-size:12px;color:#0a6644;margin-top:2px;">AI 업무 회고 서비스</div>
+                </td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+
+        <tr>
+          <td style="background-color:#ffffff;border-radius:0 0 12px 12px;padding:48px 36px 40px;">
+
+            <p style="margin:0 0 10px 0;font-size:11px;font-weight:500;letter-spacing:0.12em;text-transform:uppercase;color:#3DDB99;">Admin Invitation</p>
+
+            <h1 style="margin:0 0 16px 0;font-size:24px;font-weight:700;color:#111111;line-height:1.4;letter-spacing:-0.02em;">
+              didit 관리자로<br>초대합니다
+            </h1>
+
+            <p style="margin:0 0 32px 0;font-size:15px;color:#666666;line-height:1.75;">
+              아래 버튼을 클릭하면 관리자 계정 생성 페이지로 이동합니다.<br>
+              계정을 만들고 didit의 모든 기능을 사용해보세요.
+            </p>
+
+            <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:28px;">
+              <tr>
+                <td align="center" style="background-color:#3DDB99;border-radius:8px;">
+                  <a href="{baseUrl}/admin/register?token={token}" style="display:block;padding:16px;font-size:15px;font-weight:700;color:#111111;text-decoration:none;text-align:center;letter-spacing:-0.01em;">
+                    관리자 계정 생성하기
+                  </a>
+                </td>
+              </tr>
+            </table>
+
+            <table cellpadding="0" cellspacing="0" border="0" style="background-color:#fafafa;border-radius:6px;padding:12px 16px;">
+              <tr>
+                <td style="font-size:13px;color:#999999;">
+                  이 링크는 <strong style="color:#555555;">{expiryHours}시간</strong> 후 만료됩니다.
+                </td>
+              </tr>
+            </table>
+
+          </td>
+        </tr>
+
+        <tr>
+          <td align="center" style="padding-top:20px;font-size:12px;color:#bbbbbb;line-height:1.8;">
+            본 메일은 발신 전용입니다.
+          </td>
+        </tr>
+
+      </table>
+    </td>
+  </tr>
+</table>
+
+</body>
+</html>

@@ -2,11 +2,59 @@ spring:
   application:
     name: didit-api
   profiles:
-      active: local
+    active: local
   docker:
     compose:
       enabled: false
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${GMAIL_USERNAME}
+    password: ${GMAIL_APP_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
 
-logging:
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{requestId}] %logger - %msg%n"
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
+oauth:
+  kakao:
+    user-info-url: https://kapi.kakao.com/v2/user/me
+  google:
+    token-info-url: https://oauth2.googleapis.com/tokeninfo
+  apple:
+    jwks-url: https://appleid.apple.com/auth/keys
+
+jwt:
+  access-token-expiry-ms: 3600000
+  refresh-token-expiry-days: 14
+
+clova:
+  api:
+    url: https://clovastudio.stream.ntruss.com/v3/chat-completions/HCX-005
+    api-key: ${CLOVA_API_KEY}
+
+  speech:
+    invoke-url: ${CLOVA_SPEECH_INVOKE_URL}
+    secret-key: ${CLOVA_SPEECH_SECRET_KEY}
+
+admin:
+  initial:
+    username: ${ADMIN_INITIAL_USERNAME}
+    password: ${ADMIN_INITIAL_PASSWORD}
+  invite:
+    expiry-hours: 48

@@ -5,5 +5,23 @@ spring:
       lifecycle-management: start_only
 
   jpa:
+    hibernate:
+      ddl-auto: update
+
     show-sql: true
     open-in-view: false
+
+  flyway:
+    enabled: false
+
+firebase:
+  service-account-path: src/main/resources/firebase/firebase-service-account.json
+
+jwt:
+  secret: /jc2w58FPaFaRr9aOAudmWLTlf8rgeD6e5pKU2Hz3Dw=
+
+admin:
+  cors:
+    allowed-origins: ${CORS_ALLOWED_ORIGINS}
+  invite:
+    base-url: http://localhost:5173
