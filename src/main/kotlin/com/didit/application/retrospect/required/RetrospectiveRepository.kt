@@ -77,4 +77,6 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         retrospectiveId: UUID,
         userId: UUID,
     ): Retrospective?
+
+    fun findAllByProjectIdAndDeletedAtIsNull(projectId: UUID): List<Retrospective>
 }

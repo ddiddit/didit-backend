@@ -37,4 +37,8 @@ class Project(
             )
         }
     }
+
+    fun delete() {
+        this.deletedAt = LocalDateTime.now()
+    }
 }
