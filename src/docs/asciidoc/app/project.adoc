@@ -21,3 +21,14 @@ include::{snippets}/project/list/http-request.adoc[]
 
 include::{snippets}/project/list/http-response.adoc[]
 include::{snippets}/project/list/response-fields.adoc[]
+
+== 프로젝트 삭제
+
+=== request
+
+include::{snippets}/project/delete/http-request.adoc[]
+include::{snippets}/project/delete/path-parameters.adoc[]
+
+=== response
+
+include::{snippets}/project/delete/http-response.adoc[]
