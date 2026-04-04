@@ -658,4 +658,23 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
             )
         verify(retrospectiveRegister).assignProject(userId, retrospectiveId, projectId)
     }
+
+    @Test
+    fun `회고 프로젝트 제거`() {
+        mockMvc
+            .perform(delete("/api/v1/retrospectives/{retrospectiveId}/project", retrospectiveId))
+            .andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "retrospect/detach-project",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                ),
+            )
+
+        verify(retrospectiveRegister).detachProject(userId, retrospectiveId)
+    }
 }

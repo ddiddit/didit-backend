@@ -430,4 +430,20 @@ class RetrospectServiceTest {
         }
         verify(retrospectiveRepository, never()).save(any())
     }
+
+    @Test
+    fun `detachProject - 회고에서 프로젝트를 제거한다`() {
+        val retro =
+            inProgressRetrospective().apply {
+                this.projectId = UUID.randomUUID()
+            }
+
+        whenever(
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId),
+        ).thenReturn(retro)
+
+        retrospectService.detachProject(userId, retrospectiveId)
+
+        assertThat(retro.projectId).isNull()
+    }
 }
