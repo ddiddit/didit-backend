@@ -14,6 +14,7 @@ class ProjectModifierService(
     private val projectRepository: ProjectRepository,
     private val retrospectiveRepository: RetrospectiveRepository,
 ) : ProjectModifier {
+    @Transactional
     override fun deleteProject(
         userId: UUID,
         projectId: UUID,
