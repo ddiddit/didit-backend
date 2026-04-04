@@ -4,12 +4,14 @@ import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
 import com.didit.adapter.webapi.organization.dto.ProjectListResponse
+import com.didit.adapter.webapi.organization.dto.ProjectOrderRequest
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectRegister
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -40,5 +42,15 @@ class ProjectApi(
     ): SuccessResponse<List<ProjectListResponse>> {
         val projects = projectFinder.findAllByUserId(userId).map { ProjectListResponse.from(it) }
         return SuccessResponse.of(projects)
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping("/order")
+    fun reorder(
+        @CurrentUserId userId: UUID,
+        @RequestBody request: ProjectOrderRequest,
+    ) {
+        projectRegister.reorder(userId, request.projectIds)
     }
 }
