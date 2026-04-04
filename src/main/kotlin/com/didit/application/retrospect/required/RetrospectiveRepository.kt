@@ -72,4 +72,9 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     ): List<LocalDateTime>
 
     fun findByIdAndDeletedAtIsNull(retrospectiveId: UUID): Retrospective?
+
+    fun findByIdAndUserIdAndDeletedAtIsNull(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): Retrospective?
 }

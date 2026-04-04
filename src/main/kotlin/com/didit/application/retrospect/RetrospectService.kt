@@ -318,6 +318,18 @@ class RetrospectService(
         retrospectiveRepository.save(retrospective)
     }
 
+    @Transactional
+    override fun detachProject(
+        userId: UUID,
+        retrospectiveId: UUID,
+    ) {
+        val retrospective =
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId)
+                ?: throw RetrospectiveNotFoundException(retrospectiveId)
+
+        retrospective.detachProject()
+    }
+
     private fun processAnswer(
         retrospectiveId: UUID,
         userId: UUID,

@@ -123,4 +123,9 @@ class Retrospective(
     fun assignProject(projectId: UUID) {
         this.projectId = projectId
     }
+
+    fun detachProject() {
+        require(this.projectId != null) { "현재 회고에 할당된 프로젝트가 없습니다." }
+        this.projectId = null
+    }
 }
