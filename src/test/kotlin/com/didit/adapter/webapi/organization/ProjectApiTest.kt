@@ -1,6 +1,7 @@
 package com.didit.adapter.webapi.organization
 
 import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
+import com.didit.adapter.webapi.organization.dto.ProjectOrderRequest
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectRegister
 import com.didit.docs.ApiDocumentUtils
@@ -16,6 +17,7 @@ import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
@@ -106,6 +108,37 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("프로젝트 ID"),
                         fieldWithPath("data[].name").type(JsonFieldType.STRING).description("프로젝트 이름"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `프로젝트 순서 변경`() {
+        val projectIds =
+            listOf(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+            )
+
+        val request = ProjectOrderRequest(projectIds = projectIds)
+
+        mockMvc
+            .perform(
+                patch("/api/v1/projects/order")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "project/reorder",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    requestFields(
+                        fieldWithPath("projectIds")
+                            .type(JsonFieldType.ARRAY)
+                            .description("정렬 순서대로 나열된 프로젝트 ID 리스트"),
                     ),
                 ),
             )
