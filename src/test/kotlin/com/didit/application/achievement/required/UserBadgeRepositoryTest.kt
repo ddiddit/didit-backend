@@ -67,10 +67,10 @@ class UserBadgeRepositoryTest : RepositoryTestSupport() {
         val badge1 = savedBadge(BadgeConditionType.FIRST_RETRO)
         val badge2 = savedBadge(BadgeConditionType.STREAK_3_DAYS)
 
-        val userBadge1 = userBadgeRepository.save(UserBadge.create(userId, badge1.id))
-        val userBadge2 = userBadgeRepository.save(UserBadge.create(userId, badge2.id))
-        userBadge2.markAsNotified()
-        userBadgeRepository.save(userBadge2)
+        val userBadge = userBadgeRepository.save(UserBadge.create(userId, badge2.id))
+        userBadge.markAsNotified()
+
+        userBadgeRepository.save(userBadge)
 
         val result = userBadgeRepository.findAllByUserIdAndIsNotifiedFalse(userId)
 
