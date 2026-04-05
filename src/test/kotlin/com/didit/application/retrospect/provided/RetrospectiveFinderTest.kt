@@ -75,27 +75,6 @@ class RetrospectiveFinderTest {
     }
 
     @Test
-    fun `findLatestCompletedByUserId - 가장 최근 완료된 회고를 반환한다`() {
-        val retro = Retrospective.create(userId)
-        whenever(retrospectiveFinder.findLatestCompletedByUserId(userId)).thenReturn(retro)
-
-        val found = retrospectiveFinder.findLatestCompletedByUserId(userId)
-
-        verify(retrospectiveFinder).findLatestCompletedByUserId(userId)
-        assertThat(found).isNotNull
-    }
-
-    @Test
-    fun `findLatestCompletedByUserId - 완료된 회고가 없으면 null을 반환한다`() {
-        whenever(retrospectiveFinder.findLatestCompletedByUserId(userId)).thenReturn(null)
-
-        val found = retrospectiveFinder.findLatestCompletedByUserId(userId)
-
-        verify(retrospectiveFinder).findLatestCompletedByUserId(userId)
-        assertThat(found).isNull()
-    }
-
-    @Test
     fun `findByUserIdAndYearMonth - 월별 회고 목록을 반환한다`() {
         val retros = listOf(Retrospective.create(userId), Retrospective.create(userId))
         whenever(retrospectiveFinder.findByUserIdAndYearMonth(userId, 2026, 3)).thenReturn(retros)
@@ -159,11 +138,7 @@ class RetrospectiveFinderTest {
 
     @Test
     fun `searchByTitle - 키워드에 해당하는 회고 목록을 반환한다`() {
-        val retros =
-            listOf(
-                Retrospective.create(userId),
-                Retrospective.create(userId),
-            )
+        val retros = listOf(Retrospective.create(userId), Retrospective.create(userId))
         whenever(retrospectiveFinder.searchByTitle(userId, "회고")).thenReturn(retros)
 
         val found = retrospectiveFinder.searchByTitle(userId, "회고")

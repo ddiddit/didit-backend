@@ -30,22 +30,15 @@ class RetrospectQueryService(
         retrospectiveRepository.findByIdAndUserId(retrospectiveId, userId)
             ?: throw RetrospectiveNotFoundException(retrospectiveId)
 
-    override fun findAllByUserId(userId: UUID): List<Retrospective> =
-        retrospectiveRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
+    override fun findAllByUserId(userId: UUID): List<Retrospective> = retrospectiveRepository.findAllCompletedByUserId(userId)
 
     override fun findRecentByUserId(
         userId: UUID,
         limit: Int,
     ): List<Retrospective> =
-        retrospectiveRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+        retrospectiveRepository.findRecentCompletedByUserId(
             userId = userId,
             pageable = PageRequest.of(0, limit),
-        )
-
-    override fun findLatestCompletedByUserId(userId: UUID): Retrospective? =
-        retrospectiveRepository.findFirstByUserIdAndStatusAndDeletedAtIsNull(
-            userId = userId,
-            status = RetroStatus.COMPLETED,
         )
 
     override fun countByUserIdAndDate(
@@ -66,39 +59,28 @@ class RetrospectQueryService(
     ): List<Retrospective> {
         val from = LocalDate.of(year, month, 1).atStartOfDay()
         val to = LocalDate.of(year, month, 1).plusMonths(1).atStartOfDay()
-
-        return retrospectiveRepository
-            .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
-                userId = userId,
-                status = RetroStatus.COMPLETED,
-                from = from,
-                to = to,
-            )
+        return retrospectiveRepository.findCompletedByUserIdAndPeriod(userId, from, to)
     }
 
     override fun findByUserIdAndDate(
         userId: UUID,
         date: LocalDate,
     ): List<Retrospective> =
-        retrospectiveRepository
-            .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
-                userId = userId,
-                status = RetroStatus.COMPLETED,
-                from = date.atStartOfDay(),
-                to = date.atTime(23, 59, 59),
-            )
+        retrospectiveRepository.findCompletedByUserIdAndPeriod(
+            userId = userId,
+            from = date.atStartOfDay(),
+            to = date.atTime(23, 59, 59),
+        )
 
     override fun findByUserIdAndCurrentWeek(userId: UUID): List<Retrospective> {
         val today = LocalDate.now()
         val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val weekEnd = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
-        return retrospectiveRepository
-            .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
-                userId = userId,
-                status = RetroStatus.COMPLETED,
-                from = weekStart.atStartOfDay(),
-                to = weekEnd.atTime(23, 59, 59),
-            )
+        return retrospectiveRepository.findCompletedByUserIdAndPeriod(
+            userId = userId,
+            from = weekStart.atStartOfDay(),
+            to = weekEnd.atTime(23, 59, 59),
+        )
     }
 
     override fun findDeepQuestion(
