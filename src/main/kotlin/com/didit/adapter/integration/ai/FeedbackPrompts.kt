@@ -28,6 +28,7 @@ object FeedbackPrompts {
     fun buildSummaryPrompt(
         job: Job?,
         allAnswers: List<String>,
+        deepQuestion: String? = null,
     ): String {
         val path = "prompts/summary-${job?.name?.lowercase()}.txt"
         val template = loadPrompt(path)
@@ -37,6 +38,7 @@ object FeedbackPrompts {
                 .replace("{{q2}}", allAnswers.getOrElse(1) { "" })
                 .replace("{{q3}}", allAnswers.getOrElse(2) { "" })
                 .replace("{{q4}}", allAnswers.getOrElse(3) { "" })
+                .replace("{{deepQuestion}}", deepQuestion ?: "심화 질문")
 
         logger.debug("요약 프롬프트 로드 - path: $path")
         logger.debug("요약 프롬프트 내용:\n$prompt")
