@@ -18,8 +18,6 @@ interface RetrospectiveFinder {
         limit: Int,
     ): List<Retrospective>
 
-    fun findLatestCompletedByUserId(userId: UUID): Retrospective?
-
     fun countByUserIdAndDate(
         userId: UUID,
         date: LocalDate,

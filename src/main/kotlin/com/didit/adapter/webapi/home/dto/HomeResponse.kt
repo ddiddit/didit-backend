@@ -8,12 +8,11 @@ data class HomeResponse(
     val nickname: String,
     val todayRetrospectiveCount: Int,
     val recentRetrospectives: List<RecentRetrospectiveResponse>,
-    val latestFeedback: String?,
 ) {
     data class RecentRetrospectiveResponse(
         val id: UUID,
         val title: String?,
-        val feedback: String?,
+        val summary: String?,
         val completedAt: LocalDateTime?,
     ) {
         companion object {
@@ -21,7 +20,7 @@ data class HomeResponse(
                 RecentRetrospectiveResponse(
                     id = retrospective.id,
                     title = retrospective.title,
-                    feedback = retrospective.summary?.feedback,
+                    summary = retrospective.summary?.summary,
                     completedAt = retrospective.completedAt,
                 )
         }

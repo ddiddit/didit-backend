@@ -57,8 +57,8 @@ class RetrospectService(
         private val QUESTION_CONTENTS =
             mapOf(
                 QuestionType.Q1 to "오늘 어떤 일을 하셨나요?",
-                QuestionType.Q2 to "진행하면서 어떤 시도, 혹은 어려움이 있었나요?",
-                QuestionType.Q3 to "이번 일을 통해 새롭게 느끼거나 배운 점이 있나요?",
+                QuestionType.Q2 to "작업을 하면서 해 본 시도나, 어렵게 느껴졌던 부분은 어떤 점이 있었나요?",
+                QuestionType.Q3 to "오늘 일을 통해 새롭게 알게 된 점이 있다면 무엇인가요?",
             )
     }
 
@@ -188,9 +188,11 @@ class RetrospectService(
                 feedback = summary.feedback,
                 insight = summary.insight,
                 doneWork = summary.doneWork,
-                blockedPoint = summary.blockedPoint,
-                solutionProcess = summary.solutionProcess,
-                lessonLearned = summary.lessonLearned,
+                summary = summary.summary,
+                blockedPoint = summary.blockedPoint.joinToString("\n"),
+                solutionProcess = summary.solutionProcess.joinToString("\n"),
+                lessonLearned = summary.lessonLearned.joinToString("\n"),
+                nextAction = summary.nextAction.joinToString("\n"),
             ),
         )
         retrospective.addTokens(summary.inputTokens, summary.outputTokens)
@@ -309,10 +311,9 @@ class RetrospectService(
                     retrospectiveId,
                 )
 
-        val project =
-            projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId) ?: throw ProjectNotFoundException(
-                projectId,
-            )
+        projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId) ?: throw ProjectNotFoundException(
+            projectId,
+        )
 
         retrospective.assignProject(projectId)
         retrospectiveRepository.save(retrospective)

@@ -20,12 +20,14 @@ object RetrospectiveFixture {
                 addMessage(ChatMessage.userAnswer(this, "에러 처리를 초반에 설계해야 한다는 것을 배웠습니다.", QuestionType.Q3, InputType.TEXT))
                 saveSummary(
                     RetrospectiveSummary(
+                        summary = "오늘은 로그인 API 연동 작업을 마무리하면서 토큰 만료 처리 로직에서 예상치 못한 엣지 케이스를 발견하고 해결한 하루였어요.",
                         feedback = "오늘 작업을 잘 마무리하셨네요.",
                         insight = "문제를 작게 나누는 것이 중요합니다.",
                         doneWork = "로그인 API 연동 작업을 완료했습니다.",
                         blockedPoint = "토큰 만료 처리 로직이 복잡했습니다.",
                         solutionProcess = "공식 문서를 참고하여 해결했습니다.",
                         lessonLearned = "초반에 에러 처리를 설계해두면 편합니다.",
+                        nextAction = "토큰 만료 엣지 케이스 추가 테스트 코드 작성",
                     ),
                 )
                 complete(title = "로그인 API 연동 회고")
