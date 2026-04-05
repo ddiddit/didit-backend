@@ -41,13 +41,50 @@ class NotificationSettingRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `findAllByEnabledTrueAndReminderTime`() {
+    fun `findAllByReminderTime - 활성화된 설정만 반환한다`() {
         val userId = UUID.randomUUID()
         val setting = NotificationSetting.create(userId)
         setting.updateSetting(true, LocalTime.of(20, 0), false)
         notificationSettingRepository.save(setting)
 
-        val found = notificationSettingRepository.findAllByEnabledTrueAndReminderTime(LocalTime.of(20, 0))
+        val found = notificationSettingRepository.findAllByReminderTime(LocalTime.of(20, 0), false)
+
+        assertThat(found).hasSize(1)
+        assertThat(found[0].userId).isEqualTo(userId)
+    }
+
+    @Test
+    fun `findAllByReminderTime - 비활성화된 설정은 제외된다`() {
+        val userId = UUID.randomUUID()
+        val setting = NotificationSetting.create(userId)
+        notificationSettingRepository.save(setting)
+
+        val found = notificationSettingRepository.findAllByReminderTime(LocalTime.of(20, 0), false)
+
+        assertThat(found).isEmpty()
+    }
+
+    @Test
+    fun `findAllByReminderTime - 야간 시간대에 동의하지 않은 사용자는 제외된다`() {
+        val userId = UUID.randomUUID()
+        val setting = NotificationSetting.create(userId)
+        setting.updateNightPushConsent(false)
+        notificationSettingRepository.save(setting)
+
+        val found = notificationSettingRepository.findAllByReminderTime(LocalTime.of(22, 0), true)
+
+        assertThat(found).isEmpty()
+    }
+
+    @Test
+    fun `findAllByReminderTime - 야간 시간대에 동의한 사용자는 반환된다`() {
+        val userId = UUID.randomUUID()
+        val setting = NotificationSetting.create(userId)
+        setting.updateNightPushConsent(true)
+        setting.updateSetting(true, LocalTime.of(22, 0), true)
+        notificationSettingRepository.save(setting)
+
+        val found = notificationSettingRepository.findAllByReminderTime(LocalTime.of(22, 0), true)
 
         assertThat(found).hasSize(1)
         assertThat(found[0].userId).isEqualTo(userId)

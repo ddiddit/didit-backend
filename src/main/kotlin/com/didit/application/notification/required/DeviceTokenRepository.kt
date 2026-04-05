@@ -19,4 +19,6 @@ interface DeviceTokenRepository : Repository<DeviceToken, UUID> {
     )
 
     fun findAllByUserId(userId: UUID): List<DeviceToken>
+
+    fun deleteByToken(token: String)
 }

@@ -21,10 +21,15 @@ class FirebaseConfig(
 
         val serviceAccount = FileInputStream(serviceAccountPath)
 
+        val credentials =
+            GoogleCredentials
+                .fromStream(serviceAccount)
+                .createScoped(listOf("https://www.googleapis.com/auth/firebase.messaging"))
+
         val options =
             FirebaseOptions
                 .builder()
-                .setCredentials(GoogleCredentials.fromStream(serviceAccount))
+                .setCredentials(credentials)
                 .build()
 
         return FirebaseApp.initializeApp(options)

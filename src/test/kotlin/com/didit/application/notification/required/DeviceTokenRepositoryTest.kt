@@ -93,4 +93,23 @@ class DeviceTokenRepositoryTest : RepositoryTestSupport() {
 
         assertThat(found).hasSize(2)
     }
+
+    @Test
+    fun `deleteByToken - 토큰으로 삭제한다`() {
+        val userId = UUID.randomUUID()
+        deviceTokenRepository.save(
+            DeviceToken.register(
+                DeviceTokenRegisterRequest(
+                    userId = userId,
+                    token = "test-token-to-delete",
+                    deviceType = DeviceType.IOS,
+                ),
+            ),
+        )
+
+        deviceTokenRepository.deleteByToken("test-token-to-delete")
+
+        val found = deviceTokenRepository.findByUserIdAndDeviceType(userId, DeviceType.IOS)
+        assertThat(found).isNull()
+    }
 }

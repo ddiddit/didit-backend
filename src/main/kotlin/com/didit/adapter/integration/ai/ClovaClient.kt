@@ -30,7 +30,11 @@ class ClovaClient(
         answers: List<String>,
     ): GeneratedDeepQuestion {
         val prompt = FeedbackPrompts.buildDeepQuestionPrompt(job, answers)
+
+        logger.debug("심화 질문 프롬프트 - job: $job, prompt:\n$prompt")
+
         val result = callWithResult(prompt)
+
         return parseDeepQuestion(result)
     }
 
@@ -39,7 +43,11 @@ class ClovaClient(
         allAnswers: List<String>,
     ): AISummaryResponse {
         val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers)
+
+        logger.debug("요약 프롬프트 - job: $job, prompt:\n$prompt")
+
         val result = callWithResult(prompt)
+
         return parseSummary(result)
     }
 
