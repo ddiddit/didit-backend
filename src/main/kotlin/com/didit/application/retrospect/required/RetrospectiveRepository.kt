@@ -17,17 +17,7 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         userId: UUID,
     ): Retrospective?
 
-    fun findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId: UUID): List<Retrospective>
-
-    fun findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(
-        userId: UUID,
-        pageable: Pageable,
-    ): List<Retrospective>
-
-    fun findFirstByUserIdAndStatusAndDeletedAtIsNull(
-        userId: UUID,
-        status: RetroStatus,
-    ): Retrospective?
+    fun findByIdAndDeletedAtIsNull(retrospectiveId: UUID): Retrospective?
 
     fun countByUserIdAndStatusNotAndCreatedAtBetween(
         userId: UUID,
@@ -36,19 +26,60 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         to: LocalDateTime,
     ): Int
 
-    fun findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
+    fun countByUserIdAndStatusAndDeletedAtIsNull(
         userId: UUID,
         status: RetroStatus,
-        from: LocalDateTime,
-        to: LocalDateTime,
+    ): Int
+
+    @Query(
+        """
+        SELECT r FROM Retrospective r
+        WHERE r.userId = :userId
+        AND r.status = 'COMPLETED'
+        AND r.deletedAt IS NULL
+        ORDER BY r.createdAt DESC
+    """,
+    )
+    fun findAllCompletedByUserId(
+        @Param("userId") userId: UUID,
+    ): List<Retrospective>
+
+    @Query(
+        """
+        SELECT r FROM Retrospective r
+        WHERE r.userId = :userId
+        AND r.status = 'COMPLETED'
+        AND r.deletedAt IS NULL
+        ORDER BY r.createdAt DESC
+    """,
+    )
+    fun findRecentCompletedByUserId(
+        @Param("userId") userId: UUID,
+        pageable: Pageable,
+    ): List<Retrospective>
+
+    @Query(
+        """
+        SELECT r FROM Retrospective r
+        WHERE r.userId = :userId
+        AND r.status = 'COMPLETED'
+        AND r.deletedAt IS NULL
+        AND r.completedAt BETWEEN :from AND :to
+        ORDER BY r.completedAt DESC
+    """,
+    )
+    fun findCompletedByUserIdAndPeriod(
+        @Param("userId") userId: UUID,
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime,
     ): List<Retrospective>
 
     @Query(
         """
         SELECT r FROM Retrospective r
         WHERE r.deletedAt IS NULL
-            AND r.userId=:userId
-            AND LOWER(r.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+        AND r.userId = :userId
+        AND LOWER(r.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
         ORDER BY r.createdAt DESC
     """,
     )
@@ -56,11 +87,6 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         @Param("userId") userId: UUID,
         @Param("keyword") keyword: String,
     ): List<Retrospective>
-
-    fun countByUserIdAndStatusAndDeletedAtIsNull(
-        userId: UUID,
-        status: RetroStatus,
-    ): Int
 
     @Query(
         "SELECT r.completedAt FROM Retrospective r " +
@@ -70,6 +96,4 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         @Param("userId") userId: UUID,
         @Param("status") status: RetroStatus,
     ): List<LocalDateTime>
-
-    fun findByIdAndDeletedAtIsNull(retrospectiveId: UUID): Retrospective?
 }

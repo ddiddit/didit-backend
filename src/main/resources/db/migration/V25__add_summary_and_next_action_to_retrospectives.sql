@@ -1,0 +1,3 @@
+ALTER TABLE retrospectives
+    ADD COLUMN summary TEXT DEFAULT NULL,
+    ADD COLUMN next_action TEXT DEFAULT NULL;

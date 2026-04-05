@@ -16,7 +16,7 @@ class RetrospectAchievementReaderImpl(
 
     override fun countDeepQuestionAnswers(userId: UUID): Int =
         retrospectiveRepository
-            .findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
+            .findAllCompletedByUserId(userId)
             .sumOf { it.countDeepQuestionAnswers() }
 
     override fun countWeeklyGoalAchievedWeeks(userId: UUID): Int =

@@ -1,7 +1,6 @@
-package com.didit.application.retrospect.dto
+package com.didit.adapter.webapi.retrospect.dto
 
-data class AISummaryResponse(
-    val title: String,
+data class ContentResponse(
     val summary: String,
     val feedback: String,
     val insight: String,
@@ -10,6 +9,4 @@ data class AISummaryResponse(
     val solutionProcess: List<String>,
     val lessonLearned: List<String>,
     val nextAction: List<String>,
-    val inputTokens: Int = 0,
-    val outputTokens: Int = 0,
 )

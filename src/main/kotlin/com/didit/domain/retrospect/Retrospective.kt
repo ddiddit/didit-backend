@@ -96,6 +96,8 @@ class Retrospective(
 
     fun complete(title: String) {
         require(title.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
+        require(title.length <= 15) { "회고 제목은 15자 이내여야 합니다." }
+
         this.title = title
         this.status = RetroStatus.COMPLETED
         this.completedAt = LocalDateTime.now()
@@ -103,6 +105,8 @@ class Retrospective(
 
     fun updateTitle(newTitle: String) {
         require(newTitle.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
+        require(newTitle.length <= 15) { "회고 제목은 15자 이내여야 합니다." }
+
         this.title = newTitle
     }
 
