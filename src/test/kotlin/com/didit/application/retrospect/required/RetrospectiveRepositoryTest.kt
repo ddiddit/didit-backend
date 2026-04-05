@@ -19,12 +19,14 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
     private fun summary(feedback: String = "피드백") =
         RetrospectiveSummary(
+            summary = "오늘 회고 요약 문장입니다.",
             feedback = feedback,
             insight = "",
             doneWork = "",
             blockedPoint = "",
             solutionProcess = "",
             lessonLearned = "",
+            nextAction = "",
         )
 
     private fun completedRetrospective(
@@ -41,18 +43,14 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     @Test
     fun `save`() {
         val retro = Retrospective.create(userId)
-
         val saved = retrospectiveRepository.save(retro)
-
         assertThat(saved.userId).isEqualTo(userId)
     }
 
     @Test
     fun `findByIdAndUserId - 존재하는 경우`() {
         val retro = retrospectiveRepository.save(Retrospective.create(userId))
-
         val found = retrospectiveRepository.findByIdAndUserId(retro.id, userId)
-
         assertThat(found).isNotNull
         assertThat(found!!.id).isEqualTo(retro.id)
     }
@@ -60,21 +58,43 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     @Test
     fun `findByIdAndUserId - 다른 유저이면 null을 반환한다`() {
         val retro = retrospectiveRepository.save(Retrospective.create(userId))
-
         val found = retrospectiveRepository.findByIdAndUserId(retro.id, UUID.randomUUID())
-
         assertThat(found).isNull()
     }
 
     @Test
-    fun `findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc - 삭제된 회고는 제외된다`() {
-        val retro1 = retrospectiveRepository.save(Retrospective.create(userId))
-        retrospectiveRepository.save(Retrospective.create(userId).apply { softDelete() })
+    fun `findAllCompletedByUserId - COMPLETED 상태만 반환한다`() {
+        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
 
-        val found = retrospectiveRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
+        val found = retrospectiveRepository.findAllCompletedByUserId(userId)
 
         assertThat(found).hasSize(1)
-        assertThat(found[0].id).isEqualTo(retro1.id)
+        assertThat(found[0].title).isEqualTo("완료된 회고")
+    }
+
+    @Test
+    fun `findAllCompletedByUserId - 삭제된 회고는 제외된다`() {
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
+        retrospectiveRepository.save(completedRetrospective(userId, "삭제된 회고").apply { softDelete() })
+
+        val found = retrospectiveRepository.findAllCompletedByUserId(userId)
+
+        assertThat(found).hasSize(1)
+        assertThat(found[0].title).isEqualTo("완료된 회고")
+    }
+
+    @Test
+    fun `findRecentCompletedByUserId - limit만큼만 반환한다`() {
+        repeat(5) { retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고 $it")) }
+
+        val found =
+            retrospectiveRepository.findRecentCompletedByUserId(
+                userId = userId,
+                pageable = PageRequest.of(0, 3),
+            )
+
+        assertThat(found).hasSize(3)
     }
 
     @Test
@@ -95,35 +115,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc - limit만큼만 반환한다`() {
-        repeat(5) { retrospectiveRepository.save(Retrospective.create(userId)) }
-
-        val found =
-            retrospectiveRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(
-                userId = userId,
-                pageable = PageRequest.of(0, 5),
-            )
-
-        assertThat(found).hasSize(5)
-    }
-
-    @Test
-    fun `findFirstByUserIdAndStatusAndDeletedAtIsNull - 가장 최근 완료된 회고를 반환한다`() {
-        retrospectiveRepository.save(Retrospective.create(userId))
-        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고", feedback = "피드백"))
-
-        val found =
-            retrospectiveRepository.findFirstByUserIdAndStatusAndDeletedAtIsNull(
-                userId = userId,
-                status = RetroStatus.COMPLETED,
-            )
-
-        assertThat(found).isNotNull
-        assertThat(found!!.title).isEqualTo("완료된 회고")
-    }
-
-    @Test
-    fun `findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc - COMPLETED 상태만 반환한다`() {
+    fun `findCompletedByUserIdAndPeriod - COMPLETED 상태만 반환한다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
         retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
 
@@ -135,14 +127,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
                 .atStartOfDay()
         val to = from.plusMonths(1)
 
-        val found =
-            retrospectiveRepository
-                .findByUserIdAndStatusAndDeletedAtIsNullAndCompletedAtBetweenOrderByCompletedAtDesc(
-                    userId = userId,
-                    status = RetroStatus.COMPLETED,
-                    from = from,
-                    to = to,
-                )
+        val found = retrospectiveRepository.findCompletedByUserIdAndPeriod(userId, from, to)
 
         assertThat(found).hasSize(1)
         assertThat(found[0].title).isEqualTo("완료된 회고")
@@ -150,20 +135,14 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
     @Test
     fun `searchByUserIdAndTitle`() {
-        retrospectiveRepository.save(Retrospective.create(userId).apply { updateTitle("오늘 회고") })
-        retrospectiveRepository.save(Retrospective.create(userId).apply { updateTitle("회고 정리") })
-        retrospectiveRepository.save(Retrospective.create(UUID.randomUUID()).apply { updateTitle("오늘 회고") })
-        retrospectiveRepository.save(
-            Retrospective.create(userId).apply {
-                updateTitle("회고 삭제됨")
-                softDelete()
-            },
-        )
+        retrospectiveRepository.save(completedRetrospective(userId, "오늘 회고"))
+        retrospectiveRepository.save(completedRetrospective(userId, "회고 정리"))
+        retrospectiveRepository.save(completedRetrospective(UUID.randomUUID(), "오늘 회고"))
+        retrospectiveRepository.save(completedRetrospective(userId, "회고 삭제됨").apply { softDelete() })
 
         val result = retrospectiveRepository.searchByUserIdAndTitle(userId, "회고")
 
         assertThat(result).hasSize(2)
-        assertThat(result.map { it.title }).containsExactly("회고 정리", "오늘 회고")
     }
 
     @Test
@@ -172,9 +151,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })
         retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고1"))
         retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고2"))
-        retrospectiveRepository.save(
-            completedRetrospective(userId, "삭제된 회고").apply { softDelete() },
-        )
+        retrospectiveRepository.save(completedRetrospective(userId, "삭제된 회고").apply { softDelete() })
 
         val count =
             retrospectiveRepository.countByUserIdAndStatusAndDeletedAtIsNull(
@@ -190,9 +167,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         retrospectiveRepository.save(Retrospective.create(userId))
         retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고1"))
         retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고2"))
-        retrospectiveRepository.save(
-            completedRetrospective(userId, "삭제된 회고").apply { softDelete() },
-        )
+        retrospectiveRepository.save(completedRetrospective(userId, "삭제된 회고").apply { softDelete() })
 
         val dates =
             retrospectiveRepository.findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(

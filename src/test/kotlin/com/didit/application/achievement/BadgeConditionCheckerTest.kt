@@ -5,7 +5,6 @@ import com.didit.domain.achievement.Streak
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
-import java.time.DayOfWeek
 import java.time.LocalDate
 import java.util.UUID
 
@@ -23,7 +22,6 @@ class BadgeConditionCheckerTest {
         streak: Streak = Streak.create(userId),
         deepQuestionCount: Int = 0,
         retroDate: LocalDate = LocalDate.now(),
-        weeklyCountByDayOfWeek: Map<DayOfWeek, Int> = emptyMap(),
         weeklyGoalAchievedWeeks: Int = 0,
     ) = BadgeCheckContext(
         userId = userId,
