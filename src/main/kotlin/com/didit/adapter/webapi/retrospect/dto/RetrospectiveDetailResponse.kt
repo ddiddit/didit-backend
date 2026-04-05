@@ -13,12 +13,14 @@ data class RetrospectiveDetailResponse(
     val completedAt: LocalDateTime?,
 ) {
     data class SummaryResponse(
+        val summary: String,
         val feedback: String,
         val insight: String,
         val doneWork: String,
-        val blockedPoint: String,
-        val solutionProcess: String,
-        val lessonLearned: String,
+        val blockedPoint: List<String>,
+        val solutionProcess: List<String>,
+        val lessonLearned: List<String>,
+        val nextAction: List<String>,
     )
 
     companion object {
@@ -30,12 +32,14 @@ data class RetrospectiveDetailResponse(
                 summary =
                     retrospective.summary?.let {
                         SummaryResponse(
+                            summary = it.summary,
                             feedback = it.feedback,
                             insight = it.insight,
                             doneWork = it.doneWork,
-                            blockedPoint = it.blockedPoint,
-                            solutionProcess = it.solutionProcess,
-                            lessonLearned = it.lessonLearned,
+                            blockedPoint = it.blockedPoint.split("\n"),
+                            solutionProcess = it.solutionProcess.split("\n"),
+                            lessonLearned = it.lessonLearned.split("\n"),
+                            nextAction = it.nextAction.split("\n"),
                         )
                     },
                 completedAt = retrospective.completedAt,

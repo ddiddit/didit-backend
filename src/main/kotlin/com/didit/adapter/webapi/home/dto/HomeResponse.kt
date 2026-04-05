@@ -8,7 +8,6 @@ data class HomeResponse(
     val nickname: String,
     val todayRetrospectiveCount: Int,
     val recentRetrospectives: List<RecentRetrospectiveResponse>,
-    val latestFeedback: String?,
 ) {
     data class RecentRetrospectiveResponse(
         val id: UUID,

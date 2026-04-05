@@ -57,7 +57,7 @@ class ClovaClient(
                                 ClovaMessage(role = "system", content = SYSTEM_PROMPT),
                                 ClovaMessage(role = "user", content = prompt),
                             ),
-                        maxTokens = 500,
+                        maxTokens = 3000,
                         temperature = 0.7,
                         topP = 0.8,
                         repetitionPenalty = 1.1,

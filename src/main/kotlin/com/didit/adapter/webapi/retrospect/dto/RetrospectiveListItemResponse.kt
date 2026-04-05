@@ -7,7 +7,7 @@ import java.util.UUID
 data class RetrospectiveListItemResponse(
     val id: UUID,
     val title: String?,
-    val feedback: String?,
+    val summary: String?,
     val completedAt: LocalDateTime?,
 ) {
     companion object {
@@ -15,7 +15,7 @@ data class RetrospectiveListItemResponse(
             RetrospectiveListItemResponse(
                 id = retrospective.id,
                 title = retrospective.title,
-                feedback = retrospective.summary?.feedback,
+                summary = retrospective.summary?.summary,
                 completedAt = retrospective.completedAt,
             )
     }

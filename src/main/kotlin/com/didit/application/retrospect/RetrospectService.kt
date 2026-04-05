@@ -188,9 +188,11 @@ class RetrospectService(
                 feedback = summary.feedback,
                 insight = summary.insight,
                 doneWork = summary.doneWork,
-                blockedPoint = summary.blockedPoint,
-                solutionProcess = summary.solutionProcess,
-                lessonLearned = summary.lessonLearned,
+                summary = summary.summary,
+                blockedPoint = summary.blockedPoint.joinToString("\n"),
+                solutionProcess = summary.solutionProcess.joinToString("\n"),
+                lessonLearned = summary.lessonLearned.joinToString("\n"),
+                nextAction = summary.nextAction.joinToString("\n"),
             ),
         )
         retrospective.addTokens(summary.inputTokens, summary.outputTokens)

@@ -26,11 +26,6 @@ class HomeApi(
         val user = userFinder.findByIdOrThrow(userId)
         val recentRetros = retrospectiveFinder.findRecentByUserId(userId, limit = 5)
         val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())
-        val latestFeedback =
-            retrospectiveFinder
-                .findLatestCompletedByUserId(userId)
-                ?.summary
-                ?.feedback
 
         return SuccessResponse.of(
             HomeResponse(
@@ -40,7 +35,6 @@ class HomeApi(
                     recentRetros.map {
                         HomeResponse.RecentRetrospectiveResponse.from(it)
                     },
-                latestFeedback = latestFeedback,
             ),
         )
     }

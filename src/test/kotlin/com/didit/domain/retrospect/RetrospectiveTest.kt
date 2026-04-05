@@ -16,12 +16,14 @@ class RetrospectiveTest {
 
     private fun summary() =
         RetrospectiveSummary(
+            summary = "오늘 회고 요약 문장입니다.",
             feedback = "피드백",
             insight = "인사이트",
             doneWork = "한 일",
             blockedPoint = "막힌 지점",
             solutionProcess = "해결 과정",
             lessonLearned = "배운 점",
+            nextAction = "다음 액션",
         )
 
     @Test
@@ -76,7 +78,7 @@ class RetrospectiveTest {
         retro.saveSummary(summary())
 
         assertThat(retro.summary).isNotNull()
-        assertThat(retro.summary!!.feedback).isEqualTo("피드백")
+        assertThat(retro.summary!!.summary).isEqualTo("오늘 회고 요약 문장입니다.")
     }
 
     @Test
