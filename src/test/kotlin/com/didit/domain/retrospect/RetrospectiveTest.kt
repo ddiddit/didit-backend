@@ -63,6 +63,24 @@ class RetrospectiveTest {
     }
 
     @Test
+    fun `complete - 제목이 15자를 초과하면 예외가 발생한다`() {
+        val retro = retrospective().apply { startProgress() }
+
+        assertThrows<IllegalArgumentException> {
+            retro.complete(title = "열여섯글자제목입니다테스트")
+        }
+    }
+
+    @Test
+    fun `updateTitle - 제목이 15자를 초과하면 예외가 발생한다`() {
+        val retro = retrospective()
+
+        assertThrows<IllegalArgumentException> {
+            retro.updateTitle("열여섯글자제목입니다테스트")
+        }
+    }
+
+    @Test
     fun `complete - 제목이 빈 값이면 예외가 발생한다`() {
         val retro = retrospective().apply { startProgress() }
 
