@@ -42,12 +42,14 @@ class AIClientTest {
         val expected =
             AISummaryResponse(
                 title = "오늘의 회고",
+                summary = "오늘 회고 요약 문장입니다.",
                 feedback = "피드백",
                 insight = "인사이트",
                 doneWork = "한 일",
-                blockedPoint = "막힌 지점",
-                solutionProcess = "해결 과정",
-                lessonLearned = "배운 점",
+                blockedPoint = listOf("막힌 지점"),
+                solutionProcess = listOf("해결 과정"),
+                lessonLearned = listOf("배운 점"),
+                nextAction = listOf("다음 액션"),
             )
 
         whenever(aiClient.generateSummaryWithTitle(Job.DEVELOPER, answers))
@@ -57,7 +59,7 @@ class AIClientTest {
 
         verify(aiClient).generateSummaryWithTitle(Job.DEVELOPER, answers)
         assertThat(result.title).isNotBlank()
-        assertThat(result.feedback).isNotBlank()
+        assertThat(result.summary).isNotBlank()
         assertThat(result.insight).isNotBlank()
     }
 }

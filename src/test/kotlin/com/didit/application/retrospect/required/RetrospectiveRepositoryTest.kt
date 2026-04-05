@@ -19,12 +19,14 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
     private fun summary(feedback: String = "피드백") =
         RetrospectiveSummary(
+            summary = "오늘 회고 요약 문장입니다.",
             feedback = feedback,
             insight = "",
             doneWork = "",
             blockedPoint = "",
             solutionProcess = "",
             lessonLearned = "",
+            nextAction = "",
         )
 
     private fun completedRetrospective(
