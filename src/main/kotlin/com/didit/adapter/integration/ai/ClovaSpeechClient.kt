@@ -88,7 +88,7 @@ class ClovaSpeechClient(
                 override fun getFilename(): String = filename
             },
             HttpHeaders().apply {
-                contentType = MediaType.parseMediaType("audio/wav")
+                contentType = getMediaType(filename)
                 contentDisposition =
                     ContentDisposition
                         .builder("form-data")
@@ -97,6 +97,17 @@ class ClovaSpeechClient(
                         .build()
             },
         )
+
+    private fun getMediaType(filename: String): MediaType =
+        when (filename.substringAfterLast('.', "").lowercase()) {
+            "wav" -> MediaType.parseMediaType("audio/wav")
+            "m4a" -> MediaType.parseMediaType("audio/m4a")
+            "mp3" -> MediaType.parseMediaType("audio/mpeg")
+            "aac" -> MediaType.parseMediaType("audio/aac")
+            "ogg" -> MediaType.parseMediaType("audio/ogg")
+            "flac" -> MediaType.parseMediaType("audio/flac")
+            else -> MediaType.APPLICATION_OCTET_STREAM
+        }
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
