@@ -67,7 +67,7 @@ class RetrospectiveTest {
         val retro = retrospective().apply { startProgress() }
 
         assertThrows<IllegalArgumentException> {
-            retro.complete(title = "열여섯글자제목입니다테스트")
+            retro.complete(title = "열여섯글자제목입니다테스트합니다")
         }
     }
 
@@ -76,7 +76,7 @@ class RetrospectiveTest {
         val retro = retrospective()
 
         assertThrows<IllegalArgumentException> {
-            retro.updateTitle("열여섯글자제목입니다테스트")
+            retro.updateTitle("열여섯글자제목입니다테스트합니다")
         }
     }
 
