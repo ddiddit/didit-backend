@@ -6,6 +6,7 @@ import com.didit.application.organization.exception.ProjectNotFoundException
 import com.didit.application.organization.provided.ProjectRegister
 import com.didit.application.organization.required.ProjectRepository
 import com.didit.domain.organization.Project
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -16,6 +17,10 @@ class ProjectRegisterService(
     private val projectRepository: ProjectRepository,
     private val userFinder: UserFinder,
 ) : ProjectRegister {
+    companion object {
+        private val logger = LoggerFactory.getLogger(ProjectRegisterService::class.java)
+    }
+
     @Transactional
     override fun create(
         userId: UUID,
@@ -43,8 +48,11 @@ class ProjectRegisterService(
                 name = normalizedName,
                 displayOrder = displayOrder,
             )
+        val saved = projectRepository.save(project)
 
-        return projectRepository.save(project)
+        logger.info("프로젝트 생성 완료 - userId: $userId, projectName: $normalizedName, order: $displayOrder")
+
+        return saved
     }
 
     @Transactional
@@ -66,6 +74,8 @@ class ProjectRegisterService(
                     ?: throw ProjectNotFoundException(id)
 
             project.updateOrder(index + 1)
+
+            logger.info("프로젝트 순서 변경 완료 - userId: $userId, orderedIds: $projectIds")
         }
     }
 }

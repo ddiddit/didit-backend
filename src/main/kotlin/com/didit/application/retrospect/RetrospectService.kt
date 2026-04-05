@@ -317,6 +317,8 @@ class RetrospectService(
 
         retrospective.assignProject(projectId)
         retrospectiveRepository.save(retrospective)
+
+        logger.info("회고 프로젝트 선택 완료 - userId:$userId, retrospectiveId: $retrospectiveId, projectId: $projectId")
     }
 
     private fun processAnswer(
