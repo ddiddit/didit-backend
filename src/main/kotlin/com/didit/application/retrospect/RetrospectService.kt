@@ -354,7 +354,13 @@ class RetrospectService(
         filename: String,
     ): String {
         if (audioBytes.isEmpty()) throw SpeechEmptyFileException()
-        if (!filename.lowercase().endsWith(".wav")) throw SpeechUnsupportedFileException(filename, null)
+
+        val supportedExtensions = listOf("wav", "m4a", "mp3", "aac", "ac3", "ogg", "flac")
+        val extension = filename.substringAfterLast('.', "").lowercase()
+
+        if (extension !in supportedExtensions) {
+            throw SpeechUnsupportedFileException(filename, null)
+        }
 
         val text = speechClient.transcribe(audioBytes, filename).trim()
 
