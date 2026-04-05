@@ -4,7 +4,6 @@ import com.didit.application.audit.ActorType
 import com.didit.application.audit.AuditAction
 import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
-import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.exception.DailyLimitExceededException
@@ -44,7 +43,7 @@ class RetrospectService(
     private val userFinder: UserFinder,
     private val eventPublisher: ApplicationEventPublisher,
     private val auditLogger: AuditLogger,
-    private val projectRepository: ProjectRepository,
+//    private val projectRepository: ProjectRepository,
 ) : RetrospectiveRegister {
     companion object {
         private val logger = LoggerFactory.getLogger(RetrospectService::class.java)
