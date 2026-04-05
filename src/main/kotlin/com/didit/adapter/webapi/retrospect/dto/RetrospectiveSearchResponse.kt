@@ -7,7 +7,7 @@ import java.util.UUID
 data class RetrospectiveSearchResponse(
     val id: UUID,
     val title: String?,
-    val feedback: String?,
+    val summary: String?,
     val createdAt: LocalDateTime?,
 ) {
     companion object {
@@ -15,7 +15,7 @@ data class RetrospectiveSearchResponse(
             RetrospectiveSearchResponse(
                 id = retrospective.id,
                 title = retrospective.title,
-                feedback = retrospective.summary?.feedback,
+                summary = retrospective.summary?.summary,
                 createdAt = retrospective.createdAt,
             )
     }

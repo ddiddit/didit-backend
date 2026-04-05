@@ -12,9 +12,13 @@ class RetrospectiveSummary(
     @Column(columnDefinition = "TEXT")
     val doneWork: String,
     @Column(columnDefinition = "TEXT")
+    val summary: String,
+    @Column(columnDefinition = "TEXT")
     val blockedPoint: String,
     @Column(columnDefinition = "TEXT")
     val solutionProcess: String,
     @Column(columnDefinition = "TEXT")
     val lessonLearned: String,
+    @Column(columnDefinition = "TEXT")
+    val nextAction: String,
 )

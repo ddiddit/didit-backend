@@ -61,21 +61,20 @@ class RetrospectQueryServiceTest {
     }
 
     @Test
-    fun `findAllByUserId - 유저의 모든 회고를 반환한다`() {
-        val retros = listOf(Retrospective.create(userId), Retrospective.create(userId))
-        whenever(retrospectiveRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId))
-            .thenReturn(retros)
+    fun `findAllByUserId - 완료된 회고만 반환한다`() {
+        val retros = listOf(RetrospectiveFixture.createCompleted(userId))
+        whenever(retrospectiveRepository.findAllCompletedByUserId(userId)).thenReturn(retros)
 
         val result = retrospectQueryService.findAllByUserId(userId)
 
-        assertThat(result).hasSize(2)
+        assertThat(result).hasSize(1)
     }
 
     @Test
-    fun `findRecentByUserId - limit만큼 최근 회고를 반환한다`() {
-        val retros = listOf(Retrospective.create(userId))
+    fun `findRecentByUserId - limit만큼 최근 완료된 회고를 반환한다`() {
+        val retros = listOf(RetrospectiveFixture.createCompleted(userId))
         whenever(
-            retrospectiveRepository.findByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(
+            retrospectiveRepository.findRecentCompletedByUserId(
                 userId = userId,
                 pageable = PageRequest.of(0, 1),
             ),
@@ -84,36 +83,6 @@ class RetrospectQueryServiceTest {
         val result = retrospectQueryService.findRecentByUserId(userId, 1)
 
         assertThat(result).hasSize(1)
-    }
-
-    @Test
-    fun `findLatestCompletedByUserId - 가장 최근 완료된 회고를 반환한다`() {
-        val retro = RetrospectiveFixture.createCompleted(userId)
-        whenever(
-            retrospectiveRepository.findFirstByUserIdAndStatusAndDeletedAtIsNull(
-                userId = userId,
-                status = RetroStatus.COMPLETED,
-            ),
-        ).thenReturn(retro)
-
-        val result = retrospectQueryService.findLatestCompletedByUserId(userId)
-
-        assertThat(result).isNotNull
-        assertThat(result!!.isCompleted()).isTrue()
-    }
-
-    @Test
-    fun `findLatestCompletedByUserId - 완료된 회고가 없으면 null을 반환한다`() {
-        whenever(
-            retrospectiveRepository.findFirstByUserIdAndStatusAndDeletedAtIsNull(
-                userId = userId,
-                status = RetroStatus.COMPLETED,
-            ),
-        ).thenReturn(null)
-
-        val result = retrospectQueryService.findLatestCompletedByUserId(userId)
-
-        assertThat(result).isNull()
     }
 
     @Test

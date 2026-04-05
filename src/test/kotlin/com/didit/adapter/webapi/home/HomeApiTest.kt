@@ -27,12 +27,10 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
     fun `홈 조회`() {
         val user = UserFixture.createOnboarded()
         val retro = RetrospectiveFixture.createCompleted(userId)
-        val latestCompleted = RetrospectiveFixture.createCompleted(userId)
 
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
         whenever(retrospectiveFinder.findRecentByUserId(userId, 5)).thenReturn(listOf(retro))
         whenever(retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())).thenReturn(1)
-        whenever(retrospectiveFinder.findLatestCompletedByUserId(userId)).thenReturn(latestCompleted)
 
         mockMvc
             .perform(get("/api/v1/home"))
@@ -48,9 +46,8 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.recentRetrospectives").type(JsonFieldType.ARRAY).description("최근 회고 목록"),
                         fieldWithPath("data.recentRetrospectives[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.recentRetrospectives[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data.recentRetrospectives[].feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
+                        fieldWithPath("data.recentRetrospectives[].summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
                         fieldWithPath("data.recentRetrospectives[].completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
-                        fieldWithPath("data.latestFeedback").type(JsonFieldType.STRING).description("최근 AI 피드백").optional(),
                     ),
                 ),
             )

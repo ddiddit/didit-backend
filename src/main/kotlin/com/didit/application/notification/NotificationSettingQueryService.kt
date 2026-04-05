@@ -21,5 +21,8 @@ class NotificationSettingQueryService(
     override fun findByUserIdOrNull(userId: UUID): NotificationSetting? = notificationSettingRepository.findByUserId(userId)
 
     override fun findAllByReminderTime(reminderTime: LocalTime): List<NotificationSetting> =
-        notificationSettingRepository.findAllByEnabledTrueAndReminderTime(reminderTime)
+        notificationSettingRepository.findAllByReminderTime(
+            reminderTime = reminderTime,
+            isNightTime = NotificationSetting.isNightTime(reminderTime),
+        )
 }
