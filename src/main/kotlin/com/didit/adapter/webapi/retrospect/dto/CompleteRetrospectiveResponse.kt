@@ -4,25 +4,14 @@ import com.didit.application.retrospect.dto.AISummaryResponse
 
 data class CompleteRetrospectiveResponse(
     val title: String,
-    val summary: SummaryResponse,
+    val content: ContentResponse,
 ) {
-    data class SummaryResponse(
-        val summary: String,
-        val feedback: String,
-        val insight: String,
-        val doneWork: String,
-        val blockedPoint: List<String>,
-        val solutionProcess: List<String>,
-        val lessonLearned: List<String>,
-        val nextAction: List<String>,
-    )
-
     companion object {
         fun from(aiSummaryResponse: AISummaryResponse): CompleteRetrospectiveResponse =
             CompleteRetrospectiveResponse(
                 title = aiSummaryResponse.title,
-                summary =
-                    SummaryResponse(
+                content =
+                    ContentResponse(
                         summary = aiSummaryResponse.summary,
                         feedback = aiSummaryResponse.feedback,
                         insight = aiSummaryResponse.insight,

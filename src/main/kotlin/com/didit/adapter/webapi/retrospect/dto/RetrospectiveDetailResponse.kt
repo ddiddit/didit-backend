@@ -9,29 +9,18 @@ data class RetrospectiveDetailResponse(
     val id: UUID,
     val title: String?,
     val status: RetroStatus,
-    val summary: SummaryResponse?,
+    val content: ContentResponse?,
     val completedAt: LocalDateTime?,
 ) {
-    data class SummaryResponse(
-        val summary: String,
-        val feedback: String,
-        val insight: String,
-        val doneWork: String,
-        val blockedPoint: List<String>,
-        val solutionProcess: List<String>,
-        val lessonLearned: List<String>,
-        val nextAction: List<String>,
-    )
-
     companion object {
         fun from(retrospective: Retrospective): RetrospectiveDetailResponse =
             RetrospectiveDetailResponse(
                 id = retrospective.id,
                 title = retrospective.title,
                 status = retrospective.status,
-                summary =
+                content =
                     retrospective.summary?.let {
-                        SummaryResponse(
+                        ContentResponse(
                             summary = it.summary,
                             feedback = it.feedback,
                             insight = it.insight,
