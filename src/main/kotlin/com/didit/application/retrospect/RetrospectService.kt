@@ -4,10 +4,13 @@ import com.didit.application.audit.ActorType
 import com.didit.application.audit.AuditAction
 import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.organization.exception.ProjectNotFoundException
+import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.exception.DailyLimitExceededException
 import com.didit.application.retrospect.exception.RetrospectiveAlreadyCompletedException
+import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.exception.RetrospectiveNotInProgressException
 import com.didit.application.retrospect.exception.SpeechEmptyFileException
 import com.didit.application.retrospect.exception.SpeechEmptyResultException
@@ -43,7 +46,7 @@ class RetrospectService(
     private val userFinder: UserFinder,
     private val eventPublisher: ApplicationEventPublisher,
     private val auditLogger: AuditLogger,
-//    private val projectRepository: ProjectRepository,
+    private val projectRepository: ProjectRepository,
 ) : RetrospectiveRegister {
     companion object {
         private val logger = LoggerFactory.getLogger(RetrospectService::class.java)
@@ -296,7 +299,7 @@ class RetrospectService(
         logger.info("회고 나가기 - userId: $userId, retrospectiveId: $retrospectiveId")
     }
 
-/*    @Transactional
+    @Transactional
     override fun assignProject(
         userId: UUID,
         retrospectiveId: UUID,
@@ -308,14 +311,13 @@ class RetrospectService(
                     retrospectiveId,
                 )
 
-        val project =
-            projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId) ?: throw ProjectNotFoundException(
-                projectId,
-            )
+        projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId) ?: throw ProjectNotFoundException(
+            projectId,
+        )
 
         retrospective.assignProject(projectId)
         retrospectiveRepository.save(retrospective)
-    }*/
+    }
 
     private fun processAnswer(
         retrospectiveId: UUID,
