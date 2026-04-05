@@ -33,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -252,7 +253,7 @@ class RetrospectServiceTest {
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
 
         assertThrows<SpeechUnsupportedFileException> {
-            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.txt") // ✅ txt는 지원 안 함
+            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.txt")
         }
         verify(speechClient, never()).transcribe(any(), any())
     }
@@ -296,7 +297,7 @@ class RetrospectServiceTest {
         val summary = aiSummaryResponse()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(userFinder.getJobByUserId(userId)).thenReturn(Job.DEVELOPER)
-        whenever(aiClient.generateSummaryWithTitle(any(), any())).thenReturn(summary)
+        whenever(aiClient.generateSummaryWithTitle(any(), any(), anyOrNull())).thenReturn(summary)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = retrospectService.complete(retrospectiveId, userId)
