@@ -45,4 +45,9 @@ interface RetrospectiveFinder {
         userId: UUID,
         keyword: String,
     ): List<Retrospective>
+
+    fun findByProject(
+        userId: UUID,
+        projectId: UUID,
+    ): List<Retrospective>
 }

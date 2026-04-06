@@ -4,12 +4,15 @@ import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
 import com.didit.adapter.webapi.organization.dto.ProjectListResponse
+import com.didit.adapter.webapi.organization.dto.RetrospectiveListResponse
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectRegister
+import com.didit.application.retrospect.provided.RetrospectiveFinder
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
@@ -22,6 +25,7 @@ import java.util.UUID
 class ProjectApi(
     private val projectRegister: ProjectRegister,
     private val projectFinder: ProjectFinder,
+    private val retrospectiveFinder: RetrospectiveFinder,
 ) {
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -40,5 +44,17 @@ class ProjectApi(
     ): SuccessResponse<List<ProjectListResponse>> {
         val projects = projectFinder.findAllByUserId(userId).map { ProjectListResponse.from(it) }
         return SuccessResponse.of(projects)
+    }
+
+    @RequireAuth
+    @GetMapping("/{projectId}")
+    fun findByProject(
+        @CurrentUserId userId: UUID,
+        @PathVariable("projectId") projectId: UUID,
+    ): SuccessResponse<List<RetrospectiveListResponse>> {
+        val retrospectives =
+            retrospectiveFinder.findByProject(userId, projectId).map { RetrospectiveListResponse.from(it) }
+
+        return SuccessResponse.of(retrospectives)
     }
 }

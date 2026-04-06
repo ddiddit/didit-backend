@@ -23,9 +23,11 @@ import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
 class RetrospectQueryServiceTest {
-    @Mock lateinit var retrospectiveRepository: RetrospectiveRepository
+    @Mock
+    lateinit var retrospectiveRepository: RetrospectiveRepository
 
-    @Mock lateinit var searchHistoryRegister: SearchHistoryRegister
+    @Mock
+    lateinit var searchHistoryRegister: SearchHistoryRegister
 
     private lateinit var retrospectQueryService: RetrospectQueryService
 
@@ -38,6 +40,7 @@ class RetrospectQueryServiceTest {
             RetrospectQueryService(
                 retrospectiveRepository = retrospectiveRepository,
                 searchHistoryRegister = searchHistoryRegister,
+                projectRepository = projectRepository,
             )
     }
 
