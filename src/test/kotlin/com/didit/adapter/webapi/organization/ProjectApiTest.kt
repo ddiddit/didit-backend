@@ -177,7 +177,7 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목"),
                         fieldWithPath("data[].summary").type(JsonFieldType.STRING).description("회고 요약"),
-                        fieldWithPath("data[].completedAt").type(JsonFieldType.STRING).description("완료일").optional(),
+                        fieldWithPath("data[].completedAt").type(JsonFieldType.STRING).description("완료일"),
                     ),
                 ),
             )
