@@ -1,5 +1,6 @@
 package com.didit.application.retrospect
 
+import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.provided.SearchHistoryRegister
 import com.didit.application.retrospect.required.RetrospectiveRepository
@@ -28,6 +29,9 @@ class RetrospectQueryServiceTest {
 
     @Mock
     lateinit var searchHistoryRegister: SearchHistoryRegister
+
+    @Mock
+    lateinit var projectRepository: ProjectRepository
 
     private lateinit var retrospectQueryService: RetrospectQueryService
 
