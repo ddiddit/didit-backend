@@ -200,7 +200,7 @@ include::{snippets}/retrospect/search-info/http-request.adoc[]
 include::{snippets}/retrospect/search-info/http-response.adoc[]
 include::{snippets}/retrospect/search-info/response-fields.adoc[]
 
-== 회고에 프로젝트 등록
+== 회고 프로젝트 등록
 
 === Request
 
@@ -215,5 +215,5 @@ include::{snippets}/retrospect/register-project/query-parameters.adoc[]
 
 === Response
 
-include::{snippets}/retrospect/assign-project/http-response.adoc[]
+include::{snippets}/retrospect/register-project/http-response.adoc[]
 
