@@ -124,7 +124,7 @@ class Retrospective(
         fun create(userId: UUID): Retrospective = Retrospective(userId = userId)
     }
 
-    fun assignProject(projectId: UUID) {
+    fun registerProject(projectId: UUID) {
         this.projectId = projectId
     }
 }
