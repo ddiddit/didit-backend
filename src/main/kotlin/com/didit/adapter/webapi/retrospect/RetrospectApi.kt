@@ -262,7 +262,7 @@ class RetrospectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PatchMapping("/{retrospectiveId}/register-project")
+    @PatchMapping("/register-project/{retrospectiveId}")
     fun registerProject(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
