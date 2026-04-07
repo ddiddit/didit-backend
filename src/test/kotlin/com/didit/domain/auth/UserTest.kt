@@ -72,6 +72,7 @@ class UserTest {
         assertThat(user.isOnboardingCompleted).isFalse()
         assertThat(user.nickname).isNull()
         assertThat(user.job).isNull()
+        assertThat(user.consent).isNull()
     }
 
     @Test
