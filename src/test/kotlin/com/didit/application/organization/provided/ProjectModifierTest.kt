@@ -14,6 +14,17 @@ class ProjectModifierTest {
     lateinit var projectModifier: ProjectModifier
 
     @Test
+    fun `updateName`() {
+        val userId = UUID.randomUUID()
+        val projectId = UUID.randomUUID()
+        val newName = "새 프로젝트 이름"
+
+        projectModifier.updateName(userId, projectId, newName)
+
+        verify(projectModifier).updateName(userId, projectId, newName)
+    }
+
+    @Test
     fun `deleteProject`() {
         val userId = UUID.randomUUID()
         val projectId = UUID.randomUUID()

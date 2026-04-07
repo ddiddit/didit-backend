@@ -2,6 +2,7 @@ package com.didit.adapter.webapi.organization
 
 import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
 import com.didit.adapter.webapi.organization.dto.ProjectOrderRequest
+import com.didit.adapter.webapi.organization.dto.UpdateProjectNameRequest
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectModifier
 import com.didit.application.organization.provided.ProjectRegister
@@ -10,6 +11,7 @@ import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.organization.Project
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
@@ -18,6 +20,8 @@ import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
+import org.springframework.restdocs.request.RequestDocumentation.pathParameters
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
@@ -114,6 +118,45 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                 ),
             )
+    }
+
+    @Test
+    fun `프로젝트 이름 수정`() {
+        val userId = UUID.randomUUID()
+        val projectId = UUID.randomUUID()
+
+        val request =
+            UpdateProjectNameRequest(
+                name = "수정된 프로젝트",
+            )
+
+        mockMvc
+            .perform(
+                patch("/api/v1/projects/{projectId}/name", projectId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "project/update-name",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("projectId").description("프로젝트 ID"),
+                    ),
+                    requestFields(
+                        fieldWithPath("name")
+                            .type(JsonFieldType.STRING)
+                            .description("수정할 프로젝트 이름 (최대 15자)"),
+                    ),
+                ),
+            )
+
+        verify(projectModifier).updateName(
+            any(),
+            eq(projectId),
+            eq(request.name),
+        )
     }
 
     @Test

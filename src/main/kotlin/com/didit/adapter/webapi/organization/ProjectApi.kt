@@ -5,6 +5,7 @@ import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
 import com.didit.adapter.webapi.organization.dto.ProjectListResponse
 import com.didit.adapter.webapi.organization.dto.ProjectOrderRequest
+import com.didit.adapter.webapi.organization.dto.UpdateProjectNameRequest
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectModifier
@@ -46,6 +47,17 @@ class ProjectApi(
     ): SuccessResponse<List<ProjectListResponse>> {
         val projects = projectFinder.findAllByUserId(userId).map { ProjectListResponse.from(it) }
         return SuccessResponse.of(projects)
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping("/{projectId}/name")
+    fun update(
+        @CurrentUserId userId: UUID,
+        @PathVariable("projectId") projectId: UUID,
+        @RequestBody request: UpdateProjectNameRequest,
+    ) {
+        projectModifier.updateName(userId, projectId, request.name)
     }
 
     @RequireAuth
