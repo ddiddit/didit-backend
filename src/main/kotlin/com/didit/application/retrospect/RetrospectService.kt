@@ -322,6 +322,20 @@ class RetrospectService(
 
         retrospective.registerProject(projectId)
         retrospectiveRepository.save(retrospective)
+
+        logger.info("회고 프로젝트 선택 완료 - userId:$userId, retrospectiveId: $retrospectiveId, projectId: $projectId")
+    }
+
+    @Transactional
+    override fun detachProject(
+        userId: UUID,
+        retrospectiveId: UUID,
+    ) {
+        val retrospective =
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId)
+                ?: throw RetrospectiveNotFoundException(retrospectiveId)
+
+        retrospective.detachProject()
     }
 
     private fun processAnswer(

@@ -63,4 +63,9 @@ interface RetrospectiveRegister {
         retrospectiveId: UUID,
         projectId: UUID,
     )
+
+    fun detachProject(
+        userId: UUID,
+        retrospectiveId: UUID,
+    )
 }

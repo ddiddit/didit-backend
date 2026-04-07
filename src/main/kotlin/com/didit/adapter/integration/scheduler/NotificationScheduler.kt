@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
 import java.time.LocalTime
+import java.time.ZoneId
 import java.util.UUID
 
 @Component
@@ -30,7 +31,7 @@ class NotificationScheduler(
 
     @Scheduled(cron = "0 */10 * * * *")
     fun sendReminderNotifications() {
-        val now = LocalTime.now().withSecond(0).withNano(0)
+        val now = LocalTime.now(ZoneId.of("Asia/Seoul")).withSecond(0).withNano(0)
         val settings = notificationSettingFinder.findAllByReminderTime(now)
 
         logger.info("회고 알림 스케줄러 실행 - time: $now, 대상 유저 수: ${settings.size}")

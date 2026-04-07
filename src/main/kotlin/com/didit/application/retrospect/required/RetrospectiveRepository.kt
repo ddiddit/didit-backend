@@ -96,4 +96,11 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         @Param("userId") userId: UUID,
         @Param("status") status: RetroStatus,
     ): List<LocalDateTime>
+
+    fun findByIdAndUserIdAndDeletedAtIsNull(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): Retrospective?
+
+    fun findAllByProjectIdAndDeletedAtIsNull(projectId: UUID): List<Retrospective>
 }

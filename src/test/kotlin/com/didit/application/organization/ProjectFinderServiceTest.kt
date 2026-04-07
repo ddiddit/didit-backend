@@ -31,13 +31,13 @@ class ProjectFinderServiceTest {
             )
 
         whenever(
-            projectRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId),
+            projectRepository.findAllForUser(userId),
         ).thenReturn(projects)
 
         val result = projectFinderService.findAllByUserId(userId)
 
         verify(projectRepository)
-            .findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
+            .findAllForUser(userId)
 
         assertThat(result).hasSize(2)
         assertThat(result[0].name).isEqualTo("프로젝트1")
@@ -49,7 +49,7 @@ class ProjectFinderServiceTest {
         val userId = UUID.randomUUID()
 
         whenever(
-            projectRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId),
+            projectRepository.findAllForUser(userId),
         ).thenReturn(emptyList())
 
         val result = projectFinderService.findAllByUserId(userId)

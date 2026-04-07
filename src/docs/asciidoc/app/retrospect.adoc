@@ -206,14 +206,22 @@ include::{snippets}/retrospect/search-info/response-fields.adoc[]
 
 include::{snippets}/retrospect/register-project/http-request.adoc[]
 ===== path parameter
-
 include::{snippets}/retrospect/register-project/path-parameters.adoc[]
-
 ===== query parameter
-
 include::{snippets}/retrospect/register-project/query-parameters.adoc[]
 
 === Response
 
 include::{snippets}/retrospect/register-project/http-response.adoc[]
+
+== 회고에 프로젝트 제거
+
+=== Request
+
+include::{snippets}/retrospect/detach-project/http-request.adoc[]
+include::{snippets}/retrospect/detach-project/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/detach-project/http-response.adoc[]
 
