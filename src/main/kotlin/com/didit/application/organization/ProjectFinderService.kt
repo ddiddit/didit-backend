@@ -12,6 +12,5 @@ import java.util.UUID
 class ProjectFinderService(
     private val projectRepository: ProjectRepository,
 ) : ProjectFinder {
-    override fun findAllByUserId(userId: UUID): List<Project> =
-        projectRepository.findAllByUserIdAndDeletedAtIsNullOrderByCreatedAtDesc(userId)
+    override fun findAllByUserId(userId: UUID): List<Project> = projectRepository.findAllForUser(userId)
 }
