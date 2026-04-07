@@ -38,7 +38,7 @@ include::{snippets}/project/delete/http-response.adoc[]
 === request
 
 include::{snippets}/project/reorder/http-request.adoc[]
-include::{snippets}/project/reorder/request-body.adoc[]
+include::{snippets}/project/reorder/request-fields.adoc[]
 
 === response
 
