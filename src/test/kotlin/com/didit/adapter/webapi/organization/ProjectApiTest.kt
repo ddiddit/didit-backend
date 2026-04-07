@@ -1,6 +1,7 @@
 package com.didit.adapter.webapi.organization
 
 import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
+import com.didit.adapter.webapi.organization.dto.ProjectOrderRequest
 import com.didit.adapter.webapi.organization.dto.UpdateProjectNameRequest
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectModifier
@@ -156,5 +157,61 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
             eq(projectId),
             eq(request.name),
         )
+    }
+
+    @Test
+    fun `프로젝트 삭제`() {
+        val projectId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders
+                    .delete("/api/v1/projects/{projectId}", projectId),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "project/delete",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    org.springframework.restdocs.request.RequestDocumentation.pathParameters(
+                        org.springframework.restdocs.request.RequestDocumentation
+                            .parameterWithName("projectId")
+                            .description("프로젝트 ID"),
+                    ),
+                ),
+            )
+
+        verify(projectModifier).deleteProject(any(), any())
+    }
+
+    @Test
+    fun `프로젝트 순서 변경`() {
+        val projectIds =
+            listOf(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+            )
+
+        val request = ProjectOrderRequest(projectIds = projectIds)
+
+        mockMvc
+            .perform(
+                patch("/api/v1/projects/order")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "project/reorder",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    requestFields(
+                        fieldWithPath("projectIds")
+                            .type(JsonFieldType.ARRAY)
+                            .description("정렬 순서대로 나열된 프로젝트 ID 리스트"),
+                    ),
+                ),
+            )
     }
 }

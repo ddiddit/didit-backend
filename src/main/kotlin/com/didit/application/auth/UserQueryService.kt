@@ -19,7 +19,7 @@ class UserQueryService(
             userId,
         )
 
-    override fun existsByNickname(nickname: String): Boolean = userRepository.existsByNickname(nickname)
+    override fun existsByNickname(nickname: String): Boolean = userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
 
     override fun getJobByUserId(userId: UUID): Job? = (userRepository.findById(userId) ?: throw UserNotFoundException(userId)).job
 }

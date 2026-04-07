@@ -9,6 +9,9 @@ spring:
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
 
+  jackson:
+    time-zone: Asia/Seoul
+
   jpa:
     hibernate:
       ddl-auto: validate
@@ -18,6 +21,8 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: Asia/Seoul
 
   flyway:
     enabled: true

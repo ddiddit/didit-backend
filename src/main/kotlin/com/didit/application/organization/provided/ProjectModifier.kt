@@ -8,4 +8,9 @@ interface ProjectModifier {
         projectId: UUID,
         newName: String,
     )
+
+    fun deleteProject(
+        userId: UUID,
+        projectId: UUID,
+    )
 }

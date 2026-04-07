@@ -85,6 +85,7 @@ class User(
         onboardingCompletedAt = null
         nickname = null
         job = null
+        consent = null
     }
 
     fun createConsent(marketingAgreed: Boolean) {

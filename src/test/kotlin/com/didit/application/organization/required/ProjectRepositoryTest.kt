@@ -81,6 +81,59 @@ class ProjectRepositoryTest {
         assertEquals(project, result)
     }
 
+    @Test
+    fun `findByIdAndDeletedAtIsNull`() {
+        val project = createProject()
+        val projectId = project.id
+
+        whenever(projectRepository.findByIdAndDeletedAtIsNull(projectId))
+            .thenReturn(project)
+
+        val result = projectRepository.findByIdAndDeletedAtIsNull(projectId)
+
+        verify(projectRepository).findByIdAndDeletedAtIsNull(projectId)
+        assertEquals(project, result)
+    }
+
+    @Test
+    fun `findAllForUser`() {
+        val projects =
+            listOf(
+                createProject(),
+                createProject(),
+            )
+
+        whenever(projectRepository.findAllForUser(userId))
+            .thenReturn(projects)
+
+        val result = projectRepository.findAllForUser(userId)
+
+        verify(projectRepository).findAllForUser(userId)
+        assertEquals(2, result.size)
+    }
+
+    @Test
+    fun `findMaxDisplayOrder`() {
+        whenever(projectRepository.findMaxDisplayOrder(userId))
+            .thenReturn(3)
+
+        val result = projectRepository.findMaxDisplayOrder(userId)
+
+        verify(projectRepository).findMaxDisplayOrder(userId)
+        assertEquals(3, result)
+    }
+
+    @Test
+    fun `findMaxDisplayOrder - 데이터 없음`() {
+        whenever(projectRepository.findMaxDisplayOrder(userId))
+            .thenReturn(null)
+
+        val result = projectRepository.findMaxDisplayOrder(userId)
+
+        verify(projectRepository).findMaxDisplayOrder(userId)
+        assertEquals(null, result)
+    }
+
     private fun createProject(): Project =
         Project.create(
             userId = userId,

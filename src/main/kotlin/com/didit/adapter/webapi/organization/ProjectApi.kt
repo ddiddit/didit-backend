@@ -4,6 +4,7 @@ import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
 import com.didit.adapter.webapi.organization.dto.ProjectListResponse
+import com.didit.adapter.webapi.organization.dto.ProjectOrderRequest
 import com.didit.adapter.webapi.organization.dto.UpdateProjectNameRequest
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.organization.provided.ProjectFinder
@@ -11,6 +12,7 @@ import com.didit.application.organization.provided.ProjectModifier
 import com.didit.application.organization.provided.ProjectRegister
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
@@ -56,5 +58,25 @@ class ProjectApi(
         @RequestBody request: UpdateProjectNameRequest,
     ) {
         projectModifier.updateName(userId, projectId, request.name)
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/{projectId}")
+    fun delete(
+        @CurrentUserId userId: UUID,
+        @PathVariable projectId: UUID,
+    ) {
+        projectModifier.deleteProject(userId, projectId)
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping("/order")
+    fun reorder(
+        @CurrentUserId userId: UUID,
+        @RequestBody request: ProjectOrderRequest,
+    ) {
+        projectRegister.reorder(userId, request.projectIds)
     }
 }

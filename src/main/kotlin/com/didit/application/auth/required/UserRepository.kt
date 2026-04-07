@@ -8,9 +8,9 @@ import java.util.UUID
 interface UserRepository : Repository<User, UUID> {
     fun save(user: User): User
 
-    fun existsByNickname(nickname: String): Boolean
+    fun existsByNicknameAndDeletedAtIsNull(nickname: String): Boolean
 
-    fun existsByNicknameAndIdNot(
+    fun existsByNicknameAndIdNotAndDeletedAtIsNull(
         nickname: String,
         userId: UUID,
     ): Boolean

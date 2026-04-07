@@ -19,12 +19,19 @@ class Project(
     @Column(nullable = false, length = 15)
     var name: String,
     @Column
+    var displayOrder: Int? = null,
+    @Column
     var deletedAt: LocalDateTime? = null,
 ) : BaseEntity() {
+    fun updateOrder(order: Int) {
+        this.displayOrder = order
+    }
+
     companion object {
         fun create(
             userId: UUID,
             name: String,
+            displayOrder: Int? = null,
         ): Project {
             val normalizedName = normalize(name)
 
@@ -33,6 +40,7 @@ class Project(
             return Project(
                 userId = userId,
                 name = normalizedName,
+                displayOrder = displayOrder,
             )
         }
 
@@ -53,4 +61,10 @@ class Project(
 
         this.name = normalizedName
     }
+
+    fun delete() {
+        this.deletedAt = LocalDateTime.now()
+    }
+
+    fun isDeleted(): Boolean = deletedAt != null
 }
