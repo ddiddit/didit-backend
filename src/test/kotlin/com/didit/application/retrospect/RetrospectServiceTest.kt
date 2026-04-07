@@ -410,7 +410,7 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `assignProject - 정상적으로 프로젝트를 회고에 할당한다`() {
+    fun `registerProject - 정상적으로 프로젝트를 회고에 할당한다`() {
         val retro = inProgressRetrospective()
         val projectId = UUID.randomUUID()
         val project =
@@ -421,26 +421,26 @@ class RetrospectServiceTest {
         whenever(projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)).thenReturn(project)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        retrospectService.assignProject(userId, retrospectiveId, projectId)
+        retrospectService.registerProject(userId, retrospectiveId, projectId)
 
         assertThat(retro.projectId).isEqualTo(projectId)
         verify(retrospectiveRepository).save(retro)
     }
 
     @Test
-    fun `assignProject - 회고가 존재하지 않으면 RetrospectiveNotFoundException`() {
+    fun `registerProject - 회고가 존재하지 않으면 RetrospectiveNotFoundException`() {
         val projectId = UUID.randomUUID()
 
         whenever(retrospectiveRepository.findByIdAndDeletedAtIsNull(retrospectiveId)).thenReturn(null)
 
         assertThrows<RetrospectiveNotFoundException> {
-            retrospectService.assignProject(userId, retrospectiveId, projectId)
+            retrospectService.registerProject(userId, retrospectiveId, projectId)
         }
         verify(retrospectiveRepository, never()).save(any())
     }
 
     @Test
-    fun `assignProject - 프로젝트가 존재하지 않으면 ProjectNotFoundException`() {
+    fun `registerProject - 프로젝트가 존재하지 않으면 ProjectNotFoundException`() {
         val retro = inProgressRetrospective()
         val projectId = UUID.randomUUID()
 
@@ -448,7 +448,7 @@ class RetrospectServiceTest {
         whenever(projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)).thenReturn(null)
 
         assertThrows<com.didit.application.organization.exception.ProjectNotFoundException> {
-            retrospectService.assignProject(userId, retrospectiveId, projectId)
+            retrospectService.registerProject(userId, retrospectiveId, projectId)
         }
         verify(retrospectiveRepository, never()).save(any())
     }

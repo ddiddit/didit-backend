@@ -305,7 +305,7 @@ class RetrospectService(
     }
 
     @Transactional
-    override fun assignProject(
+    override fun registerProject(
         userId: UUID,
         retrospectiveId: UUID,
         projectId: UUID,
@@ -320,7 +320,7 @@ class RetrospectService(
             projectId,
         )
 
-        retrospective.assignProject(projectId)
+        retrospective.registerProject(projectId)
         retrospectiveRepository.save(retrospective)
 
         logger.info("회고 프로젝트 선택 완료 - userId:$userId, retrospectiveId: $retrospectiveId, projectId: $projectId")

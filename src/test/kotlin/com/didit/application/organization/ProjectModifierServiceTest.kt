@@ -114,8 +114,8 @@ class ProjectModifierServiceTest {
 
         val retrospectives =
             listOf(
-                Retrospective.create(userId).apply { assignProject(project.id) },
-                Retrospective.create(userId).apply { assignProject(project.id) },
+                Retrospective.create(userId).apply { registerProject(project.id) },
+                Retrospective.create(userId).apply { registerProject(project.id) },
             )
 
         whenever(
