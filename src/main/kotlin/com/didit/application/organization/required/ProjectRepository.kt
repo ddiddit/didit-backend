@@ -18,4 +18,6 @@ interface ProjectRepository : Repository<Project, UUID> {
         id: UUID,
         userId: UUID,
     ): Project?
+
+    fun findByIdAndDeletedAtIsNull(id: UUID): Project?
 }

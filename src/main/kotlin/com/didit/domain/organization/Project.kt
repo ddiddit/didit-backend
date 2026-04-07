@@ -37,4 +37,10 @@ class Project(
             )
         }
     }
+
+    fun delete() {
+        this.deletedAt = LocalDateTime.now()
+    }
+
+    fun isDeleted(): Boolean = deletedAt != null
 }
