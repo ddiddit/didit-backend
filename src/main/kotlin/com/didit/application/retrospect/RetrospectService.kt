@@ -175,9 +175,14 @@ class RetrospectService(
 
         val job = userFinder.getJobByUserId(userId)
 
+        val deepQuestion =
+            retrospective.chatMessages
+                .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
+                ?.content
+
         val summary =
             try {
-                aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers())
+                aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers(), deepQuestion)
             } catch (e: Exception) {
                 logger.error("회고 요약 생성 실패 - userId: $userId, retrospectiveId: $retrospectiveId", e)
                 throw e
@@ -321,6 +326,18 @@ class RetrospectService(
         logger.info("회고 프로젝트 선택 완료 - userId:$userId, retrospectiveId: $retrospectiveId, projectId: $projectId")
     }
 
+    @Transactional
+    override fun detachProject(
+        userId: UUID,
+        retrospectiveId: UUID,
+    ) {
+        val retrospective =
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId)
+                ?: throw RetrospectiveNotFoundException(retrospectiveId)
+
+        retrospective.detachProject()
+    }
+
     private fun processAnswer(
         retrospectiveId: UUID,
         userId: UUID,
@@ -356,7 +373,13 @@ class RetrospectService(
         filename: String,
     ): String {
         if (audioBytes.isEmpty()) throw SpeechEmptyFileException()
-        if (!filename.lowercase().endsWith(".wav")) throw SpeechUnsupportedFileException(filename, null)
+
+        val supportedExtensions = listOf("wav", "m4a", "mp3", "aac", "ac3", "ogg", "flac")
+        val extension = filename.substringAfterLast('.', "").lowercase()
+
+        if (extension !in supportedExtensions) {
+            throw SpeechUnsupportedFileException(filename, null)
+        }
 
         val text = speechClient.transcribe(audioBytes, filename).trim()
 

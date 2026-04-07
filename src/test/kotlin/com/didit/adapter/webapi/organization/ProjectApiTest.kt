@@ -3,12 +3,14 @@ package com.didit.adapter.webapi.organization
 import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
 import com.didit.adapter.webapi.organization.dto.ProjectOrderRequest
 import com.didit.application.organization.provided.ProjectFinder
+import com.didit.application.organization.provided.ProjectModifier
 import com.didit.application.organization.provided.ProjectRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.organization.Project
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
@@ -26,8 +28,9 @@ import kotlin.test.Test
 class ProjectApiTest : AuthenticatedRestDocsSupport() {
     private val projectRegister: ProjectRegister = mock(ProjectRegister::class.java)
     private val projectFinder: ProjectFinder = mock(ProjectFinder::class.java)
+    private val projectModifier: ProjectModifier = mock(ProjectModifier::class.java)
 
-    override fun initController() = ProjectApi(projectRegister, projectFinder)
+    override fun initController() = ProjectApi(projectRegister, projectFinder, projectModifier)
 
     @Test
     fun `프로젝트 생성`() {
@@ -111,6 +114,31 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                 ),
             )
+    }
+
+    @Test
+    fun `프로젝트 삭제`() {
+        val projectId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders
+                    .delete("/api/v1/projects/{projectId}", projectId),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "project/delete",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    org.springframework.restdocs.request.RequestDocumentation.pathParameters(
+                        org.springframework.restdocs.request.RequestDocumentation
+                            .parameterWithName("projectId")
+                            .description("프로젝트 ID"),
+                    ),
+                ),
+            )
+
+        verify(projectModifier).deleteProject(any(), any())
     }
 
     @Test

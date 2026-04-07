@@ -96,7 +96,7 @@ class Retrospective(
 
     fun complete(title: String) {
         require(title.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
-        require(title.length <= 15) { "회고 제목은 15자 이내여야 합니다." }
+        require(title.length <= 25) { "회고 제목은 25자 이내여야 합니다." }
 
         this.title = title
         this.status = RetroStatus.COMPLETED
@@ -105,7 +105,7 @@ class Retrospective(
 
     fun updateTitle(newTitle: String) {
         require(newTitle.isNotBlank()) { "회고 제목은 비어 있을 수 없습니다." }
-        require(newTitle.length <= 15) { "회고 제목은 15자 이내여야 합니다." }
+        require(newTitle.length <= 25) { "회고 제목은 25자 이내여야 합니다." }
 
         this.title = newTitle
     }
@@ -126,5 +126,10 @@ class Retrospective(
 
     fun assignProject(projectId: UUID) {
         this.projectId = projectId
+    }
+
+    fun detachProject() {
+        require(this.projectId != null) { "현재 회고에 할당된 프로젝트가 없습니다." }
+        this.projectId = null
     }
 }

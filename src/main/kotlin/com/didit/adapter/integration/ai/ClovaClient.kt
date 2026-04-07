@@ -41,8 +41,9 @@ class ClovaClient(
     override fun generateSummaryWithTitle(
         job: Job?,
         allAnswers: List<String>,
+        deepQuestion: String?,
     ): AISummaryResponse {
-        val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers)
+        val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers, deepQuestion)
 
         logger.debug("요약 프롬프트 - job: $job, prompt:\n$prompt")
 

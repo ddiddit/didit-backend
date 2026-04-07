@@ -22,6 +22,8 @@ interface ProjectRepository : Repository<Project, UUID> {
         userId: UUID,
     ): Project?
 
+    fun findByIdAndDeletedAtIsNull(id: UUID): Project?
+
     @Query(
         """
         SELECT p

@@ -33,6 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -191,10 +192,27 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `submitVoiceAnswer - wav 파일을 변환해서 답변을 제출하고 텍스트를 반환한다`() {
+    fun `submitVoiceAnswer - m4a 파일을 변환해서 답변을 제출하고 텍스트를 반환한다`() {
         val retro = inProgressRetrospective()
         val audioBytes = ByteArray(100) { 1 }
-        val filename = "voice.wav"
+        val filename = "voice.m4a"
+
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(speechClient.transcribe(audioBytes, filename)).thenReturn("음성 변환된 텍스트")
+        whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        val result = retrospectService.submitVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
+
+        assertThat(result.content).isEqualTo("음성 변환된 텍스트")
+        assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
+        verify(speechClient).transcribe(audioBytes, filename)
+    }
+
+    @Test
+    fun `submitVoiceAnswer - mp3 파일을 변환해서 답변을 제출하고 텍스트를 반환한다`() {
+        val retro = inProgressRetrospective()
+        val audioBytes = ByteArray(100) { 1 }
+        val filename = "voice.mp3"
 
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(speechClient.transcribe(audioBytes, filename)).thenReturn("음성 변환된 텍스트")
@@ -230,12 +248,12 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `submitVoiceAnswer - wav가 아닌 파일이면 STT 호출 없이 예외가 발생한다`() {
+    fun `submitVoiceAnswer - 지원하지 않는 파일 형식이면 STT 호출 없이 예외가 발생한다`() {
         val retro = inProgressRetrospective()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
 
         assertThrows<SpeechUnsupportedFileException> {
-            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.mp3")
+            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.txt")
         }
         verify(speechClient, never()).transcribe(any(), any())
     }
@@ -279,7 +297,7 @@ class RetrospectServiceTest {
         val summary = aiSummaryResponse()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(userFinder.getJobByUserId(userId)).thenReturn(Job.DEVELOPER)
-        whenever(aiClient.generateSummaryWithTitle(any(), any())).thenReturn(summary)
+        whenever(aiClient.generateSummaryWithTitle(any(), any(), anyOrNull())).thenReturn(summary)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = retrospectService.complete(retrospectiveId, userId)
@@ -433,5 +451,21 @@ class RetrospectServiceTest {
             retrospectService.assignProject(userId, retrospectiveId, projectId)
         }
         verify(retrospectiveRepository, never()).save(any())
+    }
+
+    @Test
+    fun `detachProject - 회고에서 프로젝트를 제거한다`() {
+        val retro =
+            inProgressRetrospective().apply {
+                this.projectId = UUID.randomUUID()
+            }
+
+        whenever(
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId),
+        ).thenReturn(retro)
+
+        retrospectService.detachProject(userId, retrospectiveId)
+
+        assertThat(retro.projectId).isNull()
     }
 }
