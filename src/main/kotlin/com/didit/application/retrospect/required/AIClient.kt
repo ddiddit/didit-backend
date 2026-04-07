@@ -12,6 +12,7 @@ interface AIClient {
     fun generateSummaryWithTitle(
         job: Job?,
         allAnswers: List<String>,
+        deepQuestion: String? = null,
     ): AISummaryResponse
 }
 
