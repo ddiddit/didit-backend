@@ -660,7 +660,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
         mockMvc
             .perform(
                 patch(
-                    "/api/v1/retrospectives/{retrospectiveId}/register-project?projectId=$projectId",
+                    "/api/v1/retrospectives/register-project/{retrospectiveId}?projectId=$projectId",
                     retrospectiveId,
                 ),
             ).andExpect(status().isNoContent)
