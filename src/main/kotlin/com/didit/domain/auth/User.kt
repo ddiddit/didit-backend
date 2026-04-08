@@ -36,7 +36,7 @@ class User(
     @Column(nullable = false, length = 20)
     val provider: Provider,
     @Column(nullable = false)
-    val providerId: String,
+    var providerId: String,
     @Column(name = "onboarding_completed_at")
     var onboardingCompletedAt: LocalDateTime? = null,
     @Column(name = "deleted_at")
@@ -53,6 +53,8 @@ class User(
     fun withdraw(now: LocalDateTime = LocalDateTime.now()) {
         check(!isDeleted) { "이미 탈퇴한 회원입니다." }
         deletedAt = now
+
+        providerId = "${providerId}_${UUID.randomUUID()}"
     }
 
     fun completeOnboarding(
