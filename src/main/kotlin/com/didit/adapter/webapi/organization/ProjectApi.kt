@@ -5,11 +5,13 @@ import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.organization.dto.ProjectCreateRequest
 import com.didit.adapter.webapi.organization.dto.ProjectListResponse
 import com.didit.adapter.webapi.organization.dto.ProjectOrderRequest
+import com.didit.adapter.webapi.organization.dto.RetrospectiveListResponse
 import com.didit.adapter.webapi.organization.dto.UpdateProjectNameRequest
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectModifier
 import com.didit.application.organization.provided.ProjectRegister
+import com.didit.application.retrospect.provided.RetrospectiveFinder
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -29,6 +31,7 @@ class ProjectApi(
     private val projectRegister: ProjectRegister,
     private val projectFinder: ProjectFinder,
     private val projectModifier: ProjectModifier,
+    private val retrospectiveFinder: RetrospectiveFinder,
 ) {
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
@@ -78,5 +81,17 @@ class ProjectApi(
         @RequestBody request: ProjectOrderRequest,
     ) {
         projectRegister.reorder(userId, request.projectIds)
+    }
+
+    @RequireAuth
+    @GetMapping("/{projectId}")
+    fun findByProject(
+        @CurrentUserId userId: UUID,
+        @PathVariable("projectId") projectId: UUID,
+    ): SuccessResponse<List<RetrospectiveListResponse>> {
+        val retrospectives =
+            retrospectiveFinder.findByProject(userId, projectId).map { RetrospectiveListResponse.from(it) }
+
+        return SuccessResponse.of(retrospectives)
     }
 }

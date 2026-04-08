@@ -6,9 +6,12 @@ import com.didit.adapter.webapi.organization.dto.UpdateProjectNameRequest
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectModifier
 import com.didit.application.organization.provided.ProjectRegister
+import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.organization.Project
+import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveSummary
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
@@ -33,8 +36,9 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
     private val projectRegister: ProjectRegister = mock(ProjectRegister::class.java)
     private val projectFinder: ProjectFinder = mock(ProjectFinder::class.java)
     private val projectModifier: ProjectModifier = mock(ProjectModifier::class.java)
+    private val retrospectiveFinder: RetrospectiveFinder = mock(RetrospectiveFinder::class.java)
 
-    override fun initController() = ProjectApi(projectRegister, projectFinder, projectModifier)
+    override fun initController() = ProjectApi(projectRegister, projectFinder, projectModifier, retrospectiveFinder)
 
     @Test
     fun `프로젝트 생성`() {
@@ -210,6 +214,72 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("projectIds")
                             .type(JsonFieldType.ARRAY)
                             .description("정렬 순서대로 나열된 프로젝트 ID 리스트"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `프로젝트별 회고 목록 조회`() {
+        val userId = UUID.randomUUID()
+        val projectId = UUID.randomUUID()
+
+        val retrospectives =
+            listOf(
+                Retrospective.create(userId).apply {
+                    registerProject(projectId)
+                    complete("회고1")
+                    saveSummary(
+                        RetrospectiveSummary(
+                            feedback = "feedback",
+                            insight = "insight",
+                            doneWork = "doneWork",
+                            summary = "요약1",
+                            blockedPoint = "blocked",
+                            solutionProcess = "solution",
+                            lessonLearned = "lesson",
+                            nextAction = "next",
+                        ),
+                    )
+                },
+                Retrospective.create(userId).apply {
+                    registerProject(projectId)
+                    complete("회고2")
+                    saveSummary(
+                        RetrospectiveSummary(
+                            feedback = "feedback",
+                            insight = "insight",
+                            doneWork = "doneWork",
+                            summary = "요약2",
+                            blockedPoint = "blocked",
+                            solutionProcess = "solution",
+                            lessonLearned = "lesson",
+                            nextAction = "next",
+                        ),
+                    )
+                },
+            )
+
+        whenever(retrospectiveFinder.findByProject(any(), any()))
+            .thenReturn(retrospectives)
+
+        mockMvc
+            .perform(
+                get("/api/v1/projects/{projectId}", projectId),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "project/retrospect-list",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("projectId").description("프로젝트 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목"),
+                        fieldWithPath("data[].summary").type(JsonFieldType.STRING).description("회고 요약"),
+                        fieldWithPath("data[].completedAt").type(JsonFieldType.STRING).description("완료일"),
                     ),
                 ),
             )

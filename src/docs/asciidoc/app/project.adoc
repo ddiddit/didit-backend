@@ -55,3 +55,15 @@ include::{snippets}/project/reorder/request-fields.adoc[]
 === response
 
 include::{snippets}/project/reorder/http-response.adoc[]
+
+== 프로젝트별 회고 리스트 조회
+
+=== request
+
+include::{snippets}/project/retrospect-list/http-request.adoc[]
+include::{snippets}/project/retrospect-list/path-parameters.adoc[]
+
+=== response
+
+include::{snippets}/project/retrospect-list/http-response.adoc[]
+include::{snippets}/project/retrospect-list/response-fields.adoc[]
