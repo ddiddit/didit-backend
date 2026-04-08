@@ -58,9 +58,14 @@ interface RetrospectiveRegister {
         userId: UUID,
     )
 
-    fun assignProject(
+    fun registerProject(
         userId: UUID,
         retrospectiveId: UUID,
         projectId: UUID,
+    )
+
+    fun detachProject(
+        userId: UUID,
+        retrospectiveId: UUID,
     )
 }

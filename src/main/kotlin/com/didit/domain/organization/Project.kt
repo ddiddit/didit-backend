@@ -19,22 +19,52 @@ class Project(
     @Column(nullable = false, length = 15)
     var name: String,
     @Column
+    var displayOrder: Int? = null,
+    @Column
     var deletedAt: LocalDateTime? = null,
 ) : BaseEntity() {
+    fun updateOrder(order: Int) {
+        this.displayOrder = order
+    }
+
     companion object {
         fun create(
             userId: UUID,
             name: String,
+            displayOrder: Int? = null,
         ): Project {
-            val normalizedName = name.trim()
+            val normalizedName = normalize(name)
 
-            require(normalizedName.isNotBlank()) { "프로젝트 이름은 비어있을 수 없습니다." }
-            require(normalizedName.length <= 15) { "프로젝트 이름은 15자를 초과할 수 없습니다." }
+            validateProjectName(normalizedName)
 
             return Project(
                 userId = userId,
                 name = normalizedName,
+                displayOrder = displayOrder,
             )
         }
+
+        private fun normalize(projectName: String): String = projectName.trim()
+
+        private fun validateProjectName(projectName: String) {
+            require(projectName.isNotBlank()) { "프로젝트 이름은 비어있을 수 없습니다." }
+            require(projectName.length <= 15) { "프로젝트 이름은 15자를 초과할 수 없습니다." }
+        }
     }
+
+    fun updateName(name: String) {
+        val normalizedName = normalize(name)
+
+        validateProjectName(normalizedName)
+
+        if (this.name == normalizedName) return
+
+        this.name = normalizedName
+    }
+
+    fun delete() {
+        this.deletedAt = LocalDateTime.now()
+    }
+
+    fun isDeleted(): Boolean = deletedAt != null
 }

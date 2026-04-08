@@ -262,12 +262,22 @@ class RetrospectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PatchMapping("/{retrospectiveId}/assign-project")
-    fun assignProject(
+    @PatchMapping("/register-project/{retrospectiveId}")
+    fun registerProject(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
         @RequestParam projectId: UUID,
     ) {
-        retrospectiveRegister.assignProject(userId, retrospectiveId, projectId)
+        retrospectiveRegister.registerProject(userId, retrospectiveId, projectId)
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/{retrospectiveId}/project")
+    fun detachProject(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ) {
+        retrospectiveRegister.detachProject(userId, retrospectiveId)
     }
 }

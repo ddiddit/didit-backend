@@ -22,6 +22,40 @@ include::{snippets}/project/list/http-request.adoc[]
 include::{snippets}/project/list/http-response.adoc[]
 include::{snippets}/project/list/response-fields.adoc[]
 
+== 프로젝트 이름 변경
+
+=== request
+
+include::{snippets}/project/update-name/http-request.adoc[]
+include::{snippets}/project/update-name/path-parameters.adoc[]
+include::{snippets}/project/update-name/request-body.adoc[]
+
+=== response
+
+include::{snippets}/project/update-name/http-response.adoc[]
+
+== 프로젝트 삭제
+
+=== request
+
+include::{snippets}/project/delete/http-request.adoc[]
+include::{snippets}/project/delete/path-parameters.adoc[]
+
+=== response
+
+include::{snippets}/project/delete/http-response.adoc[]
+
+== 프로젝트 목록 순서 변경
+
+=== request
+
+include::{snippets}/project/reorder/http-request.adoc[]
+include::{snippets}/project/reorder/request-fields.adoc[]
+
+=== response
+
+include::{snippets}/project/reorder/http-response.adoc[]
+
 == 프로젝트별 회고 리스트 조회
 
 === request
