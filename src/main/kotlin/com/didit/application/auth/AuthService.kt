@@ -138,8 +138,6 @@ class AuthService(
             userRepository.findByProviderAndProviderId(provider, providerId)
                 ?: return createNewUser(provider, providerId, email) to true
 
-        if (existingUser.isDeleted) return rejoinUser(existingUser) to true
-
         return existingUser to false
     }
 
