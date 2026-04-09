@@ -33,3 +33,15 @@ include::{snippets}/tag/delete/path-parameters.adoc[]
 === response
 
 include::{snippets}/tag/delete/http-response.adoc[]
+
+== 태그 기준 회고 목록 조회
+
+=== request
+
+include::{snippets}/tag/retrospect-list/http-request.adoc[]
+include::{snippets}/tag/retrospect-list/path-parameters.adoc[]
+
+=== response
+
+include::{snippets}/tag/retrospect-list/http-response.adoc[]
+include::{snippets}/tag/retrospect-list/response-fields.adoc[]

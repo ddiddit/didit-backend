@@ -225,3 +225,28 @@ include::{snippets}/retrospect/detach-project/path-parameters.adoc[]
 
 include::{snippets}/retrospect/detach-project/http-response.adoc[]
 
+== 회고에 태그 추가
+
+=== Request
+
+include::{snippets}/retrospect/add-tag/http-request.adoc[]
+===== path parameter
+include::{snippets}/retrospect/add-tag/path-parameters.adoc[]
+===== request body
+include::{snippets}/retrospect/add-tag/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/add-tag/http-response.adoc[]
+
+== 회고에 태그 삭제
+
+=== Request
+
+include::{snippets}/retrospect/remove-tag/http-request.adoc[]
+===== path parameter
+include::{snippets}/retrospect/remove-tag/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/remove-tag/http-response.adoc[]
