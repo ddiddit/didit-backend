@@ -4,6 +4,8 @@ import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.retrospect.dto.AISummaryResponse
+import com.didit.application.retrospect.dto.InsightResponse
+import com.didit.application.retrospect.dto.NextActionResponse
 import com.didit.application.retrospect.exception.DailyLimitExceededException
 import com.didit.application.retrospect.exception.RetrospectiveAlreadyCompletedException
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
@@ -90,13 +92,19 @@ class RetrospectServiceTest {
         AISummaryResponse(
             title = "오늘의 회고",
             summary = "오늘 회고 요약 문장입니다.",
-            feedback = "피드백",
-            insight = "인사이트",
-            doneWork = "한 일",
             blockedPoint = listOf("막힌 지점"),
             solutionProcess = listOf("해결 과정"),
             lessonLearned = listOf("배운 점"),
-            nextAction = listOf("다음 액션"),
+            insight =
+                InsightResponse(
+                    title = "인사이트 제목",
+                    description = "인사이트 설명",
+                ),
+            nextAction =
+                NextActionResponse(
+                    title = "다음 액션 제목",
+                    description = "다음 액션 설명",
+                ),
             inputTokens = 100,
             outputTokens = 50,
         )
@@ -110,13 +118,13 @@ class RetrospectServiceTest {
     private fun summaryFixture() =
         RetrospectiveSummary(
             summary = "오늘 회고 요약 문장입니다.",
-            feedback = "피드백",
-            insight = "인사이트",
-            doneWork = "한 일",
             blockedPoint = "막힌 지점",
             solutionProcess = "해결 과정",
             lessonLearned = "배운 점",
-            nextAction = "다음 액션",
+            insightTitle = "인사이트 제목",
+            insightDescription = "인사이트 설명",
+            nextActionTitle = "다음 액션 제목",
+            nextActionDescription = "다음 액션 설명",
         )
 
     @Test

@@ -1,6 +1,8 @@
 package com.didit.application.retrospect.provided
 
 import com.didit.application.retrospect.dto.AISummaryResponse
+import com.didit.application.retrospect.dto.InsightResponse
+import com.didit.application.retrospect.dto.NextActionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
@@ -23,17 +25,21 @@ class RetrospectiveRegisterTest {
 
     private fun aiSummaryResponse() =
         AISummaryResponse(
-            title = "오늘의 회고",
-            summary = "오늘 회고 요약 문장입니다.",
-            feedback = "피드백",
-            insight = "인사이트",
-            doneWork = "한 일",
+            title = "...",
+            summary = "...",
             blockedPoint = listOf("막힌 지점"),
             solutionProcess = listOf("해결 과정"),
             lessonLearned = listOf("배운 점"),
-            nextAction = listOf("다음 액션"),
-            inputTokens = 100,
-            outputTokens = 50,
+            insight =
+                InsightResponse(
+                    title = "인사이트 제목",
+                    description = "인사이트 설명",
+                ),
+            nextAction =
+                NextActionResponse(
+                    title = "다음 액션 제목",
+                    description = "다음 액션 설명",
+                ),
         )
 
     @Test

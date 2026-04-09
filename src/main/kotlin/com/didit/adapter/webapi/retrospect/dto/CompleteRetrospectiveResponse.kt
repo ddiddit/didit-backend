@@ -13,13 +13,19 @@ data class CompleteRetrospectiveResponse(
                 content =
                     ContentResponse(
                         summary = aiSummaryResponse.summary,
-                        feedback = aiSummaryResponse.feedback,
-                        insight = aiSummaryResponse.insight,
-                        doneWork = aiSummaryResponse.doneWork,
                         blockedPoint = aiSummaryResponse.blockedPoint,
                         solutionProcess = aiSummaryResponse.solutionProcess,
                         lessonLearned = aiSummaryResponse.lessonLearned,
-                        nextAction = aiSummaryResponse.nextAction,
+                        insight =
+                            InsightContentResponse(
+                                title = aiSummaryResponse.insight.title,
+                                description = aiSummaryResponse.insight.description,
+                            ),
+                        nextAction =
+                            NextActionContentResponse(
+                                title = aiSummaryResponse.nextAction.title,
+                                description = aiSummaryResponse.nextAction.description,
+                            ),
                     ),
             )
     }
