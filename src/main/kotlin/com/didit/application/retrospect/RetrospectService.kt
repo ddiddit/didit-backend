@@ -423,18 +423,20 @@ class RetrospectService(
     }
 
     private fun handleQ4Answer(retrospective: Retrospective): SubmitAnswerResponse {
-        val deepQuestion =
-            retrospective.chatMessages
-                .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
-                ?: return SubmitAnswerResponse(
-                    nextQuestionType = QuestionType.Q4_DEEP,
-                    nextQuestionContent = DEEP_QUESTION_GENERATING_MESSAGE,
-                    isReadyToComplete = false,
-                )
+        val hasDeepQuestion =
+            retrospective.chatMessages.any { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
+
+        if (!hasDeepQuestion) {
+            return SubmitAnswerResponse(
+                nextQuestionType = QuestionType.Q4_DEEP,
+                nextQuestionContent = DEEP_QUESTION_GENERATING_MESSAGE,
+                isReadyToComplete = false,
+            )
+        }
 
         return SubmitAnswerResponse(
-            nextQuestionType = QuestionType.Q4_DEEP,
-            nextQuestionContent = deepQuestion.content,
+            nextQuestionType = null,
+            nextQuestionContent = null,
             isReadyToComplete = true,
         )
     }
