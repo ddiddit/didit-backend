@@ -190,14 +190,14 @@ class RetrospectService(
 
         retrospective.saveSummary(
             RetrospectiveSummary(
-                feedback = summary.feedback,
-                insight = summary.insight,
-                doneWork = summary.doneWork,
                 summary = summary.summary,
                 blockedPoint = summary.blockedPoint.joinToString("\n"),
                 solutionProcess = summary.solutionProcess.joinToString("\n"),
                 lessonLearned = summary.lessonLearned.joinToString("\n"),
-                nextAction = summary.nextAction.joinToString("\n"),
+                insightTitle = summary.insight.title,
+                insightDescription = summary.insight.description,
+                nextActionTitle = summary.nextAction.title,
+                nextActionDescription = summary.nextAction.description,
             ),
         )
         retrospective.addTokens(summary.inputTokens, summary.outputTokens)

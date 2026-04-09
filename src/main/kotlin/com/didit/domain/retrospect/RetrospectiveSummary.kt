@@ -6,12 +6,6 @@ import jakarta.persistence.Embeddable
 @Embeddable
 class RetrospectiveSummary(
     @Column(columnDefinition = "TEXT")
-    val feedback: String,
-    @Column(columnDefinition = "TEXT")
-    val insight: String,
-    @Column(columnDefinition = "TEXT")
-    val doneWork: String,
-    @Column(columnDefinition = "TEXT")
     val summary: String,
     @Column(columnDefinition = "TEXT")
     val blockedPoint: String,
@@ -20,5 +14,11 @@ class RetrospectiveSummary(
     @Column(columnDefinition = "TEXT")
     val lessonLearned: String,
     @Column(columnDefinition = "TEXT")
-    val nextAction: String,
+    val insightTitle: String,
+    @Column(columnDefinition = "TEXT")
+    val insightDescription: String,
+    @Column(columnDefinition = "TEXT")
+    val nextActionTitle: String,
+    @Column(columnDefinition = "TEXT")
+    val nextActionDescription: String,
 )

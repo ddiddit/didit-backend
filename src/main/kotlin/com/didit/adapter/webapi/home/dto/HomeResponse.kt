@@ -13,7 +13,6 @@ data class HomeResponse(
         val id: UUID,
         val title: String?,
         val summary: String?,
-        val doneWork: String?,
         val completedAt: LocalDateTime?,
     ) {
         companion object {
@@ -22,7 +21,6 @@ data class HomeResponse(
                     id = retrospective.id,
                     title = retrospective.title,
                     summary = retrospective.summary?.summary,
-                    doneWork = retrospective.summary?.doneWork,
                     completedAt = retrospective.completedAt,
                 )
         }
