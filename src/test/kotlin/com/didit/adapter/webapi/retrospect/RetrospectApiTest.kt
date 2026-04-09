@@ -9,6 +9,7 @@ import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.provided.SearchHistoryFinder
+import com.didit.application.retrospect.provided.SearchHistoryRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ChatMessage
@@ -45,12 +46,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
     private val retrospectiveRegister: RetrospectiveRegister = mock(RetrospectiveRegister::class.java)
     private val retrospectiveFinder: RetrospectiveFinder = mock(RetrospectiveFinder::class.java)
     private val searchHistoryFinder: SearchHistoryFinder = mock(SearchHistoryFinder::class.java)
+    private val searchHistoryRegister: SearchHistoryRegister = mock(SearchHistoryRegister::class.java)
 
     override fun initController() =
         RetrospectApi(
             retrospectiveRegister,
             retrospectiveFinder,
             searchHistoryFinder,
+            searchHistoryRegister,
         )
 
     private val retrospectiveId = UUID.randomUUID()

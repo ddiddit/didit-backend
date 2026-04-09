@@ -22,6 +22,7 @@ import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.provided.SearchHistoryFinder
+import com.didit.application.retrospect.provided.SearchHistoryRegister
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
@@ -48,6 +49,7 @@ class RetrospectApi(
     private val retrospectiveRegister: RetrospectiveRegister,
     private val retrospectiveFinder: RetrospectiveFinder,
     private val searchHistoryFinder: SearchHistoryFinder,
+    private val searchHistoryRegister: SearchHistoryRegister,
 ) {
     @Audit(AuditAction.RETROSPECTIVE_STARTED)
     @RequireAuth
@@ -245,6 +247,7 @@ class RetrospectApi(
         @CurrentUserId userId: UUID,
         @RequestParam keyword: String,
     ): SuccessResponse<List<RetrospectiveSearchResponse>> {
+        searchHistoryRegister.register(userId, keyword)
         val retrospectives = retrospectiveFinder.searchByTitle(userId, keyword)
 
         return SuccessResponse.of(retrospectives.map { RetrospectiveSearchResponse.from(it) })
