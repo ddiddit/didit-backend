@@ -1,15 +1,18 @@
 package com.didit.application.organization
 
 import com.didit.application.organization.exception.TagNotFoundException
+import com.didit.application.organization.required.RetrospectTagRepository
 import com.didit.application.organization.required.TagRepository
+import com.didit.domain.organization.RetrospectiveTag
 import com.didit.domain.organization.Tag
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.spy
 import org.mockito.kotlin.verify
+import org.mockito.kotlin.verifyNoInteractions
 import org.mockito.kotlin.whenever
 import java.util.UUID
 import kotlin.test.Test
@@ -19,6 +22,9 @@ class TagModifyServiceTest {
     @Mock
     lateinit var tagRepository: TagRepository
 
+    @Mock
+    lateinit var retrospectTagRepository: RetrospectTagRepository
+
     @InjectMocks
     lateinit var tagModifyService: TagModifyService
 
@@ -27,15 +33,27 @@ class TagModifyServiceTest {
     @Test
     fun `태그 삭제 성공`() {
         val tagId = UUID.randomUUID()
-        val tag = Tag.create(userId, "테스트 태그")
+        val retrospectId = UUID.randomUUID()
+
+        val tag = spy(Tag.create(userId, "테스트 태그"))
+
+        val retrospectTag1 = spy(RetrospectiveTag.add(retrospectId, tagId))
+        val retrospectTag2 = spy(RetrospectiveTag.add(retrospectId, tagId))
 
         whenever(tagRepository.findByIdAndUserIdAndDeletedAtIsNull(tagId, userId))
             .thenReturn(tag)
 
+        whenever(retrospectTagRepository.findAllByTagIdAndDeletedAtIsNull(tagId))
+            .thenReturn(listOf(retrospectTag1, retrospectTag2))
+
         tagModifyService.delete(userId, tagId)
 
-        assertThat(tag.delete()).isNotNull()
         verify(tagRepository).findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)
+        verify(retrospectTagRepository).findAllByTagIdAndDeletedAtIsNull(tagId)
+
+        verify(retrospectTag1).delete()
+        verify(retrospectTag2).delete()
+        verify(tag).delete()
     }
 
     @Test
@@ -48,5 +66,8 @@ class TagModifyServiceTest {
         assertThrows<TagNotFoundException> {
             tagModifyService.delete(userId, tagId)
         }
+
+        verify(tagRepository).findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)
+        verifyNoInteractions(retrospectTagRepository)
     }
 }
