@@ -3,6 +3,8 @@ package com.didit.adapter.webapi.retrospect
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
+import com.didit.application.organization.provided.RetrospectTagModifier
+import com.didit.application.organization.provided.RetrospectTagRegister
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
@@ -47,6 +49,8 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
     private val retrospectiveFinder: RetrospectiveFinder = mock(RetrospectiveFinder::class.java)
     private val searchHistoryFinder: SearchHistoryFinder = mock(SearchHistoryFinder::class.java)
     private val searchHistoryRegister: SearchHistoryRegister = mock(SearchHistoryRegister::class.java)
+    private val retrospectTagRegister: RetrospectTagRegister = mock(RetrospectTagRegister::class.java)
+    private val retrospectTagModifier: RetrospectTagModifier = mock(RetrospectTagModifier::class.java)
 
     override fun initController() =
         RetrospectApi(
@@ -54,6 +58,8 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
             retrospectiveFinder,
             searchHistoryFinder,
             searchHistoryRegister,
+            retrospectTagRegister,
+            retrospectTagModifier,
         )
 
     private val retrospectiveId = UUID.randomUUID()
@@ -700,5 +706,56 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
             )
 
         verify(retrospectiveRegister).detachProject(userId, retrospectiveId)
+    }
+
+    @Test
+    fun `회고 태그 추가`() {
+        val tagId = UUID.randomUUID()
+        val request = mapOf("tagId" to tagId)
+
+        mockMvc
+            .perform(
+                post("/api/v1/retrospectives/{retrospectiveId}/tags", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "retrospect/add-tag",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    requestFields(
+                        fieldWithPath("tagId").type(JsonFieldType.STRING).description("추가할 태그 ID"),
+                    ),
+                ),
+            )
+
+        verify(retrospectTagRegister).addTag(userId, retrospectiveId, tagId)
+    }
+
+    @Test
+    fun `회고 태그 제거`() {
+        val tagId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                delete("/api/v1/retrospectives/{retrospectiveId}/tags/{tagId}", retrospectiveId, tagId),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "retrospect/remove-tag",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                        parameterWithName("tagId").description("삭제할 태그 ID"),
+                    ),
+                ),
+            )
+
+        verify(retrospectTagModifier).delete(userId, retrospectiveId, tagId)
     }
 }

@@ -18,4 +18,6 @@ interface TagRepository : Repository<Tag, UUID> {
         id: UUID,
         userId: UUID,
     ): Tag?
+
+    fun findByIdAndDeletedAtIsNull(id: UUID): Tag?
 }

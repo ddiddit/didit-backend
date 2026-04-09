@@ -6,6 +6,8 @@ import com.didit.adapter.webapi.organization.dto.TagCreateRequest
 import com.didit.adapter.webapi.organization.dto.TagCreateResponse
 import com.didit.adapter.webapi.organization.dto.TagListResponse
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
+import com.didit.application.organization.provided.RetrospectTagFinder
 import com.didit.application.organization.provided.TagFinder
 import com.didit.application.organization.provided.TagModifier
 import com.didit.application.organization.provided.TagRegister
@@ -26,6 +28,7 @@ class TagApi(
     private val tagRegister: TagRegister,
     private val tagFinder: TagFinder,
     private val tagModifier: TagModifier,
+    private val retrospectTagFinder: RetrospectTagFinder,
 ) {
     @RequireAuth
     @PostMapping
@@ -54,5 +57,15 @@ class TagApi(
         @PathVariable tagId: UUID,
     ) {
         tagModifier.delete(userId, tagId)
+    }
+
+    @RequireAuth
+    @GetMapping("/{tagId}")
+    fun findByTagId(
+        @CurrentUserId userId: UUID,
+        @PathVariable tagId: UUID,
+    ): SuccessResponse<List<RetrospectiveListItemResponse>> {
+        val retrospects = retrospectTagFinder.findAllByTagId(tagId).map { RetrospectiveListItemResponse.from(it) }
+        return SuccessResponse.of(retrospects)
     }
 }
