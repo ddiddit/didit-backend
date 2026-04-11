@@ -22,4 +22,6 @@ interface RetrospectTagRepository : Repository<RetrospectiveTag, UUID> {
     fun findAllByTagIdAndDeletedAtIsNull(tagId: UUID): List<RetrospectiveTag>
 
     fun findRetrospectiveIdsByTagIdAndDeletedAtIsNull(tagId: UUID): List<UUID>
+
+    fun findAllByRetrospectiveIdAndIsActiveTrueAndDeletedAtIsNull(retrospectiveId: UUID): List<RetrospectiveTag>
 }

@@ -20,4 +20,6 @@ interface TagRepository : Repository<Tag, UUID> {
     ): Tag?
 
     fun findByIdAndDeletedAtIsNull(id: UUID): Tag?
+
+    fun findAllByIdInAndDeletedAtIsNull(ids: List<UUID>): List<Tag>
 }

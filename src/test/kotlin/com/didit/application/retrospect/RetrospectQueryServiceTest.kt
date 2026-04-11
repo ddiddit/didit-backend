@@ -45,6 +45,8 @@ class RetrospectQueryServiceTest {
                 retrospectiveRepository = retrospectiveRepository,
                 searchHistoryRegister = searchHistoryRegister,
                 projectRepository = projectRepository,
+                retrospectTagRepository = retrospectTagRepository,
+                tagRepository = tagRepository,
             )
     }
 
