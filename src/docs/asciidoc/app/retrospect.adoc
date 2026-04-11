@@ -167,6 +167,14 @@ include::{snippets}/retrospect/calendar-daily/response-fields.adoc[]
 
 == 회고 상세 조회
 
+[WARNING]
+====
+해당 API(v1)는 향후 제거될 예정입니다.
+신규 개발 및 유지보수에서는 v2 API 사용을 권장합니다.
+
+link:#retrospect_v2_find_by_id[바로가기]
+====
+
 === Request
 
 include::{snippets}/retrospect/find-by-id/http-request.adoc[]
@@ -206,8 +214,11 @@ include::{snippets}/retrospect/search-info/response-fields.adoc[]
 
 include::{snippets}/retrospect/register-project/http-request.adoc[]
 ===== path parameter
+
 include::{snippets}/retrospect/register-project/path-parameters.adoc[]
+
 ===== query parameter
+
 include::{snippets}/retrospect/register-project/query-parameters.adoc[]
 
 === Response
@@ -231,8 +242,11 @@ include::{snippets}/retrospect/detach-project/http-response.adoc[]
 
 include::{snippets}/retrospect/add-tag/http-request.adoc[]
 ===== path parameter
+
 include::{snippets}/retrospect/add-tag/path-parameters.adoc[]
+
 ===== request body
+
 include::{snippets}/retrospect/add-tag/request-fields.adoc[]
 
 === Response
@@ -245,6 +259,7 @@ include::{snippets}/retrospect/add-tag/http-response.adoc[]
 
 include::{snippets}/retrospect/remove-tag/http-request.adoc[]
 ===== path parameter
+
 include::{snippets}/retrospect/remove-tag/path-parameters.adoc[]
 
 === Response

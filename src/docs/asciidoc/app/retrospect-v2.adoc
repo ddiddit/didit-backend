@@ -1,0 +1,12 @@
+[[retrospect_v2_find_by_id]]
+== 회고 상세 조회 (v2)
+
+=== Request
+
+include::{snippets}/retrospect/v2/find-by-id/http-request.adoc[]
+include::{snippets}/retrospect/v2/find-by-id/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/v2/find-by-id/http-response.adoc[]
+include::{snippets}/retrospect/v2/find-by-id/response-fields.adoc[]
