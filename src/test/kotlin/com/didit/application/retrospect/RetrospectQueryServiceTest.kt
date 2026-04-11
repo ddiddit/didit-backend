@@ -1,9 +1,14 @@
 package com.didit.application.retrospect
 
 import com.didit.application.organization.required.ProjectRepository
+import com.didit.application.organization.required.RetrospectTagRepository
+import com.didit.application.organization.required.TagRepository
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.provided.SearchHistoryRegister
 import com.didit.application.retrospect.required.RetrospectiveRepository
+import com.didit.domain.organization.Project
+import com.didit.domain.organization.RetrospectiveTag
+import com.didit.domain.organization.Tag
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.RetroStatus
@@ -16,6 +21,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.data.domain.PageRequest
@@ -32,6 +38,12 @@ class RetrospectQueryServiceTest {
 
     @Mock
     lateinit var projectRepository: ProjectRepository
+
+    @Mock
+    lateinit var retrospectTagRepository: RetrospectTagRepository
+
+    @Mock
+    lateinit var tagRepository: TagRepository
 
     private lateinit var retrospectQueryService: RetrospectQueryService
 
@@ -157,5 +169,98 @@ class RetrospectQueryServiceTest {
 
         assertThat(result).isEmpty()
         verify(searchHistoryRegister).register(userId, keyword)
+    }
+
+    @Test
+    fun `findRetrospectWithProjectAndTags - 정상 조회`() {
+        val retro = Retrospective.create(userId)
+        val projectId = UUID.randomUUID()
+        retro.projectId = projectId
+
+        val project = Project(projectId, userId, "프로젝트")
+
+        val tagId1 = UUID.randomUUID()
+        val tagId2 = UUID.randomUUID()
+
+        val retrospectTags =
+            listOf(
+                RetrospectiveTag(retrospectiveId = retrospectiveId, tagId = tagId1),
+                RetrospectiveTag(retrospectiveId = retrospectiveId, tagId = tagId2),
+            )
+
+        val tags =
+            listOf(
+                Tag(tagId1, userId, "태그1"),
+                Tag(tagId2, userId, "태그2"),
+            )
+
+        whenever(
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId),
+        ).thenReturn(retro)
+
+        whenever(
+            projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId),
+        ).thenReturn(project)
+
+        whenever(
+            retrospectTagRepository.findAllByRetrospectiveIdAndIsActiveTrueAndDeletedAtIsNull(retrospectiveId),
+        ).thenReturn(retrospectTags)
+
+        whenever(
+            tagRepository.findAllByIdInAndDeletedAtIsNull(any<List<UUID>>()),
+        ).thenReturn(tags)
+
+        val result =
+            retrospectQueryService.findRetrospectWithProjectAndTags(
+                retrospectiveId,
+                userId,
+            )
+
+        assertThat(result.retrospective).isEqualTo(retro)
+        assertThat(result.project).isEqualTo(project)
+        assertThat(result.tags)
+            .hasSize(2)
+            .extracting("name")
+            .containsExactlyInAnyOrder("태그1", "태그2")
+    }
+
+    @Test
+    fun `findRetrospectWithProjectAndTags - 태그 없으면 빈 리스트`() {
+        val retro = Retrospective.create(userId)
+
+        whenever(
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId),
+        ).thenReturn(retro)
+
+        whenever(
+            retrospectTagRepository.findAllByRetrospectiveIdAndIsActiveTrueAndDeletedAtIsNull(retrospectiveId),
+        ).thenReturn(emptyList())
+
+        val result = retrospectQueryService.findRetrospectWithProjectAndTags(retrospectiveId, userId)
+
+        assertThat(result.tags).isEmpty()
+    }
+
+    @Test
+    fun `findRetrospectWithProjectAndTags - 프로젝트 없으면 null`() {
+        val retro = Retrospective.create(userId)
+        val projectId = UUID.randomUUID()
+        retro.projectId = projectId
+
+        whenever(
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId),
+        ).thenReturn(retro)
+
+        whenever(
+            projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId),
+        ).thenReturn(null)
+
+        whenever(
+            retrospectTagRepository.findAllByRetrospectiveIdAndIsActiveTrueAndDeletedAtIsNull(retrospectiveId),
+        ).thenReturn(emptyList())
+
+        val result = retrospectQueryService.findRetrospectWithProjectAndTags(retrospectiveId, userId)
+
+        assertThat(result.project).isNull()
     }
 }
