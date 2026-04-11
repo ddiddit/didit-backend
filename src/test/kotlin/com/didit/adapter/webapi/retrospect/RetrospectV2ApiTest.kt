@@ -60,12 +60,6 @@ class RetrospectV2ApiTest : AuthenticatedRestDocsSupport() {
                             .type(JsonFieldType.STRING)
                             .description("회고 요약")
                             .optional(),
-                        fieldWithPath("data.content.feedback")
-                            .type(JsonFieldType.STRING)
-                            .description("AI 피드백")
-                            .optional(),
-                        fieldWithPath("data.content.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
-                        fieldWithPath("data.content.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
                         fieldWithPath("data.content.blockedPoint")
                             .type(JsonFieldType.ARRAY)
                             .description("막힌 지점")
@@ -78,14 +72,46 @@ class RetrospectV2ApiTest : AuthenticatedRestDocsSupport() {
                             .type(JsonFieldType.ARRAY)
                             .description("배운 점")
                             .optional(),
+                        fieldWithPath("data.content.insight")
+                            .type(JsonFieldType.OBJECT)
+                            .description("인사이트")
+                            .optional(),
+                        fieldWithPath("data.content.insight.title")
+                            .type(JsonFieldType.STRING)
+                            .description("인사이트 제목")
+                            .optional(),
+                        fieldWithPath("data.content.insight.description")
+                            .type(JsonFieldType.STRING)
+                            .description("인사이트 설명")
+                            .optional(),
                         fieldWithPath("data.content.nextAction")
-                            .type(JsonFieldType.ARRAY)
+                            .type(JsonFieldType.OBJECT)
                             .description("다음 액션")
                             .optional(),
-                        fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
-                        fieldWithPath("data.project").type(JsonFieldType.OBJECT).description("프로젝트 정보").optional(),
-                        fieldWithPath("data.project.id").type(JsonFieldType.STRING).description("프로젝트 ID").optional(),
-                        fieldWithPath("data.project.name").type(JsonFieldType.STRING).description("프로젝트 이름").optional(),
+                        fieldWithPath("data.content.nextAction.title")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 액션 제목")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction.description")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 액션 설명")
+                            .optional(),
+                        fieldWithPath("data.completedAt")
+                            .type(JsonFieldType.STRING)
+                            .description("완료 시간")
+                            .optional(),
+                        fieldWithPath("data.project")
+                            .type(JsonFieldType.OBJECT)
+                            .description("프로젝트 정보")
+                            .optional(),
+                        fieldWithPath("data.project.id")
+                            .type(JsonFieldType.STRING)
+                            .description("프로젝트 ID")
+                            .optional(),
+                        fieldWithPath("data.project.name")
+                            .type(JsonFieldType.STRING)
+                            .description("프로젝트 이름")
+                            .optional(),
                         fieldWithPath("data.tags").type(JsonFieldType.ARRAY).description("태그 목록"),
                         fieldWithPath("data.tags[].id").type(JsonFieldType.STRING).description("태그 ID"),
                         fieldWithPath("data.tags[].name").type(JsonFieldType.STRING).description("태그 이름"),

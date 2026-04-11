@@ -120,19 +120,16 @@ class TagApiTest : AuthenticatedRestDocsSupport() {
 
         val retro1 =
             Retrospective.create(userId).apply {
-                title = "첫 번째 회고"
-                completedAt = LocalDateTime.now()
-                summary =
-                    RetrospectiveSummary(
-                        summary = "첫 번째 회고 요약입니다.",
-                        feedback = "피드백 1",
-                        insight = "인사이트 1",
-                        doneWork = "작업 1",
-                        blockedPoint = "문제 1",
-                        solutionProcess = "해결 1",
-                        lessonLearned = "배운 점 1",
-                        nextAction = "다음 액션 1",
-                    )
+                RetrospectiveSummary(
+                    summary = "첫 번째 회고 요약입니다.",
+                    blockedPoint = "문제 1",
+                    solutionProcess = "해결 1",
+                    lessonLearned = "배운 점 1",
+                    insightTitle = "인사이트 1",
+                    insightDescription = "인사이트 설명 1",
+                    nextActionTitle = "다음 액션 1",
+                    nextActionDescription = "다음 액션 설명 1",
+                )
             }
 
         val retro2 =
@@ -142,18 +139,18 @@ class TagApiTest : AuthenticatedRestDocsSupport() {
                 summary =
                     RetrospectiveSummary(
                         summary = "두 번째 회고 요약입니다.",
-                        feedback = "피드백 2",
-                        insight = "인사이트 2",
-                        doneWork = "작업 2",
                         blockedPoint = "문제 2",
                         solutionProcess = "해결 2",
                         lessonLearned = "배운 점 2",
-                        nextAction = "다음 액션 2",
+                        insightTitle = "인사이트 2",
+                        insightDescription = "인사이트 설명 2",
+                        nextActionTitle = "다음 액션 2",
+                        nextActionDescription = "다음 액션 설명 2",
                     )
             }
 
         whenever(retrospectTagFinder.findAllByTagId(tagId))
-            .thenReturn(listOf(retro1, retro2))
+            .thenReturn(listOf<Retrospective>(retro1, retro2))
 
         mockMvc
             .perform(get("/api/v1/tags/{tagId}", tagId))
