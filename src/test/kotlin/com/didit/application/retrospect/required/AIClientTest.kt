@@ -1,6 +1,8 @@
 package com.didit.application.retrospect.required
 
 import com.didit.application.retrospect.dto.AISummaryResponse
+import com.didit.application.retrospect.dto.InsightResponse
+import com.didit.application.retrospect.dto.NextActionResponse
 import com.didit.domain.shared.Job
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -43,13 +45,19 @@ class AIClientTest {
             AISummaryResponse(
                 title = "오늘의 회고",
                 summary = "오늘 회고 요약 문장입니다.",
-                feedback = "피드백",
-                insight = "인사이트",
-                doneWork = "한 일",
                 blockedPoint = listOf("막힌 지점"),
                 solutionProcess = listOf("해결 과정"),
                 lessonLearned = listOf("배운 점"),
-                nextAction = listOf("다음 액션"),
+                insight =
+                    InsightResponse(
+                        title = "인사이트 제목",
+                        description = "인사이트 설명",
+                    ),
+                nextAction =
+                    NextActionResponse(
+                        title = "다음 액션 제목",
+                        description = "다음 액션 설명",
+                    ),
             )
 
         whenever(aiClient.generateSummaryWithTitle(Job.DEVELOPER, answers))
@@ -60,6 +68,9 @@ class AIClientTest {
         verify(aiClient).generateSummaryWithTitle(Job.DEVELOPER, answers)
         assertThat(result.title).isNotBlank()
         assertThat(result.summary).isNotBlank()
-        assertThat(result.insight).isNotBlank()
+        assertThat(result.insight.title).isNotBlank()
+        assertThat(result.insight.description).isNotBlank()
+        assertThat(result.nextAction.title).isNotBlank()
+        assertThat(result.nextAction.description).isNotBlank()
     }
 }

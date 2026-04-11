@@ -231,14 +231,14 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                     complete("회고1")
                     saveSummary(
                         RetrospectiveSummary(
-                            feedback = "feedback",
-                            insight = "insight",
-                            doneWork = "doneWork",
-                            summary = "요약1",
-                            blockedPoint = "blocked",
-                            solutionProcess = "solution",
-                            lessonLearned = "lesson",
-                            nextAction = "next",
+                            summary = "...",
+                            blockedPoint = "...",
+                            solutionProcess = "...",
+                            lessonLearned = "...",
+                            insightTitle = "insight title",
+                            insightDescription = "insight description",
+                            nextActionTitle = "next title",
+                            nextActionDescription = "next description",
                         ),
                     )
                 },
@@ -247,14 +247,14 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                     complete("회고2")
                     saveSummary(
                         RetrospectiveSummary(
-                            feedback = "feedback",
-                            insight = "insight",
-                            doneWork = "doneWork",
-                            summary = "요약2",
-                            blockedPoint = "blocked",
-                            solutionProcess = "solution",
-                            lessonLearned = "lesson",
-                            nextAction = "next",
+                            summary = "...",
+                            blockedPoint = "...",
+                            solutionProcess = "...",
+                            lessonLearned = "...",
+                            insightTitle = "insight title",
+                            insightDescription = "insight description",
+                            nextActionTitle = "next title",
+                            nextActionDescription = "next description",
                         ),
                     )
                 },
