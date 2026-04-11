@@ -51,7 +51,7 @@ class ClovaSpeechClient(
 
         return restClient
             .post()
-            .uri("$invokeUrl/recognizer/upload")
+            .uri(invokeUrl)
             .header(API_KEY_HEADER, secretKey)
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .body(requestBody)

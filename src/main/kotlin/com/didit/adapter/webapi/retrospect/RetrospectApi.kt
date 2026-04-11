@@ -13,6 +13,7 @@ import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.SearchHistoryResponse
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
+import com.didit.adapter.webapi.retrospect.dto.TranscribeVoiceAnswerResponse
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
 import com.didit.application.audit.Audit
 import com.didit.application.audit.AuditAction
@@ -96,6 +97,26 @@ class RetrospectApi(
             )
 
         return SuccessResponse.of(result)
+    }
+
+    @RequireAuth
+    @PostMapping("/{retrospectiveId}/answers/voice/transcribe", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    fun transcribeVoiceAnswer(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+        @RequestPart("file") file: MultipartFile,
+    ): SuccessResponse<TranscribeVoiceAnswerResponse> {
+        val content =
+            retrospectiveRegister.transcribeVoiceAnswer(
+                retrospectiveId = retrospectiveId,
+                userId = userId,
+                audioBytes = file.bytes,
+                filename =
+                    file.originalFilename
+                        ?: throw SpeechUnsupportedFileException(null, file.contentType),
+            )
+
+        return SuccessResponse.of(TranscribeVoiceAnswerResponse(content = content))
     }
 
     @RequireAuth

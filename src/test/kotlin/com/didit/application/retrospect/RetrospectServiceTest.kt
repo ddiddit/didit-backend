@@ -279,6 +279,71 @@ class RetrospectServiceTest {
     }
 
     @Test
+    fun `transcribeVoiceAnswer - m4a 파일을 변환하고 저장하지 않는다`() {
+        val retro =
+            Retrospective.create(userId).apply {
+                addMessage(ChatMessage.question(this, "오늘 어떤 일을 하셨나요?", QuestionType.Q1))
+            }
+        val audioBytes = ByteArray(100) { 1 }
+        val filename = "voice.m4a"
+
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(speechClient.transcribe(audioBytes, filename)).thenReturn("음성 변환된 텍스트")
+
+        val result = retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
+
+        assertThat(result).isEqualTo("음성 변환된 텍스트")
+        assertThat(retro.isPending()).isTrue()
+        verify(speechClient).transcribe(audioBytes, filename)
+        verify(retrospectiveRepository, never()).save(any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 회고가 완료된 상태면 STT 호출 없이 예외가 발생한다`() {
+        val retro = RetrospectiveFixture.createCompleted(userId)
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<RetrospectiveAlreadyCompletedException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, ByteArray(100) { 1 }, "voice.wav")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 빈 파일이면 STT 호출 없이 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<SpeechEmptyFileException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, ByteArray(0), "voice.wav")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 지원하지 않는 파일 형식이면 STT 호출 없이 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<SpeechUnsupportedFileException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.txt")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 음성 인식 결과가 비어있으면 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
+        val audioBytes = ByteArray(100) { 1 }
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(speechClient.transcribe(audioBytes, "voice.wav")).thenReturn("   ")
+
+        assertThrows<SpeechEmptyResultException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
+        }
+    }
+
+    @Test
     fun `skipDeepQuestion - 심화 질문을 스킵한다`() {
         val retro = inProgressRetrospective()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)

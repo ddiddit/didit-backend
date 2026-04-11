@@ -36,6 +36,18 @@ include::{snippets}/retrospect/submit-voice-answer/path-parameters.adoc[]
 include::{snippets}/retrospect/submit-voice-answer/http-response.adoc[]
 include::{snippets}/retrospect/submit-voice-answer/response-fields.adoc[]
 
+== 음성 답변 변환
+
+=== Request
+
+include::{snippets}/retrospect/transcribe-voice-answer/http-request.adoc[]
+include::{snippets}/retrospect/transcribe-voice-answer/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/transcribe-voice-answer/http-response.adoc[]
+include::{snippets}/retrospect/transcribe-voice-answer/response-fields.adoc[]
+
 == 심화 질문 스킵
 
 === Request
