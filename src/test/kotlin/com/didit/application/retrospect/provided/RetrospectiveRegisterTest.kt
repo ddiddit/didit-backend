@@ -130,6 +130,20 @@ class RetrospectiveRegisterTest {
     }
 
     @Test
+    fun `transcribeVoiceAnswer - 음성을 텍스트로 변환한다`() {
+        val audioBytes = ByteArray(100)
+        val filename = "voice.wav"
+
+        whenever(retrospectiveRegister.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, filename))
+            .thenReturn("음성 변환된 텍스트")
+
+        val result = retrospectiveRegister.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
+
+        verify(retrospectiveRegister).transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
+        assertThat(result).isEqualTo("음성 변환된 텍스트")
+    }
+
+    @Test
     fun `skipDeepQuestion - 심화 질문을 스킵한다`() {
         retrospectiveRegister.skipDeepQuestion(retrospectiveId, userId)
 
