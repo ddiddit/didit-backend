@@ -105,7 +105,16 @@ class ClovaClient(
                 outputTokens = result.usage.completionTokens,
             )
         }.getOrElse {
-            throw RuntimeException("심화 질문 파싱에 실패했습니다. response: ${result.message.content}")
+            logger.warn("심화 질문 JSON 파싱 실패, 텍스트 그대로 사용. response: ${result.message.content}")
+
+            GeneratedDeepQuestion(
+                content =
+                    result.message.content
+                        .trim()
+                        .removeSurrounding("\""),
+                inputTokens = result.usage.promptTokens,
+                outputTokens = result.usage.completionTokens,
+            )
         }
 
     private fun parseSummary(result: ClovaResult): AISummaryResponse =
