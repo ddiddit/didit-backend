@@ -24,4 +24,6 @@ interface NotificationSettingRepository : Repository<NotificationSetting, UUID> 
         @Param("reminderTime") reminderTime: LocalTime,
         @Param("isNightTime") isNightTime: Boolean,
     ): List<NotificationSetting>
+
+    fun deleteByUserId(userId: UUID)
 }
