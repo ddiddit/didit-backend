@@ -28,6 +28,7 @@ class CleanupScheduler(
     fun cleanup() {
         cleanPendingRetrospects()
         cleanExpiredRefreshTokens()
+        cleanWithdrawnUsers()
     }
 
     private fun cleanPendingRetrospects() {
