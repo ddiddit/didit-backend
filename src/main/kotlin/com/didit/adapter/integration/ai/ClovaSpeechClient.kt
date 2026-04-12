@@ -27,6 +27,7 @@ class ClovaSpeechClient(
         private const val COMPLETION = "sync"
         private const val API_KEY_HEADER = "X-CLOVASPEECH-API-KEY"
         private const val COMPLETED = "COMPLETED"
+        private const val RECOGNIZER_UPLOAD_PATH = "/recognizer/upload"
     }
 
     override fun transcribe(
@@ -51,7 +52,7 @@ class ClovaSpeechClient(
 
         return restClient
             .post()
-            .uri(invokeUrl)
+            .uri("$invokeUrl$RECOGNIZER_UPLOAD_PATH")
             .header(API_KEY_HEADER, secretKey)
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .body(requestBody)
