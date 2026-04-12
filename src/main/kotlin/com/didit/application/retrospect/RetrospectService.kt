@@ -113,6 +113,19 @@ class RetrospectService(
         return routeAnswer(retrospective, currentQuestionType).copy(content = content)
     }
 
+    @Transactional
+    override fun transcribeVoiceAnswer(
+        retrospectiveId: UUID,
+        userId: UUID,
+        audioBytes: ByteArray,
+        filename: String,
+    ): String {
+        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+        validateRetrospectiveInProgress(retrospective, retrospectiveId)
+
+        return transcribe(audioBytes, filename)
+    }
+
     @Async
     @Transactional
     fun generateDeepQuestionAsync(
@@ -175,9 +188,14 @@ class RetrospectService(
 
         val job = userFinder.getJobByUserId(userId)
 
+        val deepQuestion =
+            retrospective.chatMessages
+                .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
+                ?.content
+
         val summary =
             try {
-                aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers())
+                aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers(), deepQuestion)
             } catch (e: Exception) {
                 logger.error("회고 요약 생성 실패 - userId: $userId, retrospectiveId: $retrospectiveId", e)
                 throw e
@@ -185,14 +203,14 @@ class RetrospectService(
 
         retrospective.saveSummary(
             RetrospectiveSummary(
-                feedback = summary.feedback,
-                insight = summary.insight,
-                doneWork = summary.doneWork,
                 summary = summary.summary,
                 blockedPoint = summary.blockedPoint.joinToString("\n"),
                 solutionProcess = summary.solutionProcess.joinToString("\n"),
                 lessonLearned = summary.lessonLearned.joinToString("\n"),
-                nextAction = summary.nextAction.joinToString("\n"),
+                insightTitle = summary.insight.title,
+                insightDescription = summary.insight.description,
+                nextActionTitle = summary.nextAction.title,
+                nextActionDescription = summary.nextAction.description,
             ),
         )
         retrospective.addTokens(summary.inputTokens, summary.outputTokens)
@@ -300,7 +318,7 @@ class RetrospectService(
     }
 
     @Transactional
-    override fun assignProject(
+    override fun registerProject(
         userId: UUID,
         retrospectiveId: UUID,
         projectId: UUID,
@@ -315,8 +333,22 @@ class RetrospectService(
             projectId,
         )
 
-        retrospective.assignProject(projectId)
+        retrospective.registerProject(projectId)
         retrospectiveRepository.save(retrospective)
+
+        logger.info("회고 프로젝트 선택 완료 - userId:$userId, retrospectiveId: $retrospectiveId, projectId: $projectId")
+    }
+
+    @Transactional
+    override fun detachProject(
+        userId: UUID,
+        retrospectiveId: UUID,
+    ) {
+        val retrospective =
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId)
+                ?: throw RetrospectiveNotFoundException(retrospectiveId)
+
+        retrospective.detachProject()
     }
 
     private fun processAnswer(
@@ -354,7 +386,13 @@ class RetrospectService(
         filename: String,
     ): String {
         if (audioBytes.isEmpty()) throw SpeechEmptyFileException()
-        if (!filename.lowercase().endsWith(".wav")) throw SpeechUnsupportedFileException(filename, null)
+
+        val supportedExtensions = listOf("wav", "m4a", "mp3", "aac", "ac3", "ogg", "flac")
+        val extension = filename.substringAfterLast('.', "").lowercase()
+
+        if (extension !in supportedExtensions) {
+            throw SpeechUnsupportedFileException(filename, null)
+        }
 
         val text = speechClient.transcribe(audioBytes, filename).trim()
 
@@ -398,18 +436,20 @@ class RetrospectService(
     }
 
     private fun handleQ4Answer(retrospective: Retrospective): SubmitAnswerResponse {
-        val deepQuestion =
-            retrospective.chatMessages
-                .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
-                ?: return SubmitAnswerResponse(
-                    nextQuestionType = QuestionType.Q4_DEEP,
-                    nextQuestionContent = DEEP_QUESTION_GENERATING_MESSAGE,
-                    isReadyToComplete = false,
-                )
+        val hasDeepQuestion =
+            retrospective.chatMessages.any { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
+
+        if (!hasDeepQuestion) {
+            return SubmitAnswerResponse(
+                nextQuestionType = QuestionType.Q4_DEEP,
+                nextQuestionContent = DEEP_QUESTION_GENERATING_MESSAGE,
+                isReadyToComplete = false,
+            )
+        }
 
         return SubmitAnswerResponse(
-            nextQuestionType = QuestionType.Q4_DEEP,
-            nextQuestionContent = deepQuestion.content,
+            nextQuestionType = null,
+            nextQuestionContent = null,
             isReadyToComplete = true,
         )
     }

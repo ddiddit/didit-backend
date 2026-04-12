@@ -5,6 +5,8 @@ import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.DeepQuestionResponse
+import com.didit.application.retrospect.dto.InsightResponse
+import com.didit.application.retrospect.dto.NextActionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
@@ -67,13 +69,19 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
         AISummaryResponse(
             title = "오늘의 회고",
             summary = "오늘 회고 요약 문장입니다.",
-            feedback = "오늘 작업을 잘 마무리하셨네요.",
-            insight = "문제를 작게 나누는 것이 중요합니다.",
-            doneWork = "로그인 API 연동 작업을 완료했습니다.",
             blockedPoint = listOf("토큰 만료 처리 로직이 복잡했습니다."),
             solutionProcess = listOf("공식 문서를 참고하여 해결했습니다."),
             lessonLearned = listOf("초반에 에러 처리를 설계해두면 편합니다."),
-            nextAction = listOf("토큰 만료 엣지 케이스 추가 테스트 코드 작성"),
+            insight =
+                InsightResponse(
+                    title = "문제를 작게 나누는 것의 중요성",
+                    description = "문제를 작게 나누어 접근하면 복잡한 이슈도 더 안정적으로 해결할 수 있다는 점을 느꼈어요.",
+                ),
+            nextAction =
+                NextActionResponse(
+                    title = "토큰 만료 엣지 케이스 테스트 작성",
+                    description = "토큰 만료 상황에서 발생할 수 있는 예외 흐름을 테스트 코드로 보완해볼 예정이에요.",
+                ),
         )
 
     @Test
@@ -129,8 +137,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     responseFields(
                         fieldWithPath("data.content").type(JsonFieldType.STRING).description("STT 변환 텍스트").optional(),
-                        fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
-                        fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
+                        fieldWithPath("data.nextQuestionType")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 타입")
+                            .optional(),
+                        fieldWithPath("data.nextQuestionContent")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 내용")
+                            .optional(),
                         fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
                     ),
                 ),
@@ -166,9 +180,42 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     responseFields(
                         fieldWithPath("data.content").type(JsonFieldType.STRING).description("STT 변환된 텍스트").optional(),
-                        fieldWithPath("data.nextQuestionType").type(JsonFieldType.STRING).description("다음 질문 타입").optional(),
-                        fieldWithPath("data.nextQuestionContent").type(JsonFieldType.STRING).description("다음 질문 내용").optional(),
+                        fieldWithPath("data.nextQuestionType")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 타입")
+                            .optional(),
+                        fieldWithPath("data.nextQuestionContent")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 질문 내용")
+                            .optional(),
                         fieldWithPath("data.isReadyToComplete").type(JsonFieldType.BOOLEAN).description("완료 가능 여부"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `음성 답변 변환`() {
+        whenever(retrospectiveRegister.transcribeVoiceAnswer(any(), any(), any(), any()))
+            .thenReturn("로그인 API 연동 작업을 했습니다.")
+
+        mockMvc
+            .perform(
+                org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders
+                    .multipart("/api/v1/retrospectives/{retrospectiveId}/answers/voice/transcribe", retrospectiveId)
+                    .file("file", ByteArray(100))
+                    .contentType(MediaType.MULTIPART_FORM_DATA),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/transcribe-voice-answer",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.content").type(JsonFieldType.STRING).description("STT 변환된 텍스트"),
                     ),
                 ),
             )
@@ -210,13 +257,15 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("AI 생성 제목"),
                         fieldWithPath("data.content.summary").type(JsonFieldType.STRING).description("회고 요약"),
-                        fieldWithPath("data.content.feedback").type(JsonFieldType.STRING).description("AI 피드백"),
-                        fieldWithPath("data.content.insight").type(JsonFieldType.STRING).description("인사이트"),
-                        fieldWithPath("data.content.doneWork").type(JsonFieldType.STRING).description("한 일"),
                         fieldWithPath("data.content.blockedPoint").type(JsonFieldType.ARRAY).description("막힌 지점"),
                         fieldWithPath("data.content.solutionProcess").type(JsonFieldType.ARRAY).description("해결 과정"),
                         fieldWithPath("data.content.lessonLearned").type(JsonFieldType.ARRAY).description("배운 점"),
-                        fieldWithPath("data.content.nextAction").type(JsonFieldType.ARRAY).description("다음 액션"),
+                        fieldWithPath("data.content.insight").type(JsonFieldType.OBJECT).description("인사이트"),
+                        fieldWithPath("data.content.insight.title").type(JsonFieldType.STRING).description("인사이트 제목"),
+                        fieldWithPath("data.content.insight.description").type(JsonFieldType.STRING).description("인사이트 설명"),
+                        fieldWithPath("data.content.nextAction").type(JsonFieldType.OBJECT).description("다음 행동 제안"),
+                        fieldWithPath("data.content.nextAction.title").type(JsonFieldType.STRING).description("다음 행동 제목"),
+                        fieldWithPath("data.content.nextAction.description").type(JsonFieldType.STRING).description("다음 행동 설명"),
                     ),
                 ),
             )
@@ -285,14 +334,28 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
                         fieldWithPath("data.content").type(JsonFieldType.OBJECT).description("회고 내용").optional(),
-                        fieldWithPath("data.content.summary").type(JsonFieldType.STRING).description("회고 요약 문장").optional(),
-                        fieldWithPath("data.content.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
-                        fieldWithPath("data.content.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
-                        fieldWithPath("data.content.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
-                        fieldWithPath("data.content.blockedPoint").type(JsonFieldType.ARRAY).description("막힌 지점").optional(),
-                        fieldWithPath("data.content.solutionProcess").type(JsonFieldType.ARRAY).description("해결 과정").optional(),
-                        fieldWithPath("data.content.lessonLearned").type(JsonFieldType.ARRAY).description("배운 점").optional(),
-                        fieldWithPath("data.content.nextAction").type(JsonFieldType.ARRAY).description("다음 액션").optional(),
+                        fieldWithPath("data.content.summary")
+                            .type(JsonFieldType.STRING)
+                            .description("회고 요약 문장")
+                            .optional(),
+                        fieldWithPath("data.content.blockedPoint")
+                            .type(JsonFieldType.ARRAY)
+                            .description("막힌 지점")
+                            .optional(),
+                        fieldWithPath("data.content.solutionProcess")
+                            .type(JsonFieldType.ARRAY)
+                            .description("해결 과정")
+                            .optional(),
+                        fieldWithPath("data.content.lessonLearned")
+                            .type(JsonFieldType.ARRAY)
+                            .description("배운 점")
+                            .optional(),
+                        fieldWithPath("data.content.insight").type(JsonFieldType.OBJECT).description("인사이트").optional(),
+                        fieldWithPath("data.content.insight.title").type(JsonFieldType.STRING).description("인사이트 제목").optional(),
+                        fieldWithPath("data.content.insight.description").type(JsonFieldType.STRING).description("인사이트 설명").optional(),
+                        fieldWithPath("data.content.nextAction").type(JsonFieldType.OBJECT).description("다음 행동 제안").optional(),
+                        fieldWithPath("data.content.nextAction.title").type(JsonFieldType.STRING).description("다음 행동 제목").optional(),
+                        fieldWithPath("data.content.nextAction.description").type(JsonFieldType.STRING).description("다음 행동 설명").optional(),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
@@ -410,14 +473,28 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
                         fieldWithPath("data.content").type(JsonFieldType.OBJECT).description("회고 내용").optional(),
-                        fieldWithPath("data.content.summary").type(JsonFieldType.STRING).description("회고 요약 문장").optional(),
-                        fieldWithPath("data.content.feedback").type(JsonFieldType.STRING).description("AI 피드백").optional(),
-                        fieldWithPath("data.content.insight").type(JsonFieldType.STRING).description("인사이트").optional(),
-                        fieldWithPath("data.content.doneWork").type(JsonFieldType.STRING).description("한 일").optional(),
-                        fieldWithPath("data.content.blockedPoint").type(JsonFieldType.ARRAY).description("막힌 지점").optional(),
-                        fieldWithPath("data.content.solutionProcess").type(JsonFieldType.ARRAY).description("해결 과정").optional(),
-                        fieldWithPath("data.content.lessonLearned").type(JsonFieldType.ARRAY).description("배운 점").optional(),
-                        fieldWithPath("data.content.nextAction").type(JsonFieldType.ARRAY).description("다음 액션").optional(),
+                        fieldWithPath("data.content.summary")
+                            .type(JsonFieldType.STRING)
+                            .description("회고 요약 문장")
+                            .optional(),
+                        fieldWithPath("data.content.blockedPoint")
+                            .type(JsonFieldType.ARRAY)
+                            .description("막힌 지점")
+                            .optional(),
+                        fieldWithPath("data.content.solutionProcess")
+                            .type(JsonFieldType.ARRAY)
+                            .description("해결 과정")
+                            .optional(),
+                        fieldWithPath("data.content.lessonLearned")
+                            .type(JsonFieldType.ARRAY)
+                            .description("배운 점")
+                            .optional(),
+                        fieldWithPath("data.content.insight").type(JsonFieldType.OBJECT).description("인사이트").optional(),
+                        fieldWithPath("data.content.insight.title").type(JsonFieldType.STRING).description("인사이트 제목").optional(),
+                        fieldWithPath("data.content.insight.description").type(JsonFieldType.STRING).description("인사이트 설명").optional(),
+                        fieldWithPath("data.content.nextAction").type(JsonFieldType.OBJECT).description("다음 행동 제안").optional(),
+                        fieldWithPath("data.content.nextAction.title").type(JsonFieldType.STRING).description("다음 행동 제목").optional(),
+                        fieldWithPath("data.content.nextAction.description").type(JsonFieldType.STRING).description("다음 행동 설명").optional(),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
@@ -469,7 +546,9 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.days[].date").type(JsonFieldType.STRING).description("날짜").optional(),
                         fieldWithPath("data.days[].count").type(JsonFieldType.NUMBER).description("회고 횟수").optional(),
                         fieldWithPath("data.weeklyCount").type(JsonFieldType.NUMBER).description("이번 주 회고 횟수"),
-                        fieldWithPath("data.isWeeklyGoalAchieved").type(JsonFieldType.BOOLEAN).description("주간 목표 달성 여부 (3회 이상)"),
+                        fieldWithPath("data.isWeeklyGoalAchieved")
+                            .type(JsonFieldType.BOOLEAN)
+                            .description("주간 목표 달성 여부 (3회 이상)"),
                     ),
                 ),
             )
@@ -515,13 +594,13 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     summary =
                         RetrospectiveSummary(
                             summary = "오늘 로그인 API 연동 작업을 마무리한 하루였어요.",
-                            feedback = "오늘 작업을 잘 마무리했어요.",
-                            insight = "문제를 작게 나누는 것이 중요합니다.",
-                            doneWork = "로그인 API 연동 완료",
                             blockedPoint = "토큰 만료 처리 어려움",
                             solutionProcess = "공식 문서 참고",
                             lessonLearned = "초반에 에러 처리 설계",
-                            nextAction = "토큰 만료 엣지 케이스 테스트 작성",
+                            insightTitle = "문제를 작게 나누는 것의 중요성",
+                            insightDescription = "문제를 작게 나누면 복잡한 이슈를 더 안정적으로 해결할 수 있다는 점을 느꼈어요.",
+                            nextActionTitle = "토큰 만료 엣지 케이스 테스트 작성",
+                            nextActionDescription = "토큰 만료 상황에 대한 테스트 케이스를 추가로 보완할 예정이에요.",
                         )
                 },
                 Retrospective.create(userId).apply {
@@ -530,13 +609,13 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     summary =
                         RetrospectiveSummary(
                             summary = "오늘 로그인 버그를 수정한 하루였어요.",
-                            feedback = "오늘도 열심히 했습니다.",
-                            insight = "작게 나누는 습관 필요",
-                            doneWork = "로그인 버그 수정 완료",
                             blockedPoint = "세션 처리 어려움",
                             solutionProcess = "팀 코드 리뷰 참고",
                             lessonLearned = "테스트 먼저 작성",
-                            nextAction = "세션 처리 로직 리팩토링",
+                            insightTitle = "작게 나누는 습관의 필요성",
+                            insightDescription = "문제를 작게 나누어 보면 디버깅과 수정 방향을 더 빠르게 잡을 수 있다는 점을 느꼈어요.",
+                            nextActionTitle = "세션 처리 로직 리팩토링",
+                            nextActionDescription = "세션 처리 흐름을 더 읽기 쉽게 정리해볼 예정이에요.",
                         )
                 },
             )
@@ -609,11 +688,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
         mockMvc
             .perform(
-                patch("/api/v1/retrospectives/{retrospectiveId}/assign-project?projectId=$projectId", retrospectiveId),
+                patch(
+                    "/api/v1/retrospectives/register-project/{retrospectiveId}?projectId=$projectId",
+                    retrospectiveId,
+                ),
             ).andExpect(status().isNoContent)
             .andDo(
                 document(
-                    "retrospect/assign-project",
+                    "retrospect/register-project",
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     pathParameters(
@@ -624,6 +706,25 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                 ),
             )
-        verify(retrospectiveRegister).assignProject(userId, retrospectiveId, projectId)
+        verify(retrospectiveRegister).registerProject(userId, retrospectiveId, projectId)
+    }
+
+    @Test
+    fun `회고 프로젝트 제거`() {
+        mockMvc
+            .perform(delete("/api/v1/retrospectives/{retrospectiveId}/project", retrospectiveId))
+            .andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "retrospect/detach-project",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                ),
+            )
+
+        verify(retrospectiveRegister).detachProject(userId, retrospectiveId)
     }
 }

@@ -96,4 +96,41 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         @Param("userId") userId: UUID,
         @Param("status") status: RetroStatus,
     ): List<LocalDateTime>
+
+    fun findByIdAndUserIdAndDeletedAtIsNull(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): Retrospective?
+
+    fun findAllByProjectIdAndDeletedAtIsNull(projectId: UUID): List<Retrospective>
+
+    @Query(
+        """
+            SELECT r FROM Retrospective r
+            WHERE r.userId=:userId AND r.status = 'COMPLETED'
+            AND r.projectId=:projectId
+            AND r.deletedAt IS NULL
+            ORDER BY r.createdAt DESC
+        """,
+    )
+    fun findAllByUserIdAndProjectId(
+        @Param("userId") userId: UUID,
+        @Param("projectId") projectId: UUID,
+    ): List<Retrospective>
+
+    @Query(
+        """
+            SELECT r FROM Retrospective r
+            WHERE r.status = 'PENDING'
+            AND r.deletedAt IS NULL
+            AND r.createdAt < :cutoff
+        """,
+    )
+    fun findAllPendingBefore(
+        @Param("cutoff") cutoff: LocalDateTime,
+    ): List<Retrospective>
+
+    fun delete(retrospective: Retrospective)
+
+    fun findAllByUserId(userId: UUID): List<Retrospective>
 }

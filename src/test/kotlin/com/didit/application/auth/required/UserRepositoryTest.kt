@@ -6,6 +6,7 @@ import com.didit.support.UserFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import java.time.LocalDateTime
 
 class UserRepositoryTest : RepositoryTestSupport() {
     @Autowired
@@ -59,14 +60,14 @@ class UserRepositoryTest : RepositoryTestSupport() {
     fun `existsByNickname - exists`() {
         val user = userRepository.save(UserFixture.createOnboarded())
 
-        val exists = userRepository.existsByNickname(user.nickname!!)
+        val exists = userRepository.existsByNicknameAndDeletedAtIsNull(user.nickname!!)
 
         assertThat(exists).isTrue()
     }
 
     @Test
     fun `existsByNickname - not exists`() {
-        val exists = userRepository.existsByNickname("없는닉네임")
+        val exists = userRepository.existsByNicknameAndDeletedAtIsNull("없는닉네임")
 
         assertThat(exists).isFalse()
     }
@@ -76,7 +77,7 @@ class UserRepositoryTest : RepositoryTestSupport() {
         val user = userRepository.save(UserFixture.createOnboarded())
         val otherUser = userRepository.save(UserFixture.createOnboarded(providerId = "kakao-9999"))
 
-        val exists = userRepository.existsByNicknameAndIdNot(user.nickname!!, otherUser.id)
+        val exists = userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull(user.nickname!!, otherUser.id)
 
         assertThat(exists).isTrue()
     }
@@ -85,7 +86,7 @@ class UserRepositoryTest : RepositoryTestSupport() {
     fun `existsByNicknameAndIdNot - 본인 닉네임은 중복 아님`() {
         val user = userRepository.save(UserFixture.createOnboarded())
 
-        val exists = userRepository.existsByNicknameAndIdNot(user.nickname!!, user.id)
+        val exists = userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull(user.nickname!!, user.id)
 
         assertThat(exists).isFalse()
     }
@@ -94,8 +95,37 @@ class UserRepositoryTest : RepositoryTestSupport() {
     fun `existsByNicknameAndIdNot - 닉네임 없음`() {
         val user = userRepository.save(UserFixture.createOnboarded())
 
-        val exists = userRepository.existsByNicknameAndIdNot("없는닉네임", user.id)
+        val exists = userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull("없는닉네임", user.id)
 
         assertThat(exists).isFalse()
+    }
+
+    @Test
+    fun `findAllWithdrawnBefore - 30일 지난 탈퇴 유저만 반환한다`() {
+        val withdrawn = userRepository.save(UserFixture.create().apply { withdraw() })
+        val active = userRepository.save(UserFixture.create(providerId = "kakao-9999"))
+
+        val result = userRepository.findAllWithdrawnBefore(LocalDateTime.now().plusDays(1))
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].id).isEqualTo(withdrawn.id)
+    }
+
+    @Test
+    fun `findAllWithdrawnBefore - cutoff 이후 탈퇴 유저는 제외된다`() {
+        userRepository.save(UserFixture.create().apply { withdraw() })
+
+        val result = userRepository.findAllWithdrawnBefore(LocalDateTime.now().minusDays(1))
+
+        assertThat(result).isEmpty()
+    }
+
+    @Test
+    fun `findAllWithdrawnBefore - 탈퇴하지 않은 유저는 제외된다`() {
+        userRepository.save(UserFixture.create())
+
+        val result = userRepository.findAllWithdrawnBefore(LocalDateTime.now().plusDays(1))
+
+        assertThat(result).isEmpty()
     }
 }

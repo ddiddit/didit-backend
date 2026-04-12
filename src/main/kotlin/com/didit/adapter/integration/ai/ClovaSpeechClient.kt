@@ -27,6 +27,7 @@ class ClovaSpeechClient(
         private const val COMPLETION = "sync"
         private const val API_KEY_HEADER = "X-CLOVASPEECH-API-KEY"
         private const val COMPLETED = "COMPLETED"
+        private const val RECOGNIZER_UPLOAD_PATH = "/recognizer/upload"
     }
 
     override fun transcribe(
@@ -51,7 +52,7 @@ class ClovaSpeechClient(
 
         return restClient
             .post()
-            .uri("$invokeUrl/recognizer/upload")
+            .uri("$invokeUrl$RECOGNIZER_UPLOAD_PATH")
             .header(API_KEY_HEADER, secretKey)
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .body(requestBody)
@@ -88,7 +89,7 @@ class ClovaSpeechClient(
                 override fun getFilename(): String = filename
             },
             HttpHeaders().apply {
-                contentType = MediaType.parseMediaType("audio/wav")
+                contentType = getMediaType(filename)
                 contentDisposition =
                     ContentDisposition
                         .builder("form-data")
@@ -97,6 +98,17 @@ class ClovaSpeechClient(
                         .build()
             },
         )
+
+    private fun getMediaType(filename: String): MediaType =
+        when (filename.substringAfterLast('.', "").lowercase()) {
+            "wav" -> MediaType.parseMediaType("audio/wav")
+            "m4a" -> MediaType.parseMediaType("audio/m4a")
+            "mp3" -> MediaType.parseMediaType("audio/mpeg")
+            "aac" -> MediaType.parseMediaType("audio/aac")
+            "ogg" -> MediaType.parseMediaType("audio/ogg")
+            "flac" -> MediaType.parseMediaType("audio/flac")
+            else -> MediaType.APPLICATION_OCTET_STREAM
+        }
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)

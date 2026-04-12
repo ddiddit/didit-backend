@@ -1,5 +1,6 @@
 package com.didit.application.retrospect
 
+import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.provided.SearchHistoryRegister
 import com.didit.application.retrospect.required.RetrospectiveRepository
@@ -23,9 +24,14 @@ import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
 class RetrospectQueryServiceTest {
-    @Mock lateinit var retrospectiveRepository: RetrospectiveRepository
+    @Mock
+    lateinit var retrospectiveRepository: RetrospectiveRepository
 
-    @Mock lateinit var searchHistoryRegister: SearchHistoryRegister
+    @Mock
+    lateinit var searchHistoryRegister: SearchHistoryRegister
+
+    @Mock
+    lateinit var projectRepository: ProjectRepository
 
     private lateinit var retrospectQueryService: RetrospectQueryService
 
@@ -38,6 +44,7 @@ class RetrospectQueryServiceTest {
             RetrospectQueryService(
                 retrospectiveRepository = retrospectiveRepository,
                 searchHistoryRegister = searchHistoryRegister,
+                projectRepository = projectRepository,
             )
     }
 

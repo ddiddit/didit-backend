@@ -4,6 +4,8 @@ import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.retrospect.dto.AISummaryResponse
+import com.didit.application.retrospect.dto.InsightResponse
+import com.didit.application.retrospect.dto.NextActionResponse
 import com.didit.application.retrospect.exception.DailyLimitExceededException
 import com.didit.application.retrospect.exception.RetrospectiveAlreadyCompletedException
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
@@ -33,6 +35,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -89,13 +92,19 @@ class RetrospectServiceTest {
         AISummaryResponse(
             title = "오늘의 회고",
             summary = "오늘 회고 요약 문장입니다.",
-            feedback = "피드백",
-            insight = "인사이트",
-            doneWork = "한 일",
             blockedPoint = listOf("막힌 지점"),
             solutionProcess = listOf("해결 과정"),
             lessonLearned = listOf("배운 점"),
-            nextAction = listOf("다음 액션"),
+            insight =
+                InsightResponse(
+                    title = "인사이트 제목",
+                    description = "인사이트 설명",
+                ),
+            nextAction =
+                NextActionResponse(
+                    title = "다음 액션 제목",
+                    description = "다음 액션 설명",
+                ),
             inputTokens = 100,
             outputTokens = 50,
         )
@@ -109,13 +118,13 @@ class RetrospectServiceTest {
     private fun summaryFixture() =
         RetrospectiveSummary(
             summary = "오늘 회고 요약 문장입니다.",
-            feedback = "피드백",
-            insight = "인사이트",
-            doneWork = "한 일",
             blockedPoint = "막힌 지점",
             solutionProcess = "해결 과정",
             lessonLearned = "배운 점",
-            nextAction = "다음 액션",
+            insightTitle = "인사이트 제목",
+            insightDescription = "인사이트 설명",
+            nextActionTitle = "다음 액션 제목",
+            nextActionDescription = "다음 액션 설명",
         )
 
     @Test
@@ -191,10 +200,27 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `submitVoiceAnswer - wav 파일을 변환해서 답변을 제출하고 텍스트를 반환한다`() {
+    fun `submitVoiceAnswer - m4a 파일을 변환해서 답변을 제출하고 텍스트를 반환한다`() {
         val retro = inProgressRetrospective()
         val audioBytes = ByteArray(100) { 1 }
-        val filename = "voice.wav"
+        val filename = "voice.m4a"
+
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(speechClient.transcribe(audioBytes, filename)).thenReturn("음성 변환된 텍스트")
+        whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        val result = retrospectService.submitVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
+
+        assertThat(result.content).isEqualTo("음성 변환된 텍스트")
+        assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q2)
+        verify(speechClient).transcribe(audioBytes, filename)
+    }
+
+    @Test
+    fun `submitVoiceAnswer - mp3 파일을 변환해서 답변을 제출하고 텍스트를 반환한다`() {
+        val retro = inProgressRetrospective()
+        val audioBytes = ByteArray(100) { 1 }
+        val filename = "voice.mp3"
 
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(speechClient.transcribe(audioBytes, filename)).thenReturn("음성 변환된 텍스트")
@@ -230,12 +256,12 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `submitVoiceAnswer - wav가 아닌 파일이면 STT 호출 없이 예외가 발생한다`() {
+    fun `submitVoiceAnswer - 지원하지 않는 파일 형식이면 STT 호출 없이 예외가 발생한다`() {
         val retro = inProgressRetrospective()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
 
         assertThrows<SpeechUnsupportedFileException> {
-            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.mp3")
+            retrospectService.submitVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.txt")
         }
         verify(speechClient, never()).transcribe(any(), any())
     }
@@ -249,6 +275,71 @@ class RetrospectServiceTest {
 
         assertThrows<SpeechEmptyResultException> {
             retrospectService.submitVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
+        }
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - m4a 파일을 변환하고 저장하지 않는다`() {
+        val retro =
+            Retrospective.create(userId).apply {
+                addMessage(ChatMessage.question(this, "오늘 어떤 일을 하셨나요?", QuestionType.Q1))
+            }
+        val audioBytes = ByteArray(100) { 1 }
+        val filename = "voice.m4a"
+
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(speechClient.transcribe(audioBytes, filename)).thenReturn("음성 변환된 텍스트")
+
+        val result = retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, filename)
+
+        assertThat(result).isEqualTo("음성 변환된 텍스트")
+        assertThat(retro.isPending()).isTrue()
+        verify(speechClient).transcribe(audioBytes, filename)
+        verify(retrospectiveRepository, never()).save(any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 회고가 완료된 상태면 STT 호출 없이 예외가 발생한다`() {
+        val retro = RetrospectiveFixture.createCompleted(userId)
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<RetrospectiveAlreadyCompletedException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, ByteArray(100) { 1 }, "voice.wav")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 빈 파일이면 STT 호출 없이 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<SpeechEmptyFileException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, ByteArray(0), "voice.wav")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 지원하지 않는 파일 형식이면 STT 호출 없이 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<SpeechUnsupportedFileException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, ByteArray(100), "voice.txt")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 음성 인식 결과가 비어있으면 예외가 발생한다`() {
+        val retro = inProgressRetrospective()
+        val audioBytes = ByteArray(100) { 1 }
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(speechClient.transcribe(audioBytes, "voice.wav")).thenReturn("   ")
+
+        assertThrows<SpeechEmptyResultException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
         }
     }
 
@@ -279,7 +370,7 @@ class RetrospectServiceTest {
         val summary = aiSummaryResponse()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(userFinder.getJobByUserId(userId)).thenReturn(Job.DEVELOPER)
-        whenever(aiClient.generateSummaryWithTitle(any(), any())).thenReturn(summary)
+        whenever(aiClient.generateSummaryWithTitle(any(), any(), anyOrNull())).thenReturn(summary)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = retrospectService.complete(retrospectiveId, userId)
@@ -392,7 +483,7 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `assignProject - 정상적으로 프로젝트를 회고에 할당한다`() {
+    fun `registerProject - 정상적으로 프로젝트를 회고에 할당한다`() {
         val retro = inProgressRetrospective()
         val projectId = UUID.randomUUID()
         val project =
@@ -403,26 +494,26 @@ class RetrospectServiceTest {
         whenever(projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)).thenReturn(project)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        retrospectService.assignProject(userId, retrospectiveId, projectId)
+        retrospectService.registerProject(userId, retrospectiveId, projectId)
 
         assertThat(retro.projectId).isEqualTo(projectId)
         verify(retrospectiveRepository).save(retro)
     }
 
     @Test
-    fun `assignProject - 회고가 존재하지 않으면 RetrospectiveNotFoundException`() {
+    fun `registerProject - 회고가 존재하지 않으면 RetrospectiveNotFoundException`() {
         val projectId = UUID.randomUUID()
 
         whenever(retrospectiveRepository.findByIdAndDeletedAtIsNull(retrospectiveId)).thenReturn(null)
 
         assertThrows<RetrospectiveNotFoundException> {
-            retrospectService.assignProject(userId, retrospectiveId, projectId)
+            retrospectService.registerProject(userId, retrospectiveId, projectId)
         }
         verify(retrospectiveRepository, never()).save(any())
     }
 
     @Test
-    fun `assignProject - 프로젝트가 존재하지 않으면 ProjectNotFoundException`() {
+    fun `registerProject - 프로젝트가 존재하지 않으면 ProjectNotFoundException`() {
         val retro = inProgressRetrospective()
         val projectId = UUID.randomUUID()
 
@@ -430,8 +521,24 @@ class RetrospectServiceTest {
         whenever(projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)).thenReturn(null)
 
         assertThrows<com.didit.application.organization.exception.ProjectNotFoundException> {
-            retrospectService.assignProject(userId, retrospectiveId, projectId)
+            retrospectService.registerProject(userId, retrospectiveId, projectId)
         }
         verify(retrospectiveRepository, never()).save(any())
+    }
+
+    @Test
+    fun `detachProject - 회고에서 프로젝트를 제거한다`() {
+        val retro =
+            inProgressRetrospective().apply {
+                this.projectId = UUID.randomUUID()
+            }
+
+        whenever(
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId),
+        ).thenReturn(retro)
+
+        retrospectService.detachProject(userId, retrospectiveId)
+
+        assertThat(retro.projectId).isNull()
     }
 }

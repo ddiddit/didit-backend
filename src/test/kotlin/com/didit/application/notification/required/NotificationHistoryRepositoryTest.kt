@@ -39,4 +39,26 @@ class NotificationHistoryRepositoryTest : RepositoryTestSupport() {
         assertThat(found).hasSize(1)
         assertThat(found[0].userId).isEqualTo(userId)
     }
+
+    @Test
+    fun `deleteAllByUserId - 해당 유저의 알림 히스토리가 삭제된다`() {
+        val userId = UUID.randomUUID()
+        val otherUserId = UUID.randomUUID()
+
+        notificationHistoryRepository.save(NotificationHistory.create(NotificationHistoryFixture.createRequest(userId)))
+        notificationHistoryRepository.save(NotificationHistory.create(NotificationHistoryFixture.createRequest(userId)))
+        notificationHistoryRepository.save(NotificationHistory.create(NotificationHistoryFixture.createRequest(otherUserId)))
+
+        notificationHistoryRepository.deleteAllByUserId(userId)
+
+        val remaining =
+            notificationHistoryRepository
+                .findAllByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(userId, LocalDateTime.now().minusDays(30))
+        assertThat(remaining).isEmpty()
+
+        val otherRemaining =
+            notificationHistoryRepository
+                .findAllByUserIdAndCreatedAtAfterOrderByCreatedAtDesc(otherUserId, LocalDateTime.now().minusDays(30))
+        assertThat(otherRemaining).hasSize(1)
+    }
 }

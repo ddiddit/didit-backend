@@ -22,13 +22,19 @@ data class RetrospectiveDetailResponse(
                     retrospective.summary?.let {
                         ContentResponse(
                             summary = it.summary,
-                            feedback = it.feedback,
-                            insight = it.insight,
-                            doneWork = it.doneWork,
                             blockedPoint = it.blockedPoint.split("\n"),
                             solutionProcess = it.solutionProcess.split("\n"),
                             lessonLearned = it.lessonLearned.split("\n"),
-                            nextAction = it.nextAction.split("\n"),
+                            insight =
+                                InsightContentResponse(
+                                    title = it.insightTitle,
+                                    description = it.insightDescription,
+                                ),
+                            nextAction =
+                                NextActionContentResponse(
+                                    title = it.nextActionTitle,
+                                    description = it.nextActionDescription,
+                                ),
                         )
                     },
                 completedAt = retrospective.completedAt,

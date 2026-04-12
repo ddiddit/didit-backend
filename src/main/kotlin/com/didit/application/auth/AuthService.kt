@@ -14,6 +14,7 @@ import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.TokenProvider
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.auth.required.WithdrawalRecordRepository
+import com.didit.application.notification.required.DeviceTokenRepository
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.RefreshToken
 import com.didit.domain.auth.User
@@ -35,6 +36,7 @@ class AuthService(
     private val tokenProvider: TokenProvider,
     private val withdrawalRecordRepository: WithdrawalRecordRepository,
     private val auditLogger: AuditLogger,
+    private val deviceTokenRepository: DeviceTokenRepository,
 ) : Auth {
     companion object {
         private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -83,6 +85,8 @@ class AuthService(
         user.withdraw()
 
         userRepository.save(user)
+
+        deviceTokenRepository.deleteByUserId(user.id)
 
         refreshTokenRepository.deleteByUserId(userId)
 
@@ -137,8 +141,6 @@ class AuthService(
         val existingUser =
             userRepository.findByProviderAndProviderId(provider, providerId)
                 ?: return createNewUser(provider, providerId, email) to true
-
-        if (existingUser.isDeleted) return rejoinUser(existingUser) to true
 
         return existingUser to false
     }

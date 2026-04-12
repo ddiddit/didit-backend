@@ -8,4 +8,9 @@ interface ProjectRegister {
         userId: UUID,
         name: String,
     ): Project
+
+    fun reorder(
+        userId: UUID,
+        projectIds: List<UUID>,
+    )
 }

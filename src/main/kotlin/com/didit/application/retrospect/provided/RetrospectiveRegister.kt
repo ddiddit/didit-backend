@@ -21,6 +21,13 @@ interface RetrospectiveRegister {
         filename: String,
     ): SubmitAnswerResponse
 
+    fun transcribeVoiceAnswer(
+        retrospectiveId: UUID,
+        userId: UUID,
+        audioBytes: ByteArray,
+        filename: String,
+    ): String
+
     fun skipDeepQuestion(
         retrospectiveId: UUID,
         userId: UUID,
@@ -58,9 +65,14 @@ interface RetrospectiveRegister {
         userId: UUID,
     )
 
-    fun assignProject(
+    fun registerProject(
         userId: UUID,
         retrospectiveId: UUID,
         projectId: UUID,
+    )
+
+    fun detachProject(
+        userId: UUID,
+        retrospectiveId: UUID,
     )
 }

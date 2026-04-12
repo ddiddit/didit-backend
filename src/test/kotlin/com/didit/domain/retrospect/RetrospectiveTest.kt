@@ -17,13 +17,13 @@ class RetrospectiveTest {
     private fun summary() =
         RetrospectiveSummary(
             summary = "오늘 회고 요약 문장입니다.",
-            feedback = "피드백",
-            insight = "인사이트",
-            doneWork = "한 일",
             blockedPoint = "막힌 지점",
             solutionProcess = "해결 과정",
             lessonLearned = "배운 점",
-            nextAction = "다음 액션",
+            insightTitle = "인사이트 제목",
+            insightDescription = "인사이트 설명",
+            nextActionTitle = "다음 액션 제목",
+            nextActionDescription = "다음 액션 설명",
         )
 
     @Test
@@ -63,20 +63,20 @@ class RetrospectiveTest {
     }
 
     @Test
-    fun `complete - 제목이 15자를 초과하면 예외가 발생한다`() {
+    fun `complete - 제목이 25자를 초과하면 예외가 발생한다`() {
         val retro = retrospective().apply { startProgress() }
 
         assertThrows<IllegalArgumentException> {
-            retro.complete(title = "열여섯글자제목입니다테스트합니다")
+            retro.complete(title = "열여섯글자제목입니다테스트합니다열여섯글자제목입니다테스트합니다")
         }
     }
 
     @Test
-    fun `updateTitle - 제목이 15자를 초과하면 예외가 발생한다`() {
+    fun `updateTitle - 제목이 25자를 초과하면 예외가 발생한다`() {
         val retro = retrospective()
 
         assertThrows<IllegalArgumentException> {
-            retro.updateTitle("열여섯글자제목입니다테스트합니다")
+            retro.updateTitle("열여섯글자제목입니다테스트합니다열여섯글자제목입니다테스트합니다")
         }
     }
 
@@ -224,12 +224,23 @@ class RetrospectiveTest {
     }
 
     @Test
-    fun `assignProject - projectId가 정상적으로 할당된다`() {
+    fun `registerProject - projectId가 정상적으로 할당된다`() {
         val retro = retrospective()
         val projectId = UUID.randomUUID()
 
-        retro.assignProject(projectId)
+        retro.registerProject(projectId)
 
         assertThat(retro.projectId).isEqualTo(projectId)
+    }
+
+    @Test
+    fun `detachProject - 프로젝트가 정상적으로 제거된다`() {
+        val retro = retrospective()
+        val projectId = UUID.randomUUID()
+        retro.registerProject(projectId)
+
+        retro.detachProject()
+
+        assertThat(retro.projectId).isNull()
     }
 }

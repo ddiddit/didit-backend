@@ -36,6 +36,18 @@ include::{snippets}/retrospect/submit-voice-answer/path-parameters.adoc[]
 include::{snippets}/retrospect/submit-voice-answer/http-response.adoc[]
 include::{snippets}/retrospect/submit-voice-answer/response-fields.adoc[]
 
+== 음성 답변 변환
+
+=== Request
+
+include::{snippets}/retrospect/transcribe-voice-answer/http-request.adoc[]
+include::{snippets}/retrospect/transcribe-voice-answer/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/transcribe-voice-answer/http-response.adoc[]
+include::{snippets}/retrospect/transcribe-voice-answer/response-fields.adoc[]
+
 == 심화 질문 스킵
 
 === Request
@@ -200,18 +212,28 @@ include::{snippets}/retrospect/search-info/http-request.adoc[]
 include::{snippets}/retrospect/search-info/http-response.adoc[]
 include::{snippets}/retrospect/search-info/response-fields.adoc[]
 
-== 회고에 프로젝트 할당
+== 회고 프로젝트 등록
 
 === Request
 
-include::{snippets}/retrospect/assign-project/http-request.adoc[]
+include::{snippets}/retrospect/register-project/http-request.adoc[]
 ===== path parameter
-include::{snippets}/retrospect/assign-project/path-parameters.adoc[]
+include::{snippets}/retrospect/register-project/path-parameters.adoc[]
 ===== query parameter
-include::{snippets}/retrospect/assign-project/query-parameters.adoc[]
-
+include::{snippets}/retrospect/register-project/query-parameters.adoc[]
 
 === Response
 
-include::{snippets}/retrospect/assign-project/http-response.adoc[]
+include::{snippets}/retrospect/register-project/http-response.adoc[]
+
+== 회고에 프로젝트 제거
+
+=== Request
+
+include::{snippets}/retrospect/detach-project/http-request.adoc[]
+include::{snippets}/retrospect/detach-project/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect/detach-project/http-response.adoc[]
 

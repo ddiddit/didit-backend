@@ -34,7 +34,7 @@ class UserRegisterService(
         marketingAgreed: Boolean,
         nightPushAgreed: Boolean,
     ) {
-        if (userRepository.existsByNickname(nickname)) throw DuplicateNicknameException()
+        if (userRepository.existsByNicknameAndDeletedAtIsNull(nickname)) throw DuplicateNicknameException()
 
         val user = userFinder.findByIdOrThrow(userId)
 
@@ -55,7 +55,13 @@ class UserRegisterService(
         nickname: String,
         job: Job,
     ) {
-        if (userRepository.existsByNicknameAndIdNot(nickname, userId)) throw DuplicateNicknameException()
+        if (userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull(
+                nickname,
+                userId,
+            )
+        ) {
+            throw DuplicateNicknameException()
+        }
 
         val user = userFinder.findByIdOrThrow(userId)
 

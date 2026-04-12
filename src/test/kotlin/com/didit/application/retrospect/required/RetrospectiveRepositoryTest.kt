@@ -19,14 +19,14 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
     private fun summary(feedback: String = "피드백") =
         RetrospectiveSummary(
-            summary = "오늘 회고 요약 문장입니다.",
-            feedback = feedback,
-            insight = "",
-            doneWork = "",
-            blockedPoint = "",
-            solutionProcess = "",
-            lessonLearned = "",
-            nextAction = "",
+            summary = "...",
+            blockedPoint = "...",
+            solutionProcess = "...",
+            lessonLearned = "...",
+            insightTitle = "",
+            insightDescription = "",
+            nextActionTitle = "",
+            nextActionDescription = "",
         )
 
     private fun completedRetrospective(
@@ -176,5 +176,38 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
             )
 
         assertThat(dates).hasSize(2)
+    }
+
+    @Test
+    fun `findAllPendingBefore - PENDING 회고만 반환한다`() {
+        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
+
+        val cutoff = LocalDateTime.now().plusDays(1)
+        val result = retrospectiveRepository.findAllPendingBefore(cutoff)
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].status).isEqualTo(RetroStatus.PENDING)
+    }
+
+    @Test
+    fun `findAllPendingBefore - softDelete된 PENDING 회고는 제외된다`() {
+        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(Retrospective.create(userId).apply { softDelete() })
+
+        val cutoff = LocalDateTime.now().plusDays(1)
+        val result = retrospectiveRepository.findAllPendingBefore(cutoff)
+
+        assertThat(result).hasSize(1)
+    }
+
+    @Test
+    fun `findAllPendingBefore - cutoff 이후에 생성된 회고는 제외된다`() {
+        retrospectiveRepository.save(Retrospective.create(userId))
+
+        val cutoff = LocalDateTime.now().minusDays(1)
+        val result = retrospectiveRepository.findAllPendingBefore(cutoff)
+
+        assertThat(result).isEmpty()
     }
 }

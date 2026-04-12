@@ -1,5 +1,7 @@
 package com.didit.application.retrospect
 
+import com.didit.application.organization.exception.ProjectNotFoundException
+import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
@@ -22,6 +24,7 @@ import java.util.UUID
 class RetrospectQueryService(
     private val retrospectiveRepository: RetrospectiveRepository,
     private val searchHistoryRegister: SearchHistoryRegister,
+    private val projectRepository: ProjectRepository,
 ) : RetrospectiveFinder {
     override fun findById(
         retrospectiveId: UUID,
@@ -104,5 +107,15 @@ class RetrospectQueryService(
     ): List<Retrospective> {
         searchHistoryRegister.register(userId, keyword)
         return retrospectiveRepository.searchByUserIdAndTitle(userId, keyword)
+    }
+
+    override fun findByProject(
+        userId: UUID,
+        projectId: UUID,
+    ): List<Retrospective> {
+        projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)
+            ?: throw ProjectNotFoundException(projectId)
+
+        return retrospectiveRepository.findAllByUserIdAndProjectId(userId, projectId)
     }
 }

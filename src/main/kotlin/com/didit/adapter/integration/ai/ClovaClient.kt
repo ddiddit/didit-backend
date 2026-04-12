@@ -41,8 +41,9 @@ class ClovaClient(
     override fun generateSummaryWithTitle(
         job: Job?,
         allAnswers: List<String>,
+        deepQuestion: String?,
     ): AISummaryResponse {
-        val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers)
+        val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers, deepQuestion)
 
         logger.debug("요약 프롬프트 - job: $job, prompt:\n$prompt")
 
@@ -81,13 +82,20 @@ class ClovaClient(
             .result
     }
 
+    private fun cleanJsonResponse(content: String): String =
+        content
+            .replace(Regex("```json"), "")
+            .replace(Regex("```"), "")
+            .trim()
+
     private fun parseDeepQuestion(result: ClovaResult): GeneratedDeepQuestion =
         runCatching {
             data class DeepQuestionDto(
                 val question: String,
             )
 
-            val question = objectMapper.readValue<DeepQuestionDto>(result.message.content).question
+            val cleanResponse = cleanJsonResponse(result.message.content)
+            val question = objectMapper.readValue<DeepQuestionDto>(cleanResponse).question
 
             logger.debug("심화 질문 토큰 사용량 - promptTokens: ${result.usage.promptTokens}, completionTokens: ${result.usage.completionTokens}")
 
@@ -97,16 +105,21 @@ class ClovaClient(
                 outputTokens = result.usage.completionTokens,
             )
         }.getOrElse {
-            throw RuntimeException("심화 질문 파싱에 실패했습니다. response: ${result.message.content}")
+            logger.warn("심화 질문 JSON 파싱 실패, 텍스트 그대로 사용. response: ${result.message.content}")
+
+            GeneratedDeepQuestion(
+                content =
+                    result.message.content
+                        .trim()
+                        .removeSurrounding("\""),
+                inputTokens = result.usage.promptTokens,
+                outputTokens = result.usage.completionTokens,
+            )
         }
 
     private fun parseSummary(result: ClovaResult): AISummaryResponse =
         runCatching {
-            val cleanResponse =
-                result.message.content
-                    .replace(Regex("```json"), "")
-                    .replace(Regex("```"), "")
-                    .trim()
+            val cleanResponse = cleanJsonResponse(result.message.content)
 
             logger.debug("회고 요약 토큰 사용량 - promptTokens: ${result.usage.promptTokens}, completionTokens: ${result.usage.completionTokens}")
 
