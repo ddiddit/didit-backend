@@ -1,5 +1,6 @@
 package com.didit.adapter.integration.scheduler
 
+import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.Retrospective
 import org.junit.jupiter.api.extension.ExtendWith
@@ -17,6 +18,9 @@ import kotlin.test.Test
 class CleanupSchedulerTest {
     @Mock
     lateinit var retrospectiveRepository: RetrospectiveRepository
+
+    @Mock
+    lateinit var refreshTokenRepository: RefreshTokenRepository
 
     @InjectMocks
     lateinit var cleanupScheduler: CleanupScheduler
@@ -40,5 +44,15 @@ class CleanupSchedulerTest {
         cleanupScheduler.cleanup()
 
         verify(retrospectiveRepository, never()).delete(any())
+    }
+
+    @Test
+    fun `만료된 리프레시 토큰이 삭제된다`() {
+        whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(emptyList())
+        whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(3)
+
+        cleanupScheduler.cleanup()
+
+        verify(refreshTokenRepository).deleteAllExpiredBefore(any())
     }
 }
