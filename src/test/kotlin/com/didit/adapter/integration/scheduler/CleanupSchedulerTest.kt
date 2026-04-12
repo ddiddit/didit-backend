@@ -63,7 +63,6 @@ class CleanupSchedulerTest {
         cleanupScheduler.cleanup()
 
         val inOrder = inOrder(notificationHistoryRepository, notificationSettingRepository, userRepository)
-
         inOrder.verify(notificationHistoryRepository).deleteAllByUserId(user.id)
         inOrder.verify(notificationSettingRepository).deleteByUserId(user.id)
         inOrder.verify(userRepository).delete(user)
