@@ -7,6 +7,7 @@ import com.didit.application.notification.provided.NotificationSettingFinder
 import com.didit.application.notification.required.DeviceTokenRepository
 import com.didit.domain.notification.NotificationHistoryCreateRequest
 import com.didit.domain.notification.NotificationType
+import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
@@ -30,6 +31,7 @@ class NotificationScheduler(
     }
 
     @Scheduled(cron = "0 */10 * * * *")
+    @Transactional
     fun sendReminderNotifications() {
         val now = LocalTime.now(ZoneId.of("Asia/Seoul")).withSecond(0).withNano(0)
         val settings = notificationSettingFinder.findAllByReminderTime(now)
