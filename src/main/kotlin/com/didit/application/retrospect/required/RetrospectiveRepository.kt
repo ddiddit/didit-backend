@@ -131,4 +131,6 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     ): List<Retrospective>
 
     fun delete(retrospective: Retrospective)
+
+    fun findAllByUserId(userId: UUID): List<Retrospective>
 }
