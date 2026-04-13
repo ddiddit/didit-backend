@@ -140,7 +140,7 @@ class RetrospectQueryService(
         val retrospectTags =
             retrospectTagRepository.findAllByRetrospectiveIdAndIsActiveTrueAndDeletedAtIsNull(retrospectiveId)
 
-        val tagIds = retrospectTags.map { it.id }
+        val tagIds = retrospectTags.map { it.tagId }
 
         val tags =
             if (tagIds.isNotEmpty()) {
