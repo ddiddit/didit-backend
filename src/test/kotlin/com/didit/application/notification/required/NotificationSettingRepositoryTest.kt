@@ -89,4 +89,18 @@ class NotificationSettingRepositoryTest : RepositoryTestSupport() {
         assertThat(found).hasSize(1)
         assertThat(found[0].userId).isEqualTo(userId)
     }
+
+    @Test
+    fun `deleteByUserId - 해당 유저의 알림 설정이 삭제된다`() {
+        val userId = UUID.randomUUID()
+        val otherUserId = UUID.randomUUID()
+
+        notificationSettingRepository.save(NotificationSetting.create(userId))
+        notificationSettingRepository.save(NotificationSetting.create(otherUserId))
+
+        notificationSettingRepository.deleteByUserId(userId)
+
+        assertThat(notificationSettingRepository.findByUserId(userId)).isNull()
+        assertThat(notificationSettingRepository.findByUserId(otherUserId)).isNotNull()
+    }
 }

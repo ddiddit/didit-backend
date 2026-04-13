@@ -113,6 +113,19 @@ class RetrospectService(
         return routeAnswer(retrospective, currentQuestionType).copy(content = content)
     }
 
+    @Transactional
+    override fun transcribeVoiceAnswer(
+        retrospectiveId: UUID,
+        userId: UUID,
+        audioBytes: ByteArray,
+        filename: String,
+    ): String {
+        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
+        validateRetrospectiveInProgress(retrospective, retrospectiveId)
+
+        return transcribe(audioBytes, filename)
+    }
+
     @Async
     @Transactional
     fun generateDeepQuestionAsync(

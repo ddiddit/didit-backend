@@ -204,6 +204,33 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
     }
 
     @Test
+    fun `음성 답변 변환`() {
+        whenever(retrospectiveRegister.transcribeVoiceAnswer(any(), any(), any(), any()))
+            .thenReturn("로그인 API 연동 작업을 했습니다.")
+
+        mockMvc
+            .perform(
+                org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders
+                    .multipart("/api/v1/retrospectives/{retrospectiveId}/answers/voice/transcribe", retrospectiveId)
+                    .file("file", ByteArray(100))
+                    .contentType(MediaType.MULTIPART_FORM_DATA),
+            ).andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/transcribe-voice-answer",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.content").type(JsonFieldType.STRING).description("STT 변환된 텍스트"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
     fun `심화 질문 스킵`() {
         mockMvc
             .perform(post("/api/v1/retrospectives/{retrospectiveId}/skip", retrospectiveId))

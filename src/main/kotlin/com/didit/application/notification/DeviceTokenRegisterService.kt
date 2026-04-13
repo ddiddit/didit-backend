@@ -6,6 +6,7 @@ import com.didit.domain.notification.DeviceToken
 import com.didit.domain.notification.DeviceTokenRegisterRequest
 import com.didit.domain.notification.DeviceType
 import org.slf4j.LoggerFactory
+import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -21,12 +22,16 @@ class DeviceTokenRegisterService(
 
     @Transactional
     override fun register(request: DeviceTokenRegisterRequest) {
-        deviceTokenRepository
-            .findByUserIdAndDeviceType(request.userId, request.deviceType)
-            ?.update(request.token)
-            ?: deviceTokenRepository.save(DeviceToken.register(request))
+        try {
+            deviceTokenRepository
+                .findByUserIdAndDeviceType(request.userId, request.deviceType)
+                ?.update(request.token)
+                ?: deviceTokenRepository.save(DeviceToken.register(request))
 
-        logger.info("기기 토큰 등록 - userId: ${request.userId}, deviceType: ${request.deviceType}")
+            logger.info("기기 토큰 등록 - userId: ${request.userId}, deviceType: ${request.deviceType}")
+        } catch (e: DataIntegrityViolationException) {
+            logger.warn("기기 토큰 중복 삽입 무시 - userId: ${request.userId}, deviceType: ${request.deviceType}")
+        }
     }
 
     @Transactional
