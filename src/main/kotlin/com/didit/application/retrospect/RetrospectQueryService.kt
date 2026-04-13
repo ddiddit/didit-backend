@@ -2,7 +2,10 @@ package com.didit.application.retrospect
 
 import com.didit.application.organization.exception.ProjectNotFoundException
 import com.didit.application.organization.required.ProjectRepository
+import com.didit.application.organization.required.RetrospectTagRepository
+import com.didit.application.organization.required.TagRepository
 import com.didit.application.retrospect.dto.DeepQuestionResponse
+import com.didit.application.retrospect.dto.RetrospectiveDetailResult
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.SearchHistoryRegister
@@ -25,6 +28,8 @@ class RetrospectQueryService(
     private val retrospectiveRepository: RetrospectiveRepository,
     private val searchHistoryRegister: SearchHistoryRegister,
     private val projectRepository: ProjectRepository,
+    private val retrospectTagRepository: RetrospectTagRepository,
+    private val tagRepository: TagRepository,
 ) : RetrospectiveFinder {
     override fun findById(
         retrospectiveId: UUID,
@@ -117,5 +122,37 @@ class RetrospectQueryService(
             ?: throw ProjectNotFoundException(projectId)
 
         return retrospectiveRepository.findAllByUserIdAndProjectId(userId, projectId)
+    }
+
+    override fun findRetrospectWithProjectAndTags(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): RetrospectiveDetailResult {
+        val retrospective =
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId)
+                ?: throw RetrospectiveNotFoundException(retrospectiveId)
+
+        val project =
+            retrospective.projectId?.let { projectId ->
+                projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)
+            }
+
+        val retrospectTags =
+            retrospectTagRepository.findAllByRetrospectiveIdAndIsActiveTrueAndDeletedAtIsNull(retrospectiveId)
+
+        val tagIds = retrospectTags.map { it.id }
+
+        val tags =
+            if (tagIds.isNotEmpty()) {
+                tagRepository.findAllByIdInAndDeletedAtIsNull(tagIds)
+            } else {
+                emptyList()
+            }
+
+        return RetrospectiveDetailResult(
+            retrospective = retrospective,
+            project = project,
+            tags = tags,
+        )
     }
 }

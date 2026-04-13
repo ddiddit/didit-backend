@@ -17,3 +17,26 @@ class ProjectNotFoundException(
         OrganizationErrorCode.PROJECT_NOT_FOUND,
         "projectId:$projectId not found",
     )
+
+class DuplicateTagNameException(
+    userId: UUID,
+    tagName: String,
+) : BusinessException(
+        OrganizationErrorCode.DUPLICATED_TAG_NAME,
+        "userId: $userId, tagName: $tagName",
+    )
+
+class TagNotFoundException(
+    tagId: UUID,
+) : BusinessException(
+        OrganizationErrorCode.TAG_NOT_FOUND,
+        "tagId: $tagId not found",
+    )
+
+class RetroTagNotFoundException(
+    retrospectId: UUID,
+    tagId: UUID,
+) : BusinessException(
+        OrganizationErrorCode.RETRO_TAG_NOT_FOUND,
+        "retrospectId: $retrospectId, tagId: $tagId",
+    )
