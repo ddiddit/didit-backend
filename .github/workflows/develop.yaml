@@ -128,6 +128,7 @@ jobs:
             CLOVA_API_KEY=${{ secrets.CLOVA_API_KEY }}
             CLOVA_SPEECH_INVOKE_URL=${{ secrets.CLOVA_SPEECH_INVOKE_URL }}
             CLOVA_SPEECH_SECRET_KEY=${{ secrets.CLOVA_SPEECH_SECRET_KEY }}
+            RETROSPECTIVE_WHITELIST_EMAILS=${{secrets.RETROSPECITVE_WHITELIST_EMAILS}}
             ENVEOF
 
             echo "DEPLOYER=${{ github.actor }}" >> deploy/dev/.env
