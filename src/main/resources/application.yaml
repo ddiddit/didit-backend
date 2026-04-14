@@ -60,4 +60,4 @@ admin:
     expiry-hours: 48
 
 retrospective:
-  whitelist-emails:${RETROSPECTIVE_WHITELIST_EMAILS}
+  whitelist-emails: ${RETROSPECTIVE_WHITELIST_EMAILS}
