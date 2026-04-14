@@ -17,8 +17,10 @@ import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.required.AIClient
 import com.didit.application.retrospect.required.GeneratedDeepQuestion
+import com.didit.application.retrospect.required.RetrospectivePolicy
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.SpeechClient
+import com.didit.domain.auth.User
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
@@ -36,6 +38,8 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.doReturn
+import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -68,6 +72,9 @@ class RetrospectServiceTest {
     @Mock
     lateinit var projectRepository: ProjectRepository
 
+    @Mock
+    lateinit var retrospectivePolicy: RetrospectivePolicy
+
     private lateinit var retrospectService: RetrospectService
 
     private val userId = UUID.randomUUID()
@@ -85,6 +92,7 @@ class RetrospectServiceTest {
                 eventPublisher = eventPublisher,
                 auditLogger = auditLogger,
                 projectRepository = projectRepository,
+                retrospectivePolicy = retrospectivePolicy,
             )
     }
 
@@ -129,6 +137,13 @@ class RetrospectServiceTest {
 
     @Test
     fun `start - 회고를 시작하고 저장한다`() {
+        val user =
+            mock<User> {
+                on { email } doReturn "test@test.com"
+            }
+
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(retrospectivePolicy.isWhitelisted("test@test.com")).thenReturn(false)
         whenever(retrospectiveFinder.countByUserIdAndDate(any(), any())).thenReturn(0)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
@@ -141,12 +156,43 @@ class RetrospectServiceTest {
 
     @Test
     fun `start - 오늘 3회 이상이면 예외가 발생한다`() {
+        val user =
+            mock<User> {
+                on { email } doReturn "test@test.com"
+            }
+
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(retrospectivePolicy.isWhitelisted("test@test.com")).thenReturn(false)
         whenever(retrospectiveFinder.countByUserIdAndDate(any(), any())).thenReturn(3)
 
         assertThrows<DailyLimitExceededException> {
             retrospectService.start(userId)
         }
         verify(retrospectiveRepository, never()).save(any())
+    }
+
+    @Test
+    fun `start - 화이트리스트 유저는 회고 제한 없이 생성된다`() {
+        val email = "vip@test.com"
+
+        val user =
+            mock<User> {
+                on { this.email } doReturn email
+            }
+
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(retrospectivePolicy.isWhitelisted(email)).thenReturn(true)
+
+        whenever(retrospectiveFinder.countByUserIdAndDate(any(), any())).thenReturn(10) // 제한 초과
+
+        whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        val result = retrospectService.start(userId)
+
+        assertThat(result.userId).isEqualTo(userId)
+        assertThat(result.isPending()).isTrue()
+
+        verify(retrospectiveRepository).save(any())
     }
 
     @Test
@@ -428,7 +474,15 @@ class RetrospectServiceTest {
     @Test
     fun `restart - 기존 회고를 삭제하고 새로 시작한다`() {
         val retro = inProgressRetrospective()
+        val user =
+            mock<User> {
+                on { email } doReturn "test@test.com"
+            }
+
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+
+        whenever(retrospectivePolicy.isWhitelisted("test@test.com")).thenReturn(false)
         whenever(retrospectiveFinder.countByUserIdAndDate(any(), any())).thenReturn(0)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
