@@ -2,7 +2,6 @@ package com.didit.application.organization
 
 import com.didit.application.organization.exception.TagNotFoundException
 import com.didit.application.organization.provided.RetrospectTagFinder
-import com.didit.application.organization.required.RetrospectTagRepository
 import com.didit.application.organization.required.TagRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.Retrospective
@@ -13,7 +12,6 @@ import java.util.UUID
 @Transactional(readOnly = true)
 @Service
 class RetrospectTagQueryService(
-    private val retrospectTagRepository: RetrospectTagRepository,
     private val retrospectiveRepository: RetrospectiveRepository,
     private val tagRepository: TagRepository,
 ) : RetrospectTagFinder {
@@ -22,8 +20,6 @@ class RetrospectTagQueryService(
             tagRepository.findByIdAndDeletedAtIsNull(tagId)
                 ?: throw TagNotFoundException(tagId)
 
-        val retrospectiveIds = retrospectTagRepository.findRetrospectiveIdsByTagIdAndDeletedAtIsNull(tag.id)
-
-        return retrospectiveRepository.findAllByIdInAndDeletedAtIsNull(retrospectiveIds)
+        return retrospectiveRepository.findAllByTagId(tagId)
     }
 }

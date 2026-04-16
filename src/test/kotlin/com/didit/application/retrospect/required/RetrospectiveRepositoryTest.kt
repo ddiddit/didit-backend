@@ -1,5 +1,7 @@
 package com.didit.application.retrospect.required
 
+import com.didit.application.organization.required.RetrospectTagRepository
+import com.didit.domain.organization.RetrospectiveTag
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
@@ -14,6 +16,9 @@ import java.util.UUID
 class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     @Autowired
     lateinit var retrospectiveRepository: RetrospectiveRepository
+
+    @Autowired
+    lateinit var retrospectiveTagRepository: RetrospectTagRepository
 
     private val userId = UUID.randomUUID()
 
@@ -209,5 +214,54 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         val result = retrospectiveRepository.findAllPendingBefore(cutoff)
 
         assertThat(result).isEmpty()
+    }
+
+    @Test
+    fun `findAllByTagId - 태그로 회고 목록을 조회한다`() {
+        val userId = UUID.randomUUID()
+
+        val retro1 =
+            retrospectiveRepository.save(
+                Retrospective.create(userId).apply {
+                    startProgress()
+                    complete("회고1")
+                },
+            )
+
+        val retro2 =
+            retrospectiveRepository.save(
+                Retrospective.create(userId).apply {
+                    startProgress()
+                    complete("회고2")
+                },
+            )
+
+        val retro3 =
+            retrospectiveRepository.save(
+                Retrospective.create(userId).apply {
+                    startProgress()
+                    complete("회고3")
+                },
+            )
+
+        val tagId = UUID.randomUUID()
+
+        val rt1 = RetrospectiveTag.add(retro1.id, tagId)
+        val rt2 = RetrospectiveTag.add(retro2.id, tagId)
+
+        val rtDeleted =
+            RetrospectiveTag.add(retro3.id, tagId).apply {
+                delete()
+            }
+
+        retrospectiveTagRepository.save(rt1)
+        retrospectiveTagRepository.save(rt2)
+        retrospectiveTagRepository.save(rtDeleted)
+
+        val result = retrospectiveRepository.findAllByTagId(tagId)
+
+        assertThat(result).hasSize(2)
+        assertThat(result.map { it.title })
+            .containsExactlyInAnyOrder("회고1", "회고2")
     }
 }
