@@ -7,14 +7,14 @@ import java.util.UUID
 interface RetrospectTagRepository : Repository<RetrospectiveTag, UUID> {
     fun save(retrospectTag: RetrospectiveTag): RetrospectiveTag
 
-    fun countByRetrospectiveIdAndDeletedAtIsNull(retrospectiveId: UUID): Int
-
-    fun existsByRetrospectiveIdAndTagIdAndDeletedAtIsNull(
-        retrospectiveId: UUID,
-        tagId: UUID,
-    ): Boolean
+    fun countByRetrospectiveIdAndIsActiveIsTrue(retrospectiveId: UUID): Int
 
     fun findByRetrospectiveIdAndTagIdAndDeletedAtIsNull(
+        retrospectiveId: UUID,
+        tagId: UUID,
+    ): RetrospectiveTag?
+
+    fun findByRetrospectiveIdAndTagId(
         retrospectiveId: UUID,
         tagId: UUID,
     ): RetrospectiveTag?
