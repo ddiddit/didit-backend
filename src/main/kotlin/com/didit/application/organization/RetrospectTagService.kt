@@ -35,14 +35,22 @@ class RetrospectTagService(
 
         require(tag.userId == userId) { "해당 태그의 권한이 없습니다." }
 
-        val count = retrospectTagRepository.countByRetrospectiveIdAndDeletedAtIsNull(retrospectiveId)
+        val retrospectiveTag = retrospectTagRepository.findByRetrospectiveIdAndTagId(retrospectiveId, tagId)
+
+        if (retrospectiveTag != null && retrospectiveTag.isActive == true) return
+
+        val count = retrospectTagRepository.countByRetrospectiveIdAndIsActiveIsTrue(retrospectiveId)
         require(count < 2) { "태그는 최대 2개까지 추가 가능합니다." }
 
-        val exists = retrospectTagRepository.existsByRetrospectiveIdAndTagIdAndDeletedAtIsNull(retrospectiveId, tagId)
-        require(!exists) { "이미 추가된 태그입니다." }
+        if (retrospectiveTag == null) {
+            retrospectTagRepository.save(
+                RetrospectiveTag.add(retrospectiveId, tagId),
+            )
+        }
 
-        retrospectTagRepository.save(
-            RetrospectiveTag.add(retrospectiveId, tagId),
-        )
+        if (retrospectiveTag != null) {
+            retrospectiveTag.deletedAt = null
+            retrospectiveTag.isActive = true
+        }
     }
 }
