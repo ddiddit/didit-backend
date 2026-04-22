@@ -1,6 +1,7 @@
 package com.didit.application.retrospect.provided
 
 import com.didit.application.retrospect.dto.DeepQuestionResponse
+import com.didit.application.retrospect.dto.RetrospectiveDetailResult
 import com.didit.domain.retrospect.Retrospective
 import java.time.LocalDate
 import java.util.UUID
@@ -50,4 +51,9 @@ interface RetrospectiveFinder {
         userId: UUID,
         projectId: UUID,
     ): List<Retrospective>
+
+    fun findRetrospectWithProjectAndTags(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): RetrospectiveDetailResult
 }

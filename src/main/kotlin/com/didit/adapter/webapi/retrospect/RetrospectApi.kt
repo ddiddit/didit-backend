@@ -3,6 +3,7 @@ package com.didit.adapter.webapi.retrospect
 import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.adapter.webapi.retrospect.dto.AddTagRequest
 import com.didit.adapter.webapi.retrospect.dto.CalendarResponse
 import com.didit.adapter.webapi.retrospect.dto.CompleteRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.DailyRetrospectiveResponse
@@ -17,12 +18,15 @@ import com.didit.adapter.webapi.retrospect.dto.TranscribeVoiceAnswerResponse
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
 import com.didit.application.audit.Audit
 import com.didit.application.audit.AuditAction
+import com.didit.application.organization.provided.RetrospectTagModifier
+import com.didit.application.organization.provided.RetrospectTagRegister
 import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.provided.SearchHistoryFinder
+import com.didit.application.retrospect.provided.SearchHistoryRegister
 import jakarta.validation.constraints.Max
 import jakarta.validation.constraints.Min
 import org.springframework.http.HttpStatus
@@ -49,6 +53,9 @@ class RetrospectApi(
     private val retrospectiveRegister: RetrospectiveRegister,
     private val retrospectiveFinder: RetrospectiveFinder,
     private val searchHistoryFinder: SearchHistoryFinder,
+    private val searchHistoryRegister: SearchHistoryRegister,
+    private val retrospectTagRegister: RetrospectTagRegister,
+    private val retrospectTagModifier: RetrospectTagModifier,
 ) {
     @Audit(AuditAction.RETROSPECTIVE_STARTED)
     @RequireAuth
@@ -266,6 +273,7 @@ class RetrospectApi(
         @CurrentUserId userId: UUID,
         @RequestParam keyword: String,
     ): SuccessResponse<List<RetrospectiveSearchResponse>> {
+        searchHistoryRegister.register(userId, keyword)
         val retrospectives = retrospectiveFinder.searchByTitle(userId, keyword)
 
         return SuccessResponse.of(retrospectives.map { RetrospectiveSearchResponse.from(it) })
@@ -300,5 +308,27 @@ class RetrospectApi(
         @PathVariable retrospectiveId: UUID,
     ) {
         retrospectiveRegister.detachProject(userId, retrospectiveId)
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PostMapping("/{retrospectiveId}/tags")
+    fun addTag(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+        @RequestBody request: AddTagRequest,
+    ) {
+        retrospectTagRegister.addTag(userId, retrospectiveId, request.tagId)
+    }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @DeleteMapping("/{retrospectiveId}/tags/{tagId}")
+    fun removeTag(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+        @PathVariable tagId: UUID,
+    ) {
+        retrospectTagModifier.delete(userId, retrospectiveId, tagId)
     }
 }

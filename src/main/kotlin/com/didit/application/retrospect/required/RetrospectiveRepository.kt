@@ -133,4 +133,18 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     fun delete(retrospective: Retrospective)
 
     fun findAllByUserId(userId: UUID): List<Retrospective>
+
+    fun findAllByIdInAndDeletedAtIsNull(ids: List<UUID>): List<Retrospective>
+
+    @Query(
+        """
+        SELECT r
+        FROM Retrospective r
+        JOIN RetrospectiveTag rt ON rt.retrospectiveId = r.id
+        WHERE rt.tagId = :tagId
+        AND r.deletedAt IS NULL
+        AND rt.deletedAt IS NULL
+    """,
+    )
+    fun findAllByTagId(tagId: UUID): List<Retrospective>
 }

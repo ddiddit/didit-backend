@@ -19,6 +19,7 @@ import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
 import com.didit.application.retrospect.required.AIClient
+import com.didit.application.retrospect.required.RetrospectivePolicy
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.SpeechClient
 import com.didit.domain.retrospect.ChatMessage
@@ -47,6 +48,7 @@ class RetrospectService(
     private val eventPublisher: ApplicationEventPublisher,
     private val auditLogger: AuditLogger,
     private val projectRepository: ProjectRepository,
+    private val retrospectivePolicy: RetrospectivePolicy,
 ) : RetrospectiveRegister {
     companion object {
         private val logger = LoggerFactory.getLogger(RetrospectService::class.java)
@@ -64,9 +66,12 @@ class RetrospectService(
 
     @Transactional
     override fun start(userId: UUID): Retrospective {
+        val user = userFinder.findByIdOrThrow(userId)
+        val isWhiteListed = retrospectivePolicy.isWhitelisted(user.email)
+
         val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())
 
-        if (todayCount >= DAILY_LIMIT) throw DailyLimitExceededException(userId)
+        if (!isWhiteListed && todayCount >= DAILY_LIMIT) throw DailyLimitExceededException(userId)
 
         val retrospective = Retrospective.create(userId)
         retrospective.addMessage(
