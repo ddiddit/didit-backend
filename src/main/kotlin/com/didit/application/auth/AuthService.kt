@@ -82,10 +82,6 @@ class AuthService(
 
         val user = userFinder.findByIdOrThrow(userId)
 
-        user.withdraw()
-
-        userRepository.save(user)
-
         deviceTokenRepository.deleteByUserId(user.id)
 
         refreshTokenRepository.deleteByUserId(userId)
@@ -108,6 +104,7 @@ class AuthService(
                     "reasonDetail" to (reasonDetail ?: ""),
                 ),
         )
+        userRepository.delete(user)
     }
 
     @Transactional
