@@ -17,6 +17,9 @@ import com.didit.application.auth.required.WithdrawalRecordRepository
 import com.didit.application.notification.required.DeviceTokenRepository
 import com.didit.application.notification.required.NotificationHistoryRepository
 import com.didit.application.notification.required.NotificationSettingRepository
+import com.didit.application.organization.required.ProjectRepository
+import com.didit.application.organization.required.RetrospectTagRepository
+import com.didit.application.organization.required.TagRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.RefreshToken
@@ -43,6 +46,9 @@ class AuthService(
     private val notificationHistoryRepository: NotificationHistoryRepository,
     private val notificationSettingRepository: NotificationSettingRepository,
     private val retrospectiveRepository: RetrospectiveRepository,
+    private val projectRepository: ProjectRepository,
+    private val tagRepository: TagRepository,
+    private val retrospectiveTagRepository: RetrospectTagRepository,
 ) : Auth {
     companion object {
         private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -94,6 +100,14 @@ class AuthService(
 
         notificationHistoryRepository.deleteAllByUserId(user.id)
         notificationSettingRepository.deleteByUserId(user.id)
+
+        projectRepository.deleteAllByUserId(user.id)
+        tagRepository.deleteAllByUserId(user.id)
+
+        retrospectiveRepository
+            .findAllByUserId(user.id)
+            .forEach { retrospectiveTagRepository.deleteAllByRetrospectiveId(it.id) }
+
         retrospectiveRepository
             .findAllByUserId(user.id)
             .forEach { retrospectiveRepository.delete(it) }
