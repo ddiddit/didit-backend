@@ -134,6 +134,13 @@ class ProjectRepositoryTest {
         assertEquals(null, result)
     }
 
+    @Test
+    fun `deleteAllByUserId`() {
+        projectRepository.deleteAllByUserId(userId)
+
+        verify(projectRepository).deleteAllByUserId(userId)
+    }
+
     private fun createProject(): Project =
         Project.create(
             userId = userId,

@@ -15,6 +15,12 @@ import com.didit.application.auth.required.TokenProvider
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.auth.required.WithdrawalRecordRepository
 import com.didit.application.notification.required.DeviceTokenRepository
+import com.didit.application.notification.required.NotificationHistoryRepository
+import com.didit.application.notification.required.NotificationSettingRepository
+import com.didit.application.organization.required.ProjectRepository
+import com.didit.application.organization.required.RetrospectTagRepository
+import com.didit.application.organization.required.TagRepository
+import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.RefreshToken
 import com.didit.domain.auth.User
@@ -37,6 +43,12 @@ class AuthService(
     private val withdrawalRecordRepository: WithdrawalRecordRepository,
     private val auditLogger: AuditLogger,
     private val deviceTokenRepository: DeviceTokenRepository,
+    private val notificationHistoryRepository: NotificationHistoryRepository,
+    private val notificationSettingRepository: NotificationSettingRepository,
+    private val retrospectiveRepository: RetrospectiveRepository,
+    private val projectRepository: ProjectRepository,
+    private val tagRepository: TagRepository,
+    private val retrospectiveTagRepository: RetrospectTagRepository,
 ) : Auth {
     companion object {
         private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -82,13 +94,23 @@ class AuthService(
 
         val user = userFinder.findByIdOrThrow(userId)
 
-        user.withdraw()
-
-        userRepository.save(user)
-
         deviceTokenRepository.deleteByUserId(user.id)
 
         refreshTokenRepository.deleteByUserId(userId)
+
+        notificationHistoryRepository.deleteAllByUserId(user.id)
+        notificationSettingRepository.deleteByUserId(user.id)
+
+        projectRepository.deleteAllByUserId(user.id)
+        tagRepository.deleteAllByUserId(user.id)
+
+        retrospectiveRepository
+            .findAllByUserId(user.id)
+            .forEach { retrospectiveTagRepository.deleteAllByRetrospectiveId(it.id) }
+
+        retrospectiveRepository
+            .findAllByUserId(user.id)
+            .forEach { retrospectiveRepository.delete(it) }
 
         withdrawalRecordRepository.save(
             WithdrawalRecord.create(
@@ -108,6 +130,7 @@ class AuthService(
                     "reasonDetail" to (reasonDetail ?: ""),
                 ),
         )
+        userRepository.delete(user)
     }
 
     @Transactional
