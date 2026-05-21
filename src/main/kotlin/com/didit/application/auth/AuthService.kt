@@ -141,9 +141,10 @@ class AuthService(
             return it to false
         }
         userRepository.findByProviderAndProviderIdAndDeletedAtIsNotNull(provider, providerId)?.let { withdrawn ->
-            withdrawn.anonymize()
-            withdrawn.rejoin()
-            return userRepository.save(withdrawn) to false
+            if (!withdrawn.isAnonymized) {
+                withdrawn.anonymize()
+                userRepository.save(withdrawn)
+            }
         }
         return createNewUser(provider, providerId, email) to true
     }
