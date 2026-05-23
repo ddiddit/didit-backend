@@ -122,7 +122,7 @@ upstream didit-api {
     server 127.0.0.1:${NEXT_PORT};
 }
 EOF
-nginx -s reload
+sudo nginx -s reload
 echo -e "${GREEN}[SUCCESS] Nginx upstream 전환 완료${NC}"
 
 echo -e "${YELLOW}[8/8] 이전 컨테이너($CURRENT) 종료 및 정리${NC}"
