@@ -32,6 +32,10 @@ interface UserRepository : Repository<User, UUID> {
         providerId: String,
     ): User?
 
+    fun findAllByDeletedAtIsNullAndEmailIsNotNull(): List<User>
+
+    fun findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(ids: List<UUID>): List<User>
+
     @Query("SELECT u FROM User u WHERE u.deletedAt < :cutoff")
     fun findAllWithdrawnBefore(
         @Param("cutoff") cutoff: LocalDateTime,
