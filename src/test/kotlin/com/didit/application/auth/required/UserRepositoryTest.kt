@@ -176,4 +176,29 @@ class UserRepositoryTest : RepositoryTestSupport() {
 
         assertThat(result).isEmpty()
     }
+
+    @Test
+    fun `findAllByDeletedAtIsNullAndEmailIsNotNull - no withdraw and exist email`() {
+        val activeWithEmail = userRepository.save(UserFixture.create(providerId = "kakao-1", email = "a@test.com"))
+        userRepository.save(UserFixture.create(providerId = "kakao-2", email = null))
+        userRepository.save(UserFixture.create(providerId = "kakao-3", email = "deleted@test.com").apply { withdraw() })
+
+        val result = userRepository.findAllByDeletedAtIsNullAndEmailIsNotNull()
+
+        assertThat(result).extracting("id").containsExactly(activeWithEmail.id)
+    }
+
+    @Test
+    fun `findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull - select only active email users`() {
+        val selected = userRepository.save(UserFixture.create(providerId = "kakao-1", email = "a@test.com"))
+        val noEmail = userRepository.save(UserFixture.create(providerId = "kakao-2", email = null))
+        val deleted = userRepository.save(UserFixture.create(providerId = "kakao-3", email = "deleted@test.com").apply { withdraw() })
+
+        val result =
+            userRepository.findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(
+                listOf(selected.id, noEmail.id, deleted.id),
+            )
+
+        assertThat(result).extracting("id").containsExactly(selected.id)
+    }
 }
