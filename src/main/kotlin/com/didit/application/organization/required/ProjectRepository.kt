@@ -49,6 +49,6 @@ interface ProjectRepository : Repository<Project, UUID> {
     fun findMaxDisplayOrder(userId: UUID): Int?
 
     @Modifying
-    @Query("DELETE FROM Tag t WHERE t.userId = :userId")
+    @Query("DELETE FROM Project t WHERE t.userId = :userId")
     fun deleteAllByUserId(userId: UUID)
 }
