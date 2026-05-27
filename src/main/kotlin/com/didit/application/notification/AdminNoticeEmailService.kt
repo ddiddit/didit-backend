@@ -24,13 +24,14 @@ class AdminNoticeEmailService(
     }
 
     override fun send(request: AdminNoticeEmailSendRequest) {
-        val users = when (request.targetType) {
-            AdminNoticeEmailTargetType.ALL ->
-                userRepository.findAllByDeletedAtIsNullAndEmailIsNotNull()
+        val users =
+            when (request.targetType) {
+                AdminNoticeEmailTargetType.ALL ->
+                    userRepository.findAllByDeletedAtIsNullAndEmailIsNotNull()
 
-            AdminNoticeEmailTargetType.SELECTED_USERS ->
-                userRepository.findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(request.userIds)
-        }
+                AdminNoticeEmailTargetType.SELECTED_USERS ->
+                    userRepository.findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(request.userIds)
+            }
 
         var sentCount = 0
         var failedCount = 0
@@ -50,7 +51,9 @@ class AdminNoticeEmailService(
             }
         }
 
-        logger.info("어드민 공지 이메일 발송 완료 - adminId: ${request.adminId}, targetType: ${request.targetType}, targetCount: ${users.size}, sentCount: $sentCount, failedCount: $failedCount")
+        logger.info(
+            "어드민 공지 이메일 발송 완료 - adminId: ${request.adminId}, targetType: ${request.targetType}, targetCount: ${users.size}, sentCount: $sentCount, failedCount: $failedCount",
+        )
 
         auditLogger.log(
             actorId = request.adminId,

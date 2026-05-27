@@ -18,7 +18,6 @@ import java.util.UUID
 class AdminNoticeEmailApi(
     private val adminNoticeEmailSender: AdminNoticeEmailSender,
 ) {
-
     @RequireSuperAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping
@@ -33,7 +32,7 @@ class AdminNoticeEmailApi(
                 userIds = request.userIds,
                 subject = request.subject,
                 body = request.body,
-            )
+            ),
         )
     }
 }
