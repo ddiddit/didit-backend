@@ -2,10 +2,9 @@ package com.didit.adapter.integration.scheduler
 
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
-import com.didit.application.notification.required.NotificationHistoryRepository
-import com.didit.application.notification.required.NotificationSettingRepository
-import com.didit.application.organization.required.ProjectRepository
-import com.didit.application.organization.required.TagRepository
+import com.didit.application.notification.provided.NotificationDeletionPort
+import com.didit.application.organization.provided.OrganizationDeletionPort
+import com.didit.application.retrospect.provided.RetrospectDeletionPort
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.Retrospective
 import com.didit.support.UserFixture
@@ -32,16 +31,13 @@ class CleanupSchedulerTest {
     lateinit var userRepository: UserRepository
 
     @Mock
-    lateinit var notificationHistoryRepository: NotificationHistoryRepository
+    lateinit var projectDeletionPort: OrganizationDeletionPort
 
     @Mock
-    lateinit var notificationSettingRepository: NotificationSettingRepository
+    lateinit var notificationDeletionPort: NotificationDeletionPort
 
     @Mock
-    lateinit var projectRepository: ProjectRepository
-
-    @Mock
-    lateinit var tagRepository: TagRepository
+    lateinit var retrospectDeletionPort: RetrospectDeletionPort
 
     @InjectMocks
     lateinit var cleanupScheduler: CleanupScheduler
@@ -99,23 +95,20 @@ class CleanupSchedulerTest {
         whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(0)
         whenever(userRepository.findAllWithdrawnAndNotAnonymizedBefore(any())).thenReturn(emptyList())
         whenever(userRepository.findAllWithdrawnAndAnonymizedBefore(any())).thenReturn(listOf(user))
-        whenever(retrospectiveRepository.findAllByUserId(user.id)).thenReturn(emptyList())
 
         cleanupScheduler.cleanup()
 
         val inOrder =
             inOrder(
-                notificationHistoryRepository,
-                notificationSettingRepository,
-                projectRepository,
-                tagRepository,
+                projectDeletionPort,
+                notificationDeletionPort,
+                retrospectDeletionPort,
                 userRepository,
             )
 
-        inOrder.verify(notificationHistoryRepository).deleteAllByUserId(user.id)
-        inOrder.verify(notificationSettingRepository).deleteByUserId(user.id)
-        inOrder.verify(projectRepository).deleteAllByUserId(user.id)
-        inOrder.verify(tagRepository).deleteAllByUserId(user.id)
+        inOrder.verify(projectDeletionPort).deleteByUserId(user.id)
+        inOrder.verify(notificationDeletionPort).deleteByUserId(user.id)
+        inOrder.verify(retrospectDeletionPort).deleteByUserId(user.id)
         inOrder.verify(userRepository).delete(user)
     }
 }

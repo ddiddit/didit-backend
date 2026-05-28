@@ -2,10 +2,9 @@ package com.didit.adapter.integration.scheduler
 
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
-import com.didit.application.notification.required.NotificationHistoryRepository
-import com.didit.application.notification.required.NotificationSettingRepository
-import com.didit.application.organization.required.ProjectRepository
-import com.didit.application.organization.required.TagRepository
+import com.didit.application.notification.provided.NotificationDeletionPort
+import com.didit.application.organization.provided.OrganizationDeletionPort
+import com.didit.application.retrospect.provided.RetrospectDeletionPort
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
@@ -18,10 +17,9 @@ class CleanupScheduler(
     private val retrospectiveRepository: RetrospectiveRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userRepository: UserRepository,
-    private val notificationHistoryRepository: NotificationHistoryRepository,
-    private val notificationSettingRepository: NotificationSettingRepository,
-    private val projectRepository: ProjectRepository,
-    private val tagRepository: TagRepository,
+    private val projectDeletionPort: OrganizationDeletionPort,
+    private val notificationDeletionPort: NotificationDeletionPort,
+    private val retrospectDeletionPort: RetrospectDeletionPort,
 ) {
     companion object {
         private val logger = LoggerFactory.getLogger(CleanupScheduler::class.java)
@@ -73,13 +71,9 @@ class CleanupScheduler(
         val targets = userRepository.findAllWithdrawnAndAnonymizedBefore(cutoff)
 
         targets.forEach { user ->
-            notificationHistoryRepository.deleteAllByUserId(user.id)
-            notificationSettingRepository.deleteByUserId(user.id)
-            retrospectiveRepository
-                .findAllByUserId(user.id)
-                .forEach { retrospectiveRepository.delete(it) }
-            projectRepository.deleteAllByUserId(user.id)
-            tagRepository.deleteAllByUserId(user.id)
+            projectDeletionPort.deleteByUserId(user.id)
+            notificationDeletionPort.deleteByUserId(user.id)
+            retrospectDeletionPort.deleteByUserId(user.id)
             userRepository.delete(user)
         }
         logger.info("탈퇴 유저 완전 삭제 - count: ${targets.size}")
