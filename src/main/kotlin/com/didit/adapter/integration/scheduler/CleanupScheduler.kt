@@ -4,6 +4,8 @@ import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.notification.required.NotificationHistoryRepository
 import com.didit.application.notification.required.NotificationSettingRepository
+import com.didit.application.organization.required.ProjectRepository
+import com.didit.application.organization.required.TagRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
@@ -18,6 +20,8 @@ class CleanupScheduler(
     private val userRepository: UserRepository,
     private val notificationHistoryRepository: NotificationHistoryRepository,
     private val notificationSettingRepository: NotificationSettingRepository,
+    private val projectRepository: ProjectRepository,
+    private val tagRepository: TagRepository,
 ) {
     companion object {
         private val logger = LoggerFactory.getLogger(CleanupScheduler::class.java)
@@ -48,8 +52,25 @@ class CleanupScheduler(
     }
 
     private fun cleanWithdrawnUsers() {
+        anonymizeWithdrawnUsers()
+        deleteWithdrawnUsers()
+    }
+
+    private fun anonymizeWithdrawnUsers() {
         val cutoff = LocalDateTime.now().minusDays(30)
-        val targets = userRepository.findAllWithdrawnBefore(cutoff)
+        val targets = userRepository.findAllWithdrawnAndNotAnonymizedBefore(cutoff)
+
+        targets.forEach { user ->
+            user.anonymize()
+            userRepository.save(user)
+        }
+
+        logger.info("탈퇴 유저 익명화 - count: ${targets.size}")
+    }
+
+    private fun deleteWithdrawnUsers() {
+        val cutoff = LocalDateTime.now().minusDays(90)
+        val targets = userRepository.findAllWithdrawnAndAnonymizedBefore(cutoff)
 
         targets.forEach { user ->
             notificationHistoryRepository.deleteAllByUserId(user.id)
@@ -57,9 +78,10 @@ class CleanupScheduler(
             retrospectiveRepository
                 .findAllByUserId(user.id)
                 .forEach { retrospectiveRepository.delete(it) }
+            projectRepository.deleteAllByUserId(user.id)
+            tagRepository.deleteAllByUserId(user.id)
             userRepository.delete(user)
         }
-
-        logger.info("탈퇴 유저 삭제 - count: ${targets.size}")
+        logger.info("탈퇴 유저 완전 삭제 - count: ${targets.size}")
     }
 }

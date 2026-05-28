@@ -37,5 +37,15 @@ interface UserRepository : Repository<User, UUID> {
         @Param("cutoff") cutoff: LocalDateTime,
     ): List<User>
 
+    @Query("SELECT u FROM User u WHERE u.deletedAt < :cutoff AND u.providerId IS NOT NULL")
+    fun findAllWithdrawnAndNotAnonymizedBefore(
+        @Param("cutoff") cutoff: LocalDateTime,
+    ): List<User>
+
+    @Query("SELECT u FROM User u WHERE u.deletedAt < :cutoff AND u.providerId IS NULL")
+    fun findAllWithdrawnAndAnonymizedBefore(
+        @Param("cutoff") cutoff: LocalDateTime,
+    ): List<User>
+
     fun delete(user: User)
 }
