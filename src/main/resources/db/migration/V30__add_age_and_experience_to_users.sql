@@ -1,0 +1,3 @@
+ALTER TABLE users
+    ADD COLUMN age VARCHAR(20),
+    ADD COLUMN experience VARCHAR(20);
