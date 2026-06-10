@@ -1,0 +1,13 @@
+= 관리자 메일 발송 API
+
+== 메일 발송
+
+=== Request
+
+include::{snippets}/admin-notice-email/send/http-request.adoc[]
+include::{snippets}/admin-notice-email/send/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/admin-notice-email/send/http-response.adoc[]
+
