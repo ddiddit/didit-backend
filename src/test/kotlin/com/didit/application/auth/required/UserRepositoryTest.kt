@@ -121,10 +121,58 @@ class UserRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `findAllWithdrawnBefore - 탈퇴하지 않은 유저는 제외된다`() {
+    fun `findAllWithdrawnAndNotAnonymizedBefore - 익명화되지 않은 탈퇴 유저만 반환한다`() {
+        val withdrawn = userRepository.save(UserFixture.create().apply { withdraw() })
+
+        userRepository.save(UserFixture.create(providerId = "kakao-9999"))
+
+        val anonymized =
+            userRepository.save(
+                UserFixture.create(providerId = "kakao-1111").apply {
+                    withdraw()
+                    anonymize()
+                },
+            )
+
+        val result = userRepository.findAllWithdrawnAndNotAnonymizedBefore(LocalDateTime.now().plusDays(1))
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].id).isEqualTo(withdrawn.id)
+        assertThat(result).doesNotContain(anonymized)
+    }
+
+    @Test
+    fun `findAllWithdrawnAndNotAnonymizedBefore - cutoff 이후 탈퇴 유저는 제외된다`() {
+        userRepository.save(UserFixture.create().apply { withdraw() })
+
+        val result = userRepository.findAllWithdrawnAndNotAnonymizedBefore(LocalDateTime.now().minusDays(1))
+
+        assertThat(result).isEmpty()
+    }
+
+    @Test
+    fun `findAllWithdrawnAndAnonymizedBefore - 익명화된 탈퇴 유저만 반환한다`() {
+        val anonymized =
+            userRepository.save(
+                UserFixture.create().apply {
+                    withdraw()
+                    anonymize()
+                },
+            )
+
+        userRepository.save(UserFixture.create(providerId = "kakao-9999").apply { withdraw() })
+
+        val result = userRepository.findAllWithdrawnAndAnonymizedBefore(LocalDateTime.now().plusDays(1))
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].id).isEqualTo(anonymized.id)
+    }
+
+    @Test
+    fun `findAllWithdrawnAndAnonymizedBefore - 탈퇴하지 않은 유저는 제외된다`() {
         userRepository.save(UserFixture.create())
 
-        val result = userRepository.findAllWithdrawnBefore(LocalDateTime.now().plusDays(1))
+        val result = userRepository.findAllWithdrawnAndAnonymizedBefore(LocalDateTime.now().plusDays(1))
 
         assertThat(result).isEmpty()
     }

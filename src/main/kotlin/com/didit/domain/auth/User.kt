@@ -18,7 +18,7 @@ import java.util.UUID
 
 @Table(
     name = "users",
-    uniqueConstraints = [UniqueConstraint(columnNames = ["provider", "provider_id"])],
+    uniqueConstraints = [UniqueConstraint(columnNames = ["provider", "provider_id", "deleted_at"])],
 )
 @Entity
 class User(
@@ -35,8 +35,8 @@ class User(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     val provider: Provider,
-    @Column(nullable = false)
-    var providerId: String,
+    @Column(nullable = true)
+    var providerId: String?,
     @Column(name = "onboarding_completed_at")
     var onboardingCompletedAt: LocalDateTime? = null,
     @Column(name = "deleted_at")
@@ -49,12 +49,11 @@ class User(
     val isDeleted: Boolean get() = deletedAt != null
     val isOnboardingCompleted: Boolean get() = onboardingCompletedAt != null
     val marketingAgreed: Boolean get() = checkNotNull(consent) { "동의 정보가 존재하지 않습니다." }.marketingAgreed
+    val isAnonymized: Boolean get() = providerId == null
 
     fun withdraw(now: LocalDateTime = LocalDateTime.now()) {
         check(!isDeleted) { "이미 탈퇴한 회원입니다." }
         deletedAt = now
-
-        providerId = "${providerId}_${UUID.randomUUID()}"
     }
 
     fun completeOnboarding(
@@ -78,6 +77,15 @@ class User(
 
         this.nickname = nickname
         this.job = job
+    }
+
+    fun anonymize() {
+        check(isDeleted) { "탈퇴하지 않은 회원입니다." }
+        if (isAnonymized) return
+
+        email = "deleted_$id"
+        nickname = "탈퇴한 사용자"
+        providerId = null
     }
 
     fun rejoin(now: LocalDateTime = LocalDateTime.now()) {

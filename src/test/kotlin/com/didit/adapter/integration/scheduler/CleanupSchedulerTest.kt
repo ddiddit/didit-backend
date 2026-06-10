@@ -2,8 +2,9 @@ package com.didit.adapter.integration.scheduler
 
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
-import com.didit.application.notification.required.NotificationHistoryRepository
-import com.didit.application.notification.required.NotificationSettingRepository
+import com.didit.application.notification.provided.NotificationDeletionPort
+import com.didit.application.organization.provided.OrganizationDeletionPort
+import com.didit.application.retrospect.provided.RetrospectDeletionPort
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.Retrospective
 import com.didit.support.UserFixture
@@ -30,10 +31,13 @@ class CleanupSchedulerTest {
     lateinit var userRepository: UserRepository
 
     @Mock
-    lateinit var notificationHistoryRepository: NotificationHistoryRepository
+    lateinit var projectDeletionPort: OrganizationDeletionPort
 
     @Mock
-    lateinit var notificationSettingRepository: NotificationSettingRepository
+    lateinit var notificationDeletionPort: NotificationDeletionPort
+
+    @Mock
+    lateinit var retrospectDeletionPort: RetrospectDeletionPort
 
     @InjectMocks
     lateinit var cleanupScheduler: CleanupScheduler
@@ -44,7 +48,8 @@ class CleanupSchedulerTest {
         val retro2 = Retrospective.create(UUID.randomUUID())
         whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(listOf(retro1, retro2))
         whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(0)
-        whenever(userRepository.findAllWithdrawnBefore(any())).thenReturn(emptyList())
+        whenever(userRepository.findAllWithdrawnAndNotAnonymizedBefore(any())).thenReturn(emptyList())
+        whenever(userRepository.findAllWithdrawnAndAnonymizedBefore(any())).thenReturn(emptyList())
 
         cleanupScheduler.cleanup()
 
@@ -53,29 +58,57 @@ class CleanupSchedulerTest {
     }
 
     @Test
-    fun `탈퇴 유저의 관련 데이터가 순서대로 삭제된다`() {
-        val user = UserFixture.create().apply { withdraw() }
-        whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(emptyList())
-        whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(0)
-        whenever(userRepository.findAllWithdrawnBefore(any())).thenReturn(listOf(user))
-        whenever(retrospectiveRepository.findAllByUserId(user.id)).thenReturn(emptyList())
-
-        cleanupScheduler.cleanup()
-
-        val inOrder = inOrder(notificationHistoryRepository, notificationSettingRepository, userRepository)
-        inOrder.verify(notificationHistoryRepository).deleteAllByUserId(user.id)
-        inOrder.verify(notificationSettingRepository).deleteByUserId(user.id)
-        inOrder.verify(userRepository).delete(user)
-    }
-
-    @Test
     fun `만료된 리프레시 토큰이 삭제된다`() {
         whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(emptyList())
         whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(3)
-        whenever(userRepository.findAllWithdrawnBefore(any())).thenReturn(emptyList())
+        whenever(userRepository.findAllWithdrawnAndNotAnonymizedBefore(any())).thenReturn(emptyList())
+        whenever(userRepository.findAllWithdrawnAndAnonymizedBefore(any())).thenReturn(emptyList())
 
         cleanupScheduler.cleanup()
 
         verify(refreshTokenRepository).deleteAllExpiredBefore(any())
+    }
+
+    @Test
+    fun `30일 지난 탈퇴 유저는 익명화된다`() {
+        val user = UserFixture.create().apply { withdraw() }
+
+        whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(emptyList())
+        whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(0)
+        whenever(userRepository.findAllWithdrawnAndNotAnonymizedBefore(any())).thenReturn(listOf(user))
+        whenever(userRepository.findAllWithdrawnAndAnonymizedBefore(any())).thenReturn(emptyList())
+
+        cleanupScheduler.cleanup()
+
+        verify(userRepository).save(user)
+    }
+
+    @Test
+    fun `90일 지난 탈퇴 유저의 관련 데이터가 순서대로 삭제된다`() {
+        val user =
+            UserFixture.create().apply {
+                withdraw()
+                anonymize()
+            }
+
+        whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(emptyList())
+        whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(0)
+        whenever(userRepository.findAllWithdrawnAndNotAnonymizedBefore(any())).thenReturn(emptyList())
+        whenever(userRepository.findAllWithdrawnAndAnonymizedBefore(any())).thenReturn(listOf(user))
+
+        cleanupScheduler.cleanup()
+
+        val inOrder =
+            inOrder(
+                projectDeletionPort,
+                notificationDeletionPort,
+                retrospectDeletionPort,
+                userRepository,
+            )
+
+        inOrder.verify(projectDeletionPort).deleteByUserId(user.id)
+        inOrder.verify(notificationDeletionPort).deleteByUserId(user.id)
+        inOrder.verify(retrospectDeletionPort).deleteByUserId(user.id)
+        inOrder.verify(userRepository).delete(user)
     }
 }

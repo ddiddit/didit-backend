@@ -1,6 +1,7 @@
 package com.didit.application.organization.required
 
 import com.didit.domain.organization.Project
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.Repository
 import java.util.UUID
@@ -46,4 +47,8 @@ interface ProjectRepository : Repository<Project, UUID> {
     """,
     )
     fun findMaxDisplayOrder(userId: UUID): Int?
+
+    @Modifying
+    @Query("DELETE FROM Project t WHERE t.userId = :userId")
+    fun deleteAllByUserId(userId: UUID)
 }
