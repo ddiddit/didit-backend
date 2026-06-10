@@ -33,6 +33,12 @@ class User(
     @Column(length = 20)
     var job: Job? = null,
     @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    var age: UserAge? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    var experience: UserExperience? = null,
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     val provider: Provider,
     @Column(nullable = true)
@@ -69,6 +75,23 @@ class User(
         this.onboardingCompletedAt = now
     }
 
+    fun completeOnboardingV2(
+        nickname: String,
+        job: Job,
+        age: UserAge?,
+        experience: UserExperience?,
+        now: LocalDateTime = LocalDateTime.now(),
+    ) {
+        check(!isOnboardingCompleted) { "이미 온보딩이 완료된 회원입니다." }
+        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문, 숫자만 가능합니다." }
+
+        this.nickname = nickname
+        this.job = job
+        this.age = age
+        this.experience = experience
+        this.onboardingCompletedAt = now
+    }
+
     fun updateProfile(
         nickname: String,
         job: Job?,
@@ -77,6 +100,20 @@ class User(
 
         this.nickname = nickname
         this.job = job
+    }
+
+    fun updateProfileV2(
+        nickname: String,
+        job: Job?,
+        age: UserAge?,
+        experience: UserExperience?,
+    ) {
+        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문, 숫자만 가능합니다." }
+
+        this.nickname = nickname
+        this.job = job
+        this.age = age
+        this.experience = experience
     }
 
     fun anonymize() {
