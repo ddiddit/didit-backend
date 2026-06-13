@@ -21,8 +21,8 @@ class InquiryModifierService(
     companion object {
         private val logger = LoggerFactory.getLogger(InquiryModifierService::class.java)
 
-        const val INQUIRY_ANSWERED_TITLE = "문의 답변 도착"
-        const val INQUIRY_ANSWERED_BODY = "문의하신 내용에 답변이 등록되었어요. 확인해 보세요."
+        const val INQUIRY_ANSWERED_TITLE = "문의 답변 알림"
+        const val INQUIRY_ANSWERED_BODY = "문의하신 내용에 답변이 등록되었어요. 지금 확인해 보세요."
     }
 
     @Transactional
