@@ -8,6 +8,8 @@ import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.notification.provided.NotificationSettingModifier
+import com.didit.domain.auth.UserAge
+import com.didit.domain.auth.UserExperience
 import com.didit.domain.shared.Job
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -50,6 +52,31 @@ class UserRegisterService(
     }
 
     @Transactional
+    override fun registerV2(
+        userId: UUID,
+        nickname: String,
+        job: Job,
+        age: UserAge?,
+        experience: UserExperience?,
+        marketingAgreed: Boolean,
+        nightPushAgreed: Boolean,
+    ) {
+        if (userRepository.existsByNicknameAndDeletedAtIsNull(nickname)) throw DuplicateNicknameException()
+
+        val user = userFinder.findByIdOrThrow(userId)
+
+        user.completeOnboardingV2(nickname = nickname, job = job, age = age, experience = experience)
+
+        user.createConsent(marketingAgreed = marketingAgreed)
+
+        userRepository.save(user)
+
+        notificationSettingModifier.updateNightPushConsent(userId, nightPushAgreed)
+
+        logger.info("온보딩 완료 - userId: $userId, nickname: $nickname, job: $job, age: $age, experience: $experience")
+    }
+
+    @Transactional
     override fun updateProfile(
         userId: UUID,
         nickname: String,
@@ -80,6 +107,44 @@ class UserRegisterService(
                     "nickname" to nickname,
                     "job" to job.name,
                 ),
+        )
+    }
+
+    @Transactional
+    override fun updateProfileV2(
+        userId: UUID,
+        nickname: String,
+        job: Job,
+        age: UserAge?,
+        experience: UserExperience?,
+    ) {
+        if (userRepository.existsByNicknameAndIdNotAndDeletedAtIsNull(
+                nickname,
+                userId,
+            )
+        ) {
+            throw DuplicateNicknameException()
+        }
+
+        val user = userFinder.findByIdOrThrow(userId)
+
+        user.updateProfileV2(nickname = nickname, job = job, age = age, experience = experience)
+
+        userRepository.save(user)
+
+        logger.info("프로필 수정 - userId: $userId, nickname: $nickname, job: $job")
+
+        auditLogger.log(
+            actorId = userId,
+            actorType = ActorType.USER,
+            action = AuditAction.USER_PROFILE_UPDATED,
+            payload =
+                mapOf(
+                    "nickname" to nickname,
+                    "job" to job.name,
+                    "age" to age?.name,
+                    "experience" to experience?.name,
+                ) as Map<String, Any>,
         )
     }
 

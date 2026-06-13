@@ -83,7 +83,6 @@ class AuthService(
         val user = userFinder.findByIdOrThrow(userId)
 
         user.withdraw()
-
         userRepository.save(user)
 
         deviceTokenRepository.deleteByUserId(user.id)
@@ -138,11 +137,16 @@ class AuthService(
         providerId: String,
         email: String?,
     ): Pair<User, Boolean> {
-        val existingUser =
-            userRepository.findByProviderAndProviderId(provider, providerId)
-                ?: return createNewUser(provider, providerId, email) to true
-
-        return existingUser to false
+        userRepository.findByProviderAndProviderId(provider, providerId)?.let {
+            return it to false
+        }
+        userRepository.findByProviderAndProviderIdAndDeletedAtIsNotNull(provider, providerId)?.let { withdrawn ->
+            if (!withdrawn.isAnonymized) {
+                withdrawn.anonymize()
+                userRepository.save(withdrawn)
+            }
+        }
+        return createNewUser(provider, providerId, email) to true
     }
 
     private fun createNewUser(

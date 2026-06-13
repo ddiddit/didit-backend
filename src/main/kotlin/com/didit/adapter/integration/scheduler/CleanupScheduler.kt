@@ -2,8 +2,9 @@ package com.didit.adapter.integration.scheduler
 
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
-import com.didit.application.notification.required.NotificationHistoryRepository
-import com.didit.application.notification.required.NotificationSettingRepository
+import com.didit.application.notification.provided.NotificationDeletionPort
+import com.didit.application.organization.provided.OrganizationDeletionPort
+import com.didit.application.retrospect.provided.RetrospectDeletionPort
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
@@ -16,8 +17,9 @@ class CleanupScheduler(
     private val retrospectiveRepository: RetrospectiveRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userRepository: UserRepository,
-    private val notificationHistoryRepository: NotificationHistoryRepository,
-    private val notificationSettingRepository: NotificationSettingRepository,
+    private val projectDeletionPort: OrganizationDeletionPort,
+    private val notificationDeletionPort: NotificationDeletionPort,
+    private val retrospectDeletionPort: RetrospectDeletionPort,
 ) {
     companion object {
         private val logger = LoggerFactory.getLogger(CleanupScheduler::class.java)
@@ -48,18 +50,32 @@ class CleanupScheduler(
     }
 
     private fun cleanWithdrawnUsers() {
+        anonymizeWithdrawnUsers()
+        deleteWithdrawnUsers()
+    }
+
+    private fun anonymizeWithdrawnUsers() {
         val cutoff = LocalDateTime.now().minusDays(30)
-        val targets = userRepository.findAllWithdrawnBefore(cutoff)
+        val targets = userRepository.findAllWithdrawnAndNotAnonymizedBefore(cutoff)
 
         targets.forEach { user ->
-            notificationHistoryRepository.deleteAllByUserId(user.id)
-            notificationSettingRepository.deleteByUserId(user.id)
-            retrospectiveRepository
-                .findAllByUserId(user.id)
-                .forEach { retrospectiveRepository.delete(it) }
-            userRepository.delete(user)
+            user.anonymize()
+            userRepository.save(user)
         }
 
-        logger.info("탈퇴 유저 삭제 - count: ${targets.size}")
+        logger.info("탈퇴 유저 익명화 - count: ${targets.size}")
+    }
+
+    private fun deleteWithdrawnUsers() {
+        val cutoff = LocalDateTime.now().minusDays(90)
+        val targets = userRepository.findAllWithdrawnAndAnonymizedBefore(cutoff)
+
+        targets.forEach { user ->
+            projectDeletionPort.deleteByUserId(user.id)
+            notificationDeletionPort.deleteByUserId(user.id)
+            retrospectDeletionPort.deleteByUserId(user.id)
+            userRepository.delete(user)
+        }
+        logger.info("탈퇴 유저 완전 삭제 - count: ${targets.size}")
     }
 }

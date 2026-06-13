@@ -73,5 +73,12 @@ class TagRepositoryTest {
         assertEquals(tag, result)
     }
 
+    @Test
+    fun `deleteAllByUserId`() {
+        tagRepository.deleteAllByUserId(userId)
+
+        verify(tagRepository).deleteAllByUserId(userId)
+    }
+
     private fun createTag(): Tag = Tag.create(userId = userId, name = "테스트 태그")
 }

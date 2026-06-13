@@ -20,13 +20,34 @@ interface UserRepository : Repository<User, UUID> {
 
     fun findById(id: UUID): User?
 
+    @Query("SELECT u FROM User u WHERE u.provider = :provider AND u.providerId = :providerId AND u.deletedAt IS NULL")
     fun findByProviderAndProviderId(
         provider: Provider,
         providerId: String,
     ): User?
 
+    @Query("SELECT u FROM User u WHERE u.provider = :provider AND u.providerId = :providerId AND u.deletedAt IS NOT NULL")
+    fun findByProviderAndProviderIdAndDeletedAtIsNotNull(
+        provider: Provider,
+        providerId: String,
+    ): User?
+
+    fun findAllByDeletedAtIsNullAndEmailIsNotNull(): List<User>
+
+    fun findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(ids: List<UUID>): List<User>
+
     @Query("SELECT u FROM User u WHERE u.deletedAt < :cutoff")
     fun findAllWithdrawnBefore(
+        @Param("cutoff") cutoff: LocalDateTime,
+    ): List<User>
+
+    @Query("SELECT u FROM User u WHERE u.deletedAt < :cutoff AND u.providerId IS NOT NULL")
+    fun findAllWithdrawnAndNotAnonymizedBefore(
+        @Param("cutoff") cutoff: LocalDateTime,
+    ): List<User>
+
+    @Query("SELECT u FROM User u WHERE u.deletedAt < :cutoff AND u.providerId IS NULL")
+    fun findAllWithdrawnAndAnonymizedBefore(
         @Param("cutoff") cutoff: LocalDateTime,
     ): List<User>
 

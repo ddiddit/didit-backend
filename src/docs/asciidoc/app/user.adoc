@@ -14,6 +14,11 @@ include::{snippets}/user/nickname-check/response-fields.adoc[]
 
 == 온보딩 완료
 
+[WARNING]
+====
+이 엔드포인트는 더 이상 사용되지 않습니다. <<온보딩-완료-v2>>를 사용해주세요.
+====
+
 === Request
 
 include::{snippets}/user/onboarding/http-request.adoc[]
@@ -24,6 +29,10 @@ include::{snippets}/user/onboarding/request-fields.adoc[]
 include::{snippets}/user/onboarding/http-response.adoc[]
 
 == 프로필 조회
+[WARNING]
+====
+이 엔드포인트는 더 이상 사용되지 않습니다. <<프로필-조회-v2>>를 사용해주세요.
+====
 
 === Request
 
@@ -36,6 +45,10 @@ include::{snippets}/user/profile/response-fields.adoc[]
 
 == 프로필 수정
 
+[WARNING]
+====
+이 엔드포인트는 더 이상 사용되지 않습니다. <<프로필-수정-v2>>를 사용해주세요.
+====
 === Request
 
 include::{snippets}/user/update-profile/http-request.adoc[]
@@ -44,3 +57,44 @@ include::{snippets}/user/update-profile/request-fields.adoc[]
 === Response
 
 include::{snippets}/user/update-profile/http-response.adoc[]
+
+// ==================== V2 API ====================
+
+[[온보딩-완료-v2]]
+== 온보딩 완료 v2
+나이와 경력 정보를 포함한 v2 온보딩 엔드포인트
+
+=== Request
+
+include::{snippets}/user/v2/onboarding/http-request.adoc[]
+include::{snippets}/user/v2/onboarding/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/user/v2/onboarding/http-response.adoc[]
+
+[[프로필-조회-v2]]
+== 프로필 조회 v2
+나이와 경력 정보를 포함한 v2 프로필 조회 엔드포인트
+
+=== Request
+
+include::{snippets}/user/v2/profile/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/user/v2/profile/http-response.adoc[]
+include::{snippets}/user/v2/profile/response-fields.adoc[]
+
+[[프로필-수정-v2]]
+== 프로필 수정 v2
+나이와 경력 정보를 포함하여 선택적으로 수정할 수 있는 v2 프로필 수정 엔드포인트
+
+=== Request
+
+include::{snippets}/user/v2/update-profile/http-request.adoc[]
+include::{snippets}/user/v2/update-profile/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/user/v2/update-profile/http-response.adoc[]

@@ -121,11 +121,84 @@ class UserRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `findAllWithdrawnBefore - 탈퇴하지 않은 유저는 제외된다`() {
-        userRepository.save(UserFixture.create())
+    fun `findAllWithdrawnAndNotAnonymizedBefore - 익명화되지 않은 탈퇴 유저만 반환한다`() {
+        val withdrawn = userRepository.save(UserFixture.create().apply { withdraw() })
 
-        val result = userRepository.findAllWithdrawnBefore(LocalDateTime.now().plusDays(1))
+        userRepository.save(UserFixture.create(providerId = "kakao-9999"))
+
+        val anonymized =
+            userRepository.save(
+                UserFixture.create(providerId = "kakao-1111").apply {
+                    withdraw()
+                    anonymize()
+                },
+            )
+
+        val result = userRepository.findAllWithdrawnAndNotAnonymizedBefore(LocalDateTime.now().plusDays(1))
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].id).isEqualTo(withdrawn.id)
+        assertThat(result).doesNotContain(anonymized)
+    }
+
+    @Test
+    fun `findAllWithdrawnAndNotAnonymizedBefore - cutoff 이후 탈퇴 유저는 제외된다`() {
+        userRepository.save(UserFixture.create().apply { withdraw() })
+
+        val result = userRepository.findAllWithdrawnAndNotAnonymizedBefore(LocalDateTime.now().minusDays(1))
 
         assertThat(result).isEmpty()
+    }
+
+    @Test
+    fun `findAllWithdrawnAndAnonymizedBefore - 익명화된 탈퇴 유저만 반환한다`() {
+        val anonymized =
+            userRepository.save(
+                UserFixture.create().apply {
+                    withdraw()
+                    anonymize()
+                },
+            )
+
+        userRepository.save(UserFixture.create(providerId = "kakao-9999").apply { withdraw() })
+
+        val result = userRepository.findAllWithdrawnAndAnonymizedBefore(LocalDateTime.now().plusDays(1))
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].id).isEqualTo(anonymized.id)
+    }
+
+    @Test
+    fun `findAllWithdrawnAndAnonymizedBefore - 탈퇴하지 않은 유저는 제외된다`() {
+        userRepository.save(UserFixture.create())
+
+        val result = userRepository.findAllWithdrawnAndAnonymizedBefore(LocalDateTime.now().plusDays(1))
+
+        assertThat(result).isEmpty()
+    }
+
+    @Test
+    fun `findAllByDeletedAtIsNullAndEmailIsNotNull - no withdraw and exist email`() {
+        val activeWithEmail = userRepository.save(UserFixture.create(providerId = "kakao-1", email = "a@test.com"))
+        userRepository.save(UserFixture.create(providerId = "kakao-2", email = null))
+        userRepository.save(UserFixture.create(providerId = "kakao-3", email = "deleted@test.com").apply { withdraw() })
+
+        val result = userRepository.findAllByDeletedAtIsNullAndEmailIsNotNull()
+
+        assertThat(result).extracting("id").containsExactly(activeWithEmail.id)
+    }
+
+    @Test
+    fun `findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull - select only active email users`() {
+        val selected = userRepository.save(UserFixture.create(providerId = "kakao-1", email = "a@test.com"))
+        val noEmail = userRepository.save(UserFixture.create(providerId = "kakao-2", email = null))
+        val deleted = userRepository.save(UserFixture.create(providerId = "kakao-3", email = "deleted@test.com").apply { withdraw() })
+
+        val result =
+            userRepository.findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(
+                listOf(selected.id, noEmail.id, deleted.id),
+            )
+
+        assertThat(result).extracting("id").containsExactly(selected.id)
     }
 }
