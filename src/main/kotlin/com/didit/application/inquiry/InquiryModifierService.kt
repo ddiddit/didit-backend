@@ -3,7 +3,10 @@ package com.didit.application.inquiry
 import com.didit.application.inquiry.exception.InquiryNotFoundException
 import com.didit.application.inquiry.provided.InquiryModifier
 import com.didit.application.inquiry.required.InquiryRepository
+import com.didit.application.notification.provided.NotificationHistoryRegister
 import com.didit.domain.inquiry.Inquiry
+import com.didit.domain.notification.NotificationHistoryCreateRequest
+import com.didit.domain.notification.NotificationType
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -13,9 +16,13 @@ import java.util.UUID
 @Service
 class InquiryModifierService(
     private val inquiryRepository: InquiryRepository,
+    private val notificationHistoryRegister: NotificationHistoryRegister,
 ) : InquiryModifier {
     companion object {
         private val logger = LoggerFactory.getLogger(InquiryModifierService::class.java)
+
+        const val INQUIRY_ANSWERED_TITLE = "문의 답변 도착"
+        const val INQUIRY_ANSWERED_BODY = "문의하신 내용에 답변이 등록되었어요. 확인해 보세요."
     }
 
     @Transactional
@@ -29,6 +36,16 @@ class InquiryModifierService(
         inquiry.answer(adminId, answer)
 
         logger.info("문의 답변 등록 - inquiryId: $inquiryId, adminId: $adminId")
+
+        // 답변이 등록되면 문의한 사용자에게 인앱 알림을 기록한다.
+        notificationHistoryRegister.save(
+            NotificationHistoryCreateRequest(
+                userId = inquiry.userId,
+                type = NotificationType.INQUIRY_ANSWERED,
+                title = INQUIRY_ANSWERED_TITLE,
+                body = INQUIRY_ANSWERED_BODY,
+            ),
+        )
 
         return inquiryRepository.save(inquiry)
     }

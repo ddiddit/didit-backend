@@ -2,8 +2,11 @@ package com.didit.application.inquiry
 
 import com.didit.application.inquiry.exception.InquiryNotFoundException
 import com.didit.application.inquiry.required.InquiryRepository
+import com.didit.application.notification.provided.NotificationHistoryRegister
 import com.didit.domain.inquiry.Inquiry
 import com.didit.domain.inquiry.InquiryStatus
+import com.didit.domain.notification.NotificationHistoryCreateRequest
+import com.didit.domain.notification.NotificationType
 import com.didit.support.UserFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
@@ -12,6 +15,9 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argThat
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
@@ -20,6 +26,9 @@ import java.util.UUID
 class InquiryModifierServiceTest {
     @Mock
     lateinit var inquiryRepository: InquiryRepository
+
+    @Mock
+    lateinit var notificationHistoryRegister: NotificationHistoryRegister
 
     @InjectMocks
     lateinit var inquiryModifierService: InquiryModifierService
@@ -30,7 +39,7 @@ class InquiryModifierServiceTest {
 
     @Test
     fun `문의 답변 성공`() {
-        val inquiry = createInquiry()
+        val inquiry = createInquiry(userId = userId)
 
         whenever(inquiryRepository.findByIdAndDeletedAtIsNull(inquiryId))
             .thenReturn(inquiry)
@@ -45,6 +54,38 @@ class InquiryModifierServiceTest {
         assertThat(result.status).isEqualTo(InquiryStatus.ANSWERED)
         assertThat(result.adminAnswer).isEqualTo("답변입니다")
         assertThat(result.adminId).isEqualTo(adminId)
+    }
+
+    @Test
+    fun `문의 답변 시 문의한 사용자에게 인앱 알림이 저장된다`() {
+        val inquiry = createInquiry(userId = userId)
+
+        whenever(inquiryRepository.findByIdAndDeletedAtIsNull(inquiryId))
+            .thenReturn(inquiry)
+        whenever(inquiryRepository.save(inquiry))
+            .thenReturn(inquiry)
+
+        inquiryModifierService.answer(inquiryId, adminId, "답변입니다")
+
+        verify(notificationHistoryRegister).save(
+            argThat<NotificationHistoryCreateRequest> {
+                this.userId == userId && this.type == NotificationType.INQUIRY_ANSWERED
+            },
+        )
+    }
+
+    @Test
+    fun `문의 답변 수정 시에는 알림이 저장되지 않는다`() {
+        val inquiry = createAnsweredInquiry()
+
+        whenever(inquiryRepository.findByIdAndDeletedAtIsNull(inquiryId))
+            .thenReturn(inquiry)
+        whenever(inquiryRepository.save(inquiry))
+            .thenReturn(inquiry)
+
+        inquiryModifierService.updateAnswer(inquiryId, adminId, "수정된 답변")
+
+        verify(notificationHistoryRegister, never()).save(any())
     }
 
     @Test
