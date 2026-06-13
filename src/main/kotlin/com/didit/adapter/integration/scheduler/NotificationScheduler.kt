@@ -48,6 +48,26 @@ class NotificationScheduler(
     }
 
     private fun sendToUser(userId: UUID) {
+        // 인앱 알림 히스토리는 디바이스 토큰 유무와 무관하게 항상 기록한다.
+        // (웹 등 푸시가 없는 환경에서도 알림 목록 조회·읽음 처리가 동작해야 한다.)
+        notificationHistoryRegister.save(
+            NotificationHistoryCreateRequest(
+                userId = userId,
+                type = NotificationType.DAILY_REMINDER,
+                title = DAILY_REMINDER_TITLE,
+                body = DAILY_REMINDER_BODY,
+            ),
+        )
+
+        // 푸시 발송은 디바이스 토큰이 등록된 경우에만 부가적으로 수행한다.
+        sendPush(userId, DAILY_REMINDER_TITLE, DAILY_REMINDER_BODY)
+    }
+
+    private fun sendPush(
+        userId: UUID,
+        title: String,
+        body: String,
+    ) {
         val tokens = deviceTokenFinder.findAllByUserId(userId)
         if (tokens.isEmpty()) return
 
@@ -56,8 +76,8 @@ class NotificationScheduler(
                 val isExpired =
                     fcmClient.sendMessage(
                         token = deviceToken.token,
-                        title = DAILY_REMINDER_TITLE,
-                        body = DAILY_REMINDER_BODY,
+                        title = title,
+                        body = body,
                     )
 
                 if (isExpired) {
@@ -70,15 +90,7 @@ class NotificationScheduler(
             }
 
         if (successCount > 0) {
-            notificationHistoryRegister.save(
-                NotificationHistoryCreateRequest(
-                    userId = userId,
-                    type = NotificationType.DAILY_REMINDER,
-                    title = DAILY_REMINDER_TITLE,
-                    body = DAILY_REMINDER_BODY,
-                ),
-            )
-            logger.info("회고 알림 전송 성공 - userId: $userId, 성공 토큰 수: $successCount")
+            logger.info("회고 알림 푸시 전송 성공 - userId: $userId, 성공 토큰 수: $successCount")
         }
     }
 }

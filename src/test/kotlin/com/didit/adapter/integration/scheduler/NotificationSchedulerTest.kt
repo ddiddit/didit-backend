@@ -68,7 +68,7 @@ class NotificationSchedulerTest {
     }
 
     @Test
-    fun `no notifications when no device tokens`() {
+    fun `디바이스 토큰이 없어도 인앱 알림 히스토리는 저장된다`() {
         val userId = UUID.randomUUID()
         val setting = NotificationSetting.create(userId)
         whenever(notificationSettingFinder.findAllByReminderTime(any())).thenReturn(listOf(setting))
@@ -77,11 +77,11 @@ class NotificationSchedulerTest {
         notificationScheduler.sendReminderNotifications()
 
         verify(fcmClient, never()).sendMessage(any(), any(), any())
-        verify(notificationHistoryRegister, never()).save(any())
+        verify(notificationHistoryRegister).save(any())
     }
 
     @Test
-    fun `expired token - 만료된 토큰은 삭제된다`() {
+    fun `expired token - 만료된 토큰은 삭제되고 인앱 알림은 저장된다`() {
         val userId = UUID.randomUUID()
         val setting = NotificationSetting.create(userId)
         val token =
@@ -99,6 +99,6 @@ class NotificationSchedulerTest {
         notificationScheduler.sendReminderNotifications()
 
         verify(deviceTokenRepository).deleteByToken("expired-token")
-        verify(notificationHistoryRegister, never()).save(any())
+        verify(notificationHistoryRegister).save(any())
     }
 }
