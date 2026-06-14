@@ -12,8 +12,8 @@ data class OnboardingRequestV2(
     )
     val nickname: String,
     val job: Job,
-    val age: UserAge,
-    val experience: UserExperience,
+    val age: UserAge? = null,
+    val experience: UserExperience? = null,
     val marketingAgreed: Boolean,
     val nightPushAgreed: Boolean,
 )

@@ -60,10 +60,12 @@ class UserApiV2Test : AuthenticatedRestDocsSupport() {
                             .description("직무 (DEVELOPER, PLANNER, DESIGNER)"),
                         fieldWithPath("age")
                             .type(JsonFieldType.STRING)
-                            .description("나이대 (AGE_20, AGE_30, AGE_40_PLUS)"),
+                            .description("나이대 (AGE_20, AGE_30, AGE_40_PLUS)")
+                            .optional(),
                         fieldWithPath("experience")
                             .type(JsonFieldType.STRING)
-                            .description("경력 (LESS_THAN_1_YEAR, YEARS_1_TO_2, YEARS_3_TO_5, YEARS_6_TO_9, YEARS_10_PLUS)"),
+                            .description("경력 (LESS_THAN_1_YEAR, YEARS_1_TO_2, YEARS_3_TO_5, YEARS_6_TO_9, YEARS_10_PLUS)")
+                            .optional(),
                         fieldWithPath("marketingAgreed").type(JsonFieldType.BOOLEAN).description("마케팅 정보 수신 동의"),
                         fieldWithPath("nightPushAgreed").type(JsonFieldType.BOOLEAN).description("야간 푸시 수신 동의"),
                     ),
