@@ -64,6 +64,8 @@ include::{snippets}/user/update-profile/http-response.adoc[]
 == 온보딩 완료 v2
 나이와 경력 정보를 포함한 v2 온보딩 엔드포인트
 
+NOTE: 기존 사용자도 이 엔드포인트를 호출하여 나이(age)와 경력(experience) 정보를 추가할 수 있습니다. age와 experience 필드는 선택사항입니다.
+
 === Request
 
 include::{snippets}/user/v2/onboarding/http-request.adoc[]

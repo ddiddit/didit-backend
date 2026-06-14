@@ -8,6 +8,7 @@ import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.notification.provided.NotificationSettingModifier
+import com.didit.domain.auth.User
 import com.didit.domain.auth.UserAge
 import com.didit.domain.auth.UserExperience
 import com.didit.domain.shared.Job
@@ -61,9 +62,28 @@ class UserRegisterService(
         marketingAgreed: Boolean,
         nightPushAgreed: Boolean,
     ) {
-        if (userRepository.existsByNicknameAndDeletedAtIsNull(nickname)) throw DuplicateNicknameException()
-
         val user = userFinder.findByIdOrThrow(userId)
+
+        if (user.isOnboardingCompleted) {
+            updateProfileV2(userId, nickname, job, age, experience)
+        } else {
+            completeNewUserOnboarding(user, userId, nickname, job, age, experience, marketingAgreed, nightPushAgreed)
+        }
+    }
+
+    private fun completeNewUserOnboarding(
+        user: User,
+        userId: UUID,
+        nickname: String,
+        job: Job,
+        age: UserAge?,
+        experience: UserExperience?,
+        marketingAgreed: Boolean,
+        nightPushAgreed: Boolean,
+    ) {
+        if (userRepository.existsByNicknameAndDeletedAtIsNull(nickname)) {
+            throw DuplicateNicknameException()
+        }
 
         user.completeOnboardingV2(nickname = nickname, job = job, age = age, experience = experience)
 
