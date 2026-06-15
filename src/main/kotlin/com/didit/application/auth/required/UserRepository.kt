@@ -2,6 +2,9 @@ package com.didit.application.auth.required
 
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.User
+import com.didit.domain.shared.Job
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.Repository
 import org.springframework.data.repository.query.Param
@@ -52,4 +55,27 @@ interface UserRepository : Repository<User, UUID> {
     ): List<User>
 
     fun delete(user: User)
+
+    @Query(
+        """
+        SELECT u FROM User u
+        WHERE (:keyword IS NULL OR u.email LIKE %:keyword% OR u.nickname LIKE %:keyword%)
+        AND (:#{#job} IS NULL OR u.job = :job)
+        AND (
+            :isDeleted IS NULL
+            OR (:isDeleted = true AND u.deletedAt IS NOT NULL)
+            OR (:isDeleted = false AND u.deletedAt IS NULL)
+        )
+        ORDER BY (
+            SELECT MAX(a.createdAt) FROM AuditLog a
+            WHERE a.actorId = u.id AND a.action = 'USER_LOGGED_IN'
+        ) DESC NULLS LAST
+        """,
+    )
+    fun findUsersForAdmin(
+        @Param("keyword") keyword: String?,
+        @Param("job") job: Job?,
+        @Param("isDeleted") isDeleted: Boolean?,
+        pageable: Pageable,
+    ): Page<User>
 }

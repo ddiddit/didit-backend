@@ -1,5 +1,8 @@
 package com.didit.application.organization
 
+import com.didit.application.audit.ActorType
+import com.didit.application.audit.AuditAction
+import com.didit.application.audit.AuditLogger
 import com.didit.application.organization.exception.DuplicateProjectNameException
 import com.didit.application.organization.exception.ProjectNotFoundException
 import com.didit.application.organization.provided.ProjectModifier
@@ -15,6 +18,7 @@ import java.util.UUID
 class ProjectModifierService(
     private val projectRepository: ProjectRepository,
     private val retrospectiveRepository: RetrospectiveRepository,
+    private val auditLogger: AuditLogger,
 ) : ProjectModifier {
     companion object {
         private val logger = LoggerFactory.getLogger(ProjectModifierService::class.java)
@@ -40,6 +44,15 @@ class ProjectModifierService(
         project.updateName(newName)
 
         logger.info("프로젝트 이름 수정 완료 - userId: $userId, projectId: $projectId, projectName: $normalizedName")
+
+        auditLogger.log(
+            actorId = userId,
+            actorType = ActorType.USER,
+            action = AuditAction.PROJECT_UPDATED,
+            targetId = projectId,
+            targetType = "PROJECT",
+            payload = mapOf("name" to normalizedName),
+        )
     }
 
     @Transactional
@@ -58,5 +71,13 @@ class ProjectModifierService(
         project.delete()
 
         logger.info("프로젝트 삭제 완료 - userId: $userId, projectId: $projectId")
+
+        auditLogger.log(
+            actorId = userId,
+            actorType = ActorType.USER,
+            action = AuditAction.PROJECT_DELETED,
+            targetId = projectId,
+            targetType = "PROJECT",
+        )
     }
 }
