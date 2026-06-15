@@ -1,7 +1,11 @@
 apiVersion: 1
 
+deleteDatasources:
+  - name: prometheus
+    orgId: 1
+
 datasources:
-  - name: Prometheus
+  - name: prometheus
     uid: afp70j2izqsxsd
     type: prometheus
     access: proxy

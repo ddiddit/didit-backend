@@ -10,6 +10,12 @@ services:
       - ./prometheus/rules.yml:/etc/prometheus/rules.yml:ro
       - ./prometheus/targets:/etc/prometheus/targets:ro
       - prometheus-data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.console.libraries=/usr/share/prometheus/console_libraries"
+      - "--web.console.templates=/usr/share/prometheus/consoles"
     networks:
       - didit-network
 
@@ -20,8 +26,8 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=${PROD_GRAFANA_ADMIN_USER}
-      - GF_SECURITY_ADMIN_PASSWORD=${PROD_GRAFANA_ADMIN_PASSWORD}
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning/:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -42,7 +48,7 @@ services:
       - didit-network
 
   cadvisor:
-    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    image: ghcr.io/google/cadvisor:v0.57.0
     container_name: didit-cadvisor
     restart: always
     privileged: true
@@ -51,6 +57,7 @@ services:
     volumes:
       - /:/rootfs:ro
       - /var/run:/var/run:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /sys:/sys:ro
       - /var/lib/docker:/var/lib/docker:ro
     networks:
