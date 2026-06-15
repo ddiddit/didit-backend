@@ -71,9 +71,10 @@ class AdminUserQueryServiceTest {
     fun `유저 상세 조회 성공`() {
         val user = UserFixture.createOnboarded()
         val lastLoginAt = LocalDateTime.now()
-        val timeline = listOf(
-            AuditEntry(AuditAction.USER_LOGGED_IN, null, LocalDateTime.now()),
-        )
+        val timeline =
+            listOf(
+                AuditEntry(AuditAction.USER_LOGGED_IN, null, LocalDateTime.now()),
+            )
 
         whenever(userRepository.findById(userId)).thenReturn(user)
         whenever(auditReader.findLastLogin(userId)).thenReturn(lastLoginAt)
