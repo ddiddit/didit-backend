@@ -69,11 +69,12 @@ class AdminUserManagementServiceTest {
         adminUserManagementService.forceWithdraw(adminId, userId)
 
         verify(auditLogger).log(
-            actorId = eq(adminId),
-            actorType = eq(ActorType.ADMIN),
-            action = eq(AuditAction.USER_FORCE_WITHDREW),
-            targetId = eq(userId),
-            targetType = eq("USER"),
+            eq(adminId),
+            eq(ActorType.ADMIN),
+            eq(AuditAction.USER_FORCE_WITHDREW),
+            eq(userId),
+            eq("USER"),
+            org.mockito.kotlin.isNull(),
         )
     }
 

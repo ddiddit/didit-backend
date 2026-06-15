@@ -140,7 +140,7 @@ class UserManagementApiTest : AdminAuthenticatedRestDocsSupport() {
                 ),
                 AuditEntry(
                     action = AuditAction.RETROSPECTIVE_STARTED,
-                    payload = mapOf("retrospectiveId" to "some-id"),
+                    payload = null,
                     createdAt = LocalDateTime.of(2024, 5, 1, 10, 0, 0),
                 ),
             )
