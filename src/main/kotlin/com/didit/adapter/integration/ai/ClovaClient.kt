@@ -17,6 +17,7 @@ import org.springframework.web.client.body
 class ClovaClient(
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
+    private val feedbackPrompts: FeedbackPrompts,
     @param:Value("\${clova.api.url}") private val apiUrl: String,
     @param:Value("\${clova.api.api-key}") private val apiKey: String,
 ) : AIClient {
@@ -29,7 +30,7 @@ class ClovaClient(
         job: Job?,
         answers: List<String>,
     ): GeneratedDeepQuestion {
-        val prompt = FeedbackPrompts.buildDeepQuestionPrompt(job, answers)
+        val prompt = feedbackPrompts.buildDeepQuestionPrompt(job, answers)
 
         logger.debug("심화 질문 프롬프트 - job: $job, prompt:\n$prompt")
 
@@ -43,7 +44,7 @@ class ClovaClient(
         allAnswers: List<String>,
         deepQuestion: String?,
     ): AISummaryResponse {
-        val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers, deepQuestion)
+        val prompt = feedbackPrompts.buildSummaryPrompt(job, allAnswers, deepQuestion)
 
         logger.debug("요약 프롬프트 - job: $job, prompt:\n$prompt")
 

@@ -136,6 +136,8 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
 
     fun findAllByIdInAndDeletedAtIsNull(ids: List<UUID>): List<Retrospective>
 
+    fun countByStatusAndDeletedAtIsNull(status: RetroStatus): Long
+
     @Query(
         """
         SELECT r

@@ -56,6 +56,16 @@ interface UserRepository : Repository<User, UUID> {
 
     fun delete(user: User)
 
+    fun countByDeletedAtIsNull(): Long
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :since")
+    fun countByCreatedAtAfter(
+        @Param("since") since: LocalDateTime,
+    ): Long
+
+    @Query("SELECT u FROM User u ORDER BY u.createdAt DESC")
+    fun findRecentUsers(pageable: Pageable): List<User>
+
     @Query(
         """
         SELECT u FROM User u
