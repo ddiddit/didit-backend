@@ -1,5 +1,8 @@
 package com.didit.application.organization
 
+import com.didit.application.audit.ActorType
+import com.didit.application.audit.AuditAction
+import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.organization.exception.DuplicateProjectNameException
 import com.didit.application.organization.exception.ProjectNotFoundException
@@ -16,6 +19,7 @@ import java.util.UUID
 class ProjectRegisterService(
     private val projectRepository: ProjectRepository,
     private val userFinder: UserFinder,
+    private val auditLogger: AuditLogger,
 ) : ProjectRegister {
     companion object {
         private val logger = LoggerFactory.getLogger(ProjectRegisterService::class.java)
@@ -51,6 +55,15 @@ class ProjectRegisterService(
         val saved = projectRepository.save(project)
 
         logger.info("프로젝트 생성 완료 - userId: $userId, projectName: $normalizedName, order: $displayOrder")
+
+        auditLogger.log(
+            actorId = userId,
+            actorType = ActorType.USER,
+            action = AuditAction.PROJECT_CREATED,
+            targetId = saved.id,
+            targetType = "PROJECT",
+            payload = mapOf("name" to normalizedName),
+        )
 
         return saved
     }

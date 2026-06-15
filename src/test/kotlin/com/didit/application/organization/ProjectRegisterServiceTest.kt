@@ -1,5 +1,6 @@
 package com.didit.application.organization
 
+import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.organization.exception.DuplicateProjectNameException
 import com.didit.application.organization.exception.ProjectNotFoundException
@@ -25,6 +26,9 @@ class ProjectRegisterServiceTest {
 
     @Mock
     lateinit var userFinder: UserFinder
+
+    @Mock
+    lateinit var auditLogger: AuditLogger
 
     @InjectMocks
     lateinit var projectRegisterService: ProjectRegisterService
