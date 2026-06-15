@@ -1,0 +1,5 @@
+- targets:
+    - didit-api-green:8080
+  labels:
+    service: didit-api
+    active_color: green

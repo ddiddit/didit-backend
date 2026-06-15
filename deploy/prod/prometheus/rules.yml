@@ -1,0 +1,51 @@
+groups:
+  - name: didit-api-alerts
+    rules:
+      - alert: DiditApiHigh5xxRate
+        expr: |
+          sum(rate(http_server_requests_seconds_count{job="didit-api",
+          status=~"5.."}[5m]))
+          /
+          sum(rate(http_server_requests_seconds_count{job="didit-api"}
+          [5m]))
+          > 0.01
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Didit API 5xx error rate is high"
+          description: "5xx error rate is above 1% for 3 minutes."
+
+      - alert: DiditApiHighLatency
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(http_server_requests_seconds_bucket{job="didit-api"}
+            [5m])) by (le, uri, method)
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Didit API p95 latency is high"
+          description: "p95 latency is above 1 second for 5 minutes."
+
+      - alert: ServerHighCpuUsage
+        expr: |
+          100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100)
+          > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Server CPU usage is high"
+
+      - alert: ServerHighMemoryUsage
+        expr: |
+          (1 - node_memory_MemAvailable_bytes /
+          node_memory_MemTotal_bytes) * 100 > 85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Server memory usage is high"
