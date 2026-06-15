@@ -23,6 +23,8 @@ services:
       - GF_SECURITY_ADMIN_USER=${PROD_GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${PROD_GRAFANA_ADMIN_PASSWORD}
     volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning/:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
       - grafana-data:/var/lib/grafana
     networks:
       - didit-network
@@ -36,6 +38,21 @@ services:
       - /:/host:ro,rslave
     command:
       - "--path.rootfs=/host"
+    networks:
+      - didit-network
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    container_name: didit-cadvisor
+    restart: always
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
     networks:
       - didit-network
 
