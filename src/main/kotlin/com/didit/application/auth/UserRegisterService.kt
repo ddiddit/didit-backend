@@ -160,5 +160,12 @@ class UserRegisterService(
         userRepository.save(user)
 
         logger.info("마케팅 동의 수정 - userId: $userId, agreed: $agreed")
+
+        auditLogger.log(
+            actorId = userId,
+            actorType = ActorType.USER,
+            action = AuditAction.USER_MARKETING_CONSENT_UPDATED,
+            payload = mapOf("agreed" to agreed),
+        )
     }
 }

@@ -1,5 +1,6 @@
 package com.didit.application.organization
 
+import com.didit.application.audit.AuditLogger
 import com.didit.application.organization.exception.DuplicateProjectNameException
 import com.didit.application.organization.exception.ProjectNotFoundException
 import com.didit.application.organization.required.ProjectRepository
@@ -25,6 +26,9 @@ class ProjectModifierServiceTest {
 
     @Mock
     lateinit var retrospectiveRepository: RetrospectiveRepository
+
+    @Mock
+    lateinit var auditLogger: AuditLogger
 
     @InjectMocks
     lateinit var projectModifierService: ProjectModifierService

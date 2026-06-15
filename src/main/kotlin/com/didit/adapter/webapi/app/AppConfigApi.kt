@@ -5,6 +5,8 @@ import com.didit.adapter.webapi.app.dto.AppConfigResponse
 import com.didit.adapter.webapi.app.dto.AppConfigUpdateRequest
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.app.provided.AppConfigManager
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import jakarta.validation.Valid
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
@@ -22,6 +24,7 @@ class AppConfigApi(
     @GetMapping("/app/config")
     fun getAppConfig(): SuccessResponse<AppConfigResponse> = SuccessResponse.of(AppConfigResponse.from(appConfigManager.getAppConfig()))
 
+    @Audit(AuditAction.APP_CONFIG_UPDATED)
     @RequireSuperAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping("/admin/settings/app-config")
