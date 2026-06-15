@@ -8,10 +8,10 @@ rule_files:
 scrape_configs:
   - job_name: didit-api
     metrics_path: /actuator/prometheus
-    static_configs:
-      - targets:
-          - didit-api-blue:8080
-          - didit-api-green:8080
+    file_sd_configs:
+      - files:
+          - /etc/prometheus/targets/didit-api.yml
+        refresh_interval: 15s
 
   - job_name: didit-exporter
     static_configs:
