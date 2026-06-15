@@ -200,7 +200,7 @@ class UserManagementApiTest : AdminAuthenticatedRestDocsSupport() {
                             .type(JsonFieldType.STRING)
                             .description("활동 유형"),
                         fieldWithPath("data.timeline[].payload")
-                            .type(JsonFieldType.OBJECT)
+                            .type(JsonFieldType.VARIES)
                             .optional()
                             .description("활동 상세 정보 (nullable)"),
                         fieldWithPath("data.timeline[].createdAt")

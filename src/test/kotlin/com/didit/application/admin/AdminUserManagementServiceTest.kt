@@ -15,7 +15,6 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
@@ -68,14 +67,7 @@ class AdminUserManagementServiceTest {
 
         adminUserManagementService.forceWithdraw(adminId, userId)
 
-        verify(auditLogger).log(
-            eq(adminId),
-            eq(ActorType.ADMIN),
-            eq(AuditAction.USER_FORCE_WITHDREW),
-            eq(userId),
-            eq("USER"),
-            org.mockito.kotlin.isNull(),
-        )
+        verify(auditLogger).log(adminId, ActorType.ADMIN, AuditAction.USER_FORCE_WITHDREW, userId, "USER", null)
     }
 
     @Test
