@@ -99,10 +99,6 @@ spotless {
     }
 }
 
-tasks.jar {
-    enabled = false
-}
-
 tasks.test {
     useJUnitPlatform()
     outputs.dir(snippetsDir)
@@ -115,8 +111,6 @@ tasks.named("check") {
 tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {
     group = "documentation"
     description = "Generate App API docs"
-
-    outputs.cacheIf { false }
 
     inputs.dir(snippetsDir)
     dependsOn(tasks.test)
@@ -138,8 +132,6 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorAdmin") {
     group = "documentation"
     description = "Generate Admin API docs"
 
-    outputs.cacheIf { false }
-
     inputs.dir(snippetsDir)
     dependsOn(tasks.test)
     configurations("asciidoctorExt")
@@ -157,8 +149,6 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorAdmin") {
 }
 
 tasks.bootJar {
-    outputs.cacheIf { false }
-
     dependsOn(tasks.named("asciidoctorApp"), tasks.named("asciidoctorAdmin"))
 
     from(appDocsOutDir.get().asFile) {
