@@ -2,7 +2,7 @@ apiVersion: 1
 
 policies:
   - orgId: 1
-    receiver: discord-warning
+    receiver: discord-monitor-critical
     group_by:
       - grafana_folder
       - alertname
@@ -11,12 +11,20 @@ policies:
     group_interval: 5m
     repeat_interval: 4h
     routes:
-      - receiver: discord-critical
+      - receiver: discord-monitor-critical
         object_matchers:
           - [ 'severity', '=', 'critical' ]
         continue: false
 
-      - receiver: discord-warning
+      - receiver: discord-monitor-critical
         object_matchers:
           - [ 'severity', '=', 'warning' ]
+        mute_time_intervals:
+          - mute-always
         continue: false
+
+muteTimes:
+  - orgId: 1
+    name: mute-always
+    time_intervals:
+      - {}

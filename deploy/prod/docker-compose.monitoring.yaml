@@ -28,8 +28,7 @@ services:
     environment:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
-      - DISCORD_ALERT_CRITICAL_WEBHOOK_URL=${DISCORD_ALERT_CRITICAL_WEBHOOK_URL}
-      - DISCORD_ALERT_WARNING_WEBHOOK_URL=${DISCORD_ALERT_WARNING_WEBHOOK_URL}
+      - DISCORD_MONITOR_WEBHOOK_URL=${DISCORD_MONITOR_WEBHOOK_URL}
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning/:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro

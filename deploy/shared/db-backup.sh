@@ -10,7 +10,7 @@ RETENTION_DAYS=30
 if [ -f "/home/didit-prod/didit/deploy/prod/.env" ]; then
     export DB_USER=$(grep '^DB_USER=' /home/didit-prod/didit/deploy/prod/.env | cut -d= -f2-)
     export DB_PASSWORD=$(grep '^DB_PASSWORD=' /home/didit-prod/didit/deploy/prod/.env | cut -d= -f2-)
-    export DISCORD_MONITOR_WEBHOOK_URL=$(grep '^DISCORD_MONITOR_WEBHOOK_URL=' /home/didit-prod/didit/deploy/prod/.env | cut -d= -f2-)
+    export DISCORD_DB_WEBHOOK_URL=$(grep '^DISCORD_DB_WEBHOOK_URL=' /home/didit-prod/didit/deploy/prod/.env | cut -d= -f2-)
 fi
 
 mkdir -p $BACKUP_DIR
@@ -21,7 +21,7 @@ if [ $? -ne 0 ]; then
   echo "[ERROR] DB 백업 실패 - $DATE"
   curl -s -H "Content-Type: application/json" -X POST \
     -d "{\"username\": \"Didit Bot\", \"content\": \"@here DB 백업 실패 - $DATE\"}" \
-    "$DISCORD_MONITOR_WEBHOOK_URL" > /dev/null
+    "$DISCORD_DB_WEBHOOK_URL" > /dev/null
   exit 1
 fi
 
@@ -33,7 +33,7 @@ if [ $? -ne 0 ]; then
   echo "[ERROR] S3 업로드 실패 - $DATE"
   curl -s -H "Content-Type: application/json" -X POST \
     -d "{\"username\": \"Didit Bot\", \"content\": \"@here DB 백업 업로드 실패 - $DATE\"}" \
-    "$DISCORD_MONITOR_WEBHOOK_URL" > /dev/null
+    "$DISCORD_DB_WEBHOOK_URL" > /dev/null
   exit 1
 fi
 
@@ -46,4 +46,4 @@ echo "[INFO] DB 백업 프로세스 완료 - $DATE"
 
 curl -s -H "Content-Type: application/json" -X POST \
   -d "{\"username\": \"Didit Bot\", \"embeds\": [{\"title\": \"DB 백업 완료\", \"color\": 3066993, \"fields\": [{\"name\": \"날짜\", \"value\": \"$DATE\", \"inline\": true}, {\"name\": \"파일\", \"value\": \"didit-$DATE.sql.gz\", \"inline\": true}]}]}" \
-  "$DISCORD_MONITOR_WEBHOOK_URL" > /dev/null
+  "$DISCORD_DB_WEBHOOK_URL" > /dev/null
