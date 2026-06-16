@@ -6,6 +6,15 @@ echo "push 전 테스트 실행"
 [ -f "$HOME/.zshrc" ] && source "$HOME/.zshrc" 2>/dev/null
 [ -f "$HOME/.bash_profile" ] && source "$HOME/.bash_profile" 2>/dev/null
 
+# JAVA_HOME 미설정 시 알려진 경로에서 자동 탐색
+if [ -z "$JAVA_HOME" ] || ! "$JAVA_HOME/bin/java" -version &>/dev/null; then
+  FOUND_JAVA=$(find "$HOME/.antigravity/extensions" -name "java" -path "*/jre/*/bin/java" 2>/dev/null | head -1)
+  if [ -n "$FOUND_JAVA" ]; then
+    export JAVA_HOME=$(dirname $(dirname "$FOUND_JAVA"))
+    export PATH="$JAVA_HOME/bin:$PATH"
+  fi
+fi
+
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
