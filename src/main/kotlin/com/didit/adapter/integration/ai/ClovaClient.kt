@@ -17,6 +17,7 @@ import org.springframework.web.client.body
 class ClovaClient(
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
+    private val feedbackPrompts: FeedbackPrompts,
     @param:Value("\${clova.api.url}") private val apiUrl: String,
     @param:Value("\${clova.api.api-key}") private val apiKey: String,
 ) : AIClient {
@@ -29,7 +30,7 @@ class ClovaClient(
         job: Job?,
         answers: List<String>,
     ): GeneratedDeepQuestion {
-        val prompt = FeedbackPrompts.buildDeepQuestionPrompt(job, answers)
+        val prompt = feedbackPrompts.buildDeepQuestionPrompt(job, answers)
 
         logger.debug("심화 질문 프롬프트 - job: $job, prompt:\n$prompt")
 
@@ -43,7 +44,7 @@ class ClovaClient(
         allAnswers: List<String>,
         deepQuestion: String?,
     ): AISummaryResponse {
-        val prompt = FeedbackPrompts.buildSummaryPrompt(job, allAnswers, deepQuestion)
+        val prompt = feedbackPrompts.buildSummaryPrompt(job, allAnswers, deepQuestion)
 
         logger.debug("요약 프롬프트 - job: $job, prompt:\n$prompt")
 
@@ -90,15 +91,9 @@ class ClovaClient(
 
     private fun parseDeepQuestion(result: ClovaResult): GeneratedDeepQuestion =
         runCatching {
-            data class DeepQuestionDto(
-                val question: String,
-            )
-
             val cleanResponse = cleanJsonResponse(result.message.content)
             val question = objectMapper.readValue<DeepQuestionDto>(cleanResponse).question
-
             logger.debug("심화 질문 토큰 사용량 - promptTokens: ${result.usage.promptTokens}, completionTokens: ${result.usage.completionTokens}")
-
             GeneratedDeepQuestion(
                 content = question,
                 inputTokens = result.usage.promptTokens,
@@ -106,7 +101,6 @@ class ClovaClient(
             )
         }.getOrElse {
             logger.warn("심화 질문 JSON 파싱 실패, 텍스트 그대로 사용. response: ${result.message.content}")
-
             GeneratedDeepQuestion(
                 content =
                     result.message.content
@@ -131,6 +125,10 @@ class ClovaClient(
             throw RuntimeException("회고 요약 파싱에 실패했습니다. response: ${result.message.content}")
         }
 }
+
+private data class DeepQuestionDto(
+    val question: String,
+)
 
 data class ClovaRequest(
     val messages: List<ClovaMessage>,
