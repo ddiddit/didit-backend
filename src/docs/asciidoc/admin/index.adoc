@@ -1,7 +1,7 @@
 ifndef::snippets[]
 :snippets: ../../build/generated-snippets
 endif::[]
-= didit Admin API Docs
+= didit 관리자 API 문서
 :doctype: book
 :icons: font
 :source-highlighter: highlightjs
@@ -10,6 +10,7 @@ endif::[]
 :toclevels: 3
 :sectlinks:
 :sectanchors:
+:favicon: /favicon.ico
 
 include::../shared/overview.adoc[]
 include::auth.adoc[]
