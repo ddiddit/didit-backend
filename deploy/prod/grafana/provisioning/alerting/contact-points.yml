@@ -2,21 +2,11 @@ apiVersion: 1
 
 contactPoints:
   - orgId: 1
-    name: discord-critical
+    name: discord-monitor-critical
     receivers:
-      - uid: discord-critical
+      - uid: discord-monitor-critical
         type: discord
         disableResolveMessage: false
         settings:
-          url: $DISCORD_ALERT_CRITICAL_WEBHOOK_URL
-          use_discord_username: false
-
-  - orgId: 1
-    name: discord-warning
-    receivers:
-      - uid: discord-warning
-        type: discord
-        disableResolveMessage: false
-        settings:
-          url: $DISCORD_ALERT_WARNING_WEBHOOK_URL
+          url: $DISCORD_MONITOR_WEBHOOK_URL
           use_discord_username: false
