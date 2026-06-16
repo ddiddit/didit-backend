@@ -1,4 +1,4 @@
-= 관리자 공지사항 API
+= 공지사항 API
 
 == 공지사항 목록 조회
 
@@ -58,3 +58,14 @@ include::{snippets}/admin-notice/delete/path-parameters.adoc[]
 === Response
 
 include::{snippets}/admin-notice/delete/http-response.adoc[]
+
+== 메일 발송
+
+=== Request
+
+include::{snippets}/admin-notice-email/send/http-request.adoc[]
+include::{snippets}/admin-notice-email/send/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/admin-notice-email/send/http-response.adoc[]
