@@ -1,0 +1,37 @@
+= 프롬프트 관리 API
+
+== 프롬프트 목록 조회
+
+=== Request
+
+include::{snippets}/admin/prompts/list/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/admin/prompts/list/http-response.adoc[]
+include::{snippets}/admin/prompts/list/response-fields.adoc[]
+
+== 프롬프트 단건 조회
+
+=== Request
+
+include::{snippets}/admin/prompts/get/http-request.adoc[]
+include::{snippets}/admin/prompts/get/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/admin/prompts/get/http-response.adoc[]
+include::{snippets}/admin/prompts/get/response-fields.adoc[]
+
+== 프롬프트 수정
+
+=== Request
+
+include::{snippets}/admin/prompts/update/http-request.adoc[]
+include::{snippets}/admin/prompts/update/path-parameters.adoc[]
+include::{snippets}/admin/prompts/update/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/admin/prompts/update/http-response.adoc[]
+include::{snippets}/admin/prompts/update/response-fields.adoc[]
