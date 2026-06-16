@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.didit"
-version = "0.0.1-SNAPSHOT"
+version = "1.2.0-SNAPSHOT"
 description = "didit backend service"
 
 java {
@@ -99,6 +99,10 @@ spotless {
     }
 }
 
+tasks.jar {
+    enabled = false
+}
+
 tasks.test {
     useJUnitPlatform()
     outputs.dir(snippetsDir)
@@ -111,6 +115,8 @@ tasks.named("check") {
 tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {
     group = "documentation"
     description = "Generate App API docs"
+
+    outputs.cacheIf { false }
 
     inputs.dir(snippetsDir)
     dependsOn(tasks.test)
@@ -131,6 +137,8 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorApp") {
 tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorAdmin") {
     group = "documentation"
     description = "Generate Admin API docs"
+
+    outputs.cacheIf { false }
 
     inputs.dir(snippetsDir)
     dependsOn(tasks.test)
