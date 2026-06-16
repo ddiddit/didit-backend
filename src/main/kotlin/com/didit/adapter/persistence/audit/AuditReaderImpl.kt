@@ -49,7 +49,11 @@ class AuditReaderImpl(
         page: Int,
         size: Int,
     ): AuditPageResult {
-        val resolvedActorType = actorType?.let { runCatching { ActorType.valueOf(it) }.getOrNull() }
+        val resolvedActorType =
+            actorType?.let {
+                ActorType.entries.find { a -> a.name == it }
+                    ?: throw IllegalArgumentException("유효하지 않은 actorType 값: $it")
+            }
         val pageable = PageRequest.of(page, size)
         val result = auditLogRepository.findFiltered(action, resolvedActorType, pageable)
         return AuditPageResult(

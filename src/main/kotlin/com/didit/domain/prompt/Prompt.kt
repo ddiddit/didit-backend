@@ -32,6 +32,7 @@ class Prompt(
         content: String,
         updatedBy: String,
     ) {
+        require(content.isNotBlank()) { "프롬프트 내용은 비어 있을 수 없습니다." }
         this.content = content
         this.updatedBy = updatedBy
         this.updatedAt = LocalDateTime.now()

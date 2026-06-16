@@ -33,7 +33,7 @@ class AdminStatsService(
         val sevenDaysAgo = now.minusDays(7)
 
         val totalUsers = userRepository.countByDeletedAtIsNull()
-        val newUsersToday = userRepository.countByCreatedAtAfter(todayStart)
+        val newUsersToday = userRepository.countByCreatedAtAfterAndDeletedAtIsNull(todayStart)
         val totalRetrospects = retrospectiveRepository.countByStatusAndDeletedAtIsNull(RetroStatus.COMPLETED)
         val unansweredInquiries = inquiryRepository.countByStatusAndDeletedAtIsNull(InquiryStatus.PENDING)
         val dau = auditReader.countDau(todayStart)
@@ -59,8 +59,7 @@ class AdminStatsService(
 
         val recentInquiries =
             inquiryRepository
-                .findAllByDeletedAtIsNullOrderByCreatedAtDesc()
-                .take(5)
+                .findTop5ByDeletedAtIsNullOrderByCreatedAtDesc()
                 .map {
                     RecentInquirySummary(
                         id = it.id,

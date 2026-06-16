@@ -14,5 +14,7 @@ interface InquiryRepository : Repository<Inquiry, UUID> {
 
     fun findAllByDeletedAtIsNullOrderByCreatedAtDesc(): List<Inquiry>
 
+    fun findTop5ByDeletedAtIsNullOrderByCreatedAtDesc(): List<Inquiry>
+
     fun countByStatusAndDeletedAtIsNull(status: InquiryStatus): Long
 }

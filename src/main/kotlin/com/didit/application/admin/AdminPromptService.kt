@@ -3,8 +3,10 @@ package com.didit.application.admin
 import com.didit.application.admin.provided.AdminPromptFinder
 import com.didit.application.admin.provided.AdminPromptResult
 import com.didit.application.prompt.required.PromptRepository
+import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.web.server.ResponseStatusException
 import java.util.UUID
 
 @Service
@@ -16,7 +18,9 @@ class AdminPromptService(
 
     @Transactional(readOnly = true)
     override fun findById(id: UUID): AdminPromptResult {
-        val prompt = promptRepository.findById(id) ?: throw NoSuchElementException("프롬프트를 찾을 수 없습니다: $id")
+        val prompt =
+            promptRepository.findById(id)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "프롬프트를 찾을 수 없습니다: $id")
         return prompt.toResult()
     }
 
@@ -26,7 +30,9 @@ class AdminPromptService(
         content: String,
         updatedBy: String,
     ): AdminPromptResult {
-        val prompt = promptRepository.findById(id) ?: throw NoSuchElementException("프롬프트를 찾을 수 없습니다: $id")
+        val prompt =
+            promptRepository.findById(id)
+                ?: throw ResponseStatusException(HttpStatus.NOT_FOUND, "프롬프트를 찾을 수 없습니다: $id")
         prompt.update(content = content, updatedBy = updatedBy)
         return promptRepository.save(prompt).toResult()
     }

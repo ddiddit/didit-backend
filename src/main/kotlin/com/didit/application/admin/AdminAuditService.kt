@@ -18,7 +18,11 @@ class AdminAuditService(
         actorType: String?,
         page: Int,
     ): AdminAuditLogsResult {
-        val auditAction = action?.let { runCatching { AuditAction.valueOf(it) }.getOrNull() }
+        val auditAction =
+            action?.let {
+                AuditAction.entries.find { a -> a.name == it }
+                    ?: throw IllegalArgumentException("유효하지 않은 action 값: $it")
+            }
         val result = auditReader.findAuditLogs(action = auditAction, actorType = actorType, page = page, size = 20)
 
         return AdminAuditLogsResult(

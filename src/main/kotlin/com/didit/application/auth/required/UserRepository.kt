@@ -59,7 +59,7 @@ interface UserRepository : Repository<User, UUID> {
     fun countByDeletedAtIsNull(): Long
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.createdAt >= :since")
-    fun countByCreatedAtAfter(
+    fun countByCreatedAtAfterAndDeletedAtIsNull(
         @Param("since") since: LocalDateTime,
     ): Long
 

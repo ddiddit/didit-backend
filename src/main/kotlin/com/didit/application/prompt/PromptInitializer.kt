@@ -11,8 +11,8 @@ import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
 
 /**
- * 앱 시작 시 prompts 테이블이 비어있으면 클래스패스 .txt 파일로 초기 데이터를 시딩한다.
- * 어드민에서 수정한 이후에는 DB 값이 우선 적용된다.
+ * 앱 시작 시 누락된 프롬프트 항목만 개별 시딩한다.
+ * 이미 존재하는 항목은 건너뛰어 어드민 수정값을 보존한다.
  */
 @Component
 class PromptInitializer(
@@ -21,12 +21,6 @@ class PromptInitializer(
     private val logger = LoggerFactory.getLogger(PromptInitializer::class.java)
 
     override fun run(args: ApplicationArguments) {
-        val existing = promptRepository.findAll()
-        if (existing.isNotEmpty()) {
-            logger.info("프롬프트 초기 데이터 이미 존재함 (${existing.size}개) — 시딩 생략")
-            return
-        }
-
         val targets =
             listOf(
                 Triple(PromptJobType.DEVELOPER, PromptType.DEEP_QUESTION, "prompts/deep-question-developer.txt"),
@@ -38,6 +32,10 @@ class PromptInitializer(
             )
 
         targets.forEach { (jobType, promptType, path) ->
+            if (promptRepository.findByJobTypeAndPromptType(jobType, promptType) != null) {
+                logger.debug("프롬프트 이미 존재함 — 시딩 생략: $jobType / $promptType")
+                return@forEach
+            }
             runCatching {
                 val content = ClassPathResource(path).inputStream.bufferedReader().readText()
                 promptRepository.save(Prompt(jobType = jobType, promptType = promptType, content = content))
