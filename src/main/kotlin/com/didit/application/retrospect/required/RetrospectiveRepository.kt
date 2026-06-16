@@ -153,10 +153,13 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
             ORDER BY DATE(completed_at)
         """,
     )
-    fun findWeeklyRetroTrend(@Param("since") since: LocalDateTime): List<DailyRetroProjection>
+    fun findWeeklyRetroTrend(
+        @Param("since") since: LocalDateTime,
+    ): List<DailyRetroProjection>
 
     interface DailyRetroProjection {
         fun getDate(): java.sql.Date
+
         fun getCount(): Long
     }
 
