@@ -28,6 +28,7 @@ update_prometheus_target() {
   labels:
     service: didit-api
     active_color: ${active}
+    environment: prod
 EOF
 
   mv "${PROMETHEUS_TARGET_FILE}.tmp" "$PROMETHEUS_TARGET_FILE"

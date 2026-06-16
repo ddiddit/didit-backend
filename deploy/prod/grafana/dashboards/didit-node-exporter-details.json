@@ -15434,7 +15434,7 @@
       {
         "current": {
           "text": "prometheus",
-          "value": "afp70j2izqsxsd"
+          "value": "prometheus"
         },
         "includeAll": false,
         "label": "Datasource",
