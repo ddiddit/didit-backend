@@ -1,0 +1,12 @@
+= 탈퇴 통계 API
+
+== 탈퇴 통계 조회
+
+=== Request
+
+include::{snippets}/admin/withdrawal-stats/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/admin/withdrawal-stats/http-response.adoc[]
+include::{snippets}/admin/withdrawal-stats/response-fields.adoc[]
