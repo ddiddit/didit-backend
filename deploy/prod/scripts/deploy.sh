@@ -13,8 +13,25 @@ DB_COMPOSE="docker-compose.db.yaml"
 BLUE_COMPOSE="docker-compose.blue.yaml"
 GREEN_COMPOSE="docker-compose.green.yaml"
 NGINX_UPSTREAM="/etc/nginx/conf.d/upstream-didit.conf"
+PROMETHEUS_TARGET_FILE="$DEPLOY_DIR/prometheus/targets/didit-api.yml"
 MAX_RETRY=6
 RETRY_INTERVAL=10
+
+update_prometheus_target() {
+  local active="$1"
+
+  mkdir -p "$(dirname "$PROMETHEUS_TARGET_FILE")"
+
+  cat > "${PROMETHEUS_TARGET_FILE}.tmp" << EOF
+- targets:
+    - didit-api-${active}:8080
+  labels:
+    service: didit-api
+    active_color: ${active}
+EOF
+
+  mv "${PROMETHEUS_TARGET_FILE}.tmp" "$PROMETHEUS_TARGET_FILE"
+}
 
 ENV_FILE="$DEPLOY_DIR/.env"
 if [ -f "$ENV_FILE" ]; then
@@ -124,6 +141,8 @@ upstream didit-api {
 EOF
 sudo nginx -s reload
 echo -e "${GREEN}[SUCCESS] Nginx upstream 전환 완료${NC}"
+
+update_prometheus_target "$NEXT"
 
 echo -e "${YELLOW}[8/8] 이전 컨테이너($CURRENT) 종료 및 정리${NC}"
 docker compose -f "$CURRENT_COMPOSE" down 2>/dev/null || true

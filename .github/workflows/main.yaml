@@ -132,6 +132,8 @@ jobs:
             CLOVA_SPEECH_INVOKE_URL=${{ secrets.CLOVA_SPEECH_INVOKE_URL }}
             CLOVA_SPEECH_SECRET_KEY=${{ secrets.CLOVA_SPEECH_SECRET_KEY }}
             RETROSPECTIVE_WHITELIST_EMAILS=${{secrets.RETROSPECTIVE_WHITELIST_EMAILS}}
+            GRAFANA_ADMIN_USER=${{ secrets.PROD_GRAFANA_ADMIN_USER }}
+            GRAFANA_ADMIN_PASSWORD=${{ secrets.PROD_GRAFANA_ADMIN_PASSWORD }}
             ENVEOF
 
             echo "DEPLOYER=${{ github.actor }}" >> deploy/prod/.env

@@ -1,0 +1,39 @@
+services:
+  loki:
+    image: grafana/loki:3.7.0
+    container_name: didit-loki
+    restart: always
+    ports:
+      - "127.0.0.1:3100:3100"
+    command:
+      - "-config.file=/etc/loki/loki.yml"
+    volumes:
+      - ./loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki-data:/loki
+    networks:
+      - didit-network
+
+  promtail:
+    image: grafana/promtail:3.7.0
+    container_name: didit-promtail
+    restart: always
+    command:
+      - "-config.file=/etc/promtail/promtail.yml"
+    volumes:
+      - ./promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /home/didit-prod/logs/didit-api:/var/log/didit-api:ro
+      - promtail-positions:/tmp
+    networks:
+      - didit-network
+    depends_on:
+      - loki
+
+networks:
+  didit-network:
+    external: true
+
+volumes:
+  loki-data:
+  promtail-positions:
