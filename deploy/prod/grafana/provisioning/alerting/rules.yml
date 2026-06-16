@@ -1,0 +1,524 @@
+apiVersion: 1
+
+groups:
+  - orgId: 1
+    name: didit-prod-critical
+    folder: Didit Alerts
+    interval: 1m
+    rules:
+      - uid: didit-jvm-heap-usage-critical
+        title: JVM Heap Memory Critical
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: A
+              expr: |
+                sum(jvm_memory_used_bytes{environment="prod", area="heap"})
+                /
+                sum(jvm_memory_max_bytes{environment="prod", area="heap"})
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [ 0.85 ]
+                  operator:
+                    type: and
+                  query:
+                    params: [ C ]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: JVM heap memory usage is above 85%
+
+      - uid: didit-http-5xx-detected
+        title: 5xx Error Detected
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 120
+              to: 0
+            model:
+              refId: A
+              expr: |
+                sum(
+                  increase(
+                    http_server_requests_seconds_count{
+                      environment="prod",
+                      status=~"5.."
+                    }[1m]
+                  )
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [ 0 ]
+                  operator:
+                    type: and
+                  query:
+                    params: [ C ]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+        noDataState: OK
+        execErrState: Alerting
+        for: 0s
+        labels:
+          severity: critical
+        annotations:
+          summary: 5xx error occurred
+      - uid: didit-http-5xx-rate-critical
+        title: 5xx Error Rate Critical
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              refId: A
+              expr: |
+                sum(
+                  rate(
+                    http_server_requests_seconds_count{
+                      environment="prod",
+                      status=~"5.."
+                    }[5m]
+                  )
+                )
+                /
+                sum(
+                  rate(
+                    http_server_requests_seconds_count{
+                      environment="prod"
+                    }[5m]
+                  )
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [ 0.01 ]
+                  operator:
+                    type: and
+                  query:
+                    params: [ C ]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: 5xx error rate is above 1%
+
+      - uid: didit-hikaricp-usage-critical
+        title: HikariCP Connection Pool Critical
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: A
+              expr: |
+                max(hikaricp_connections_active{environment="prod"})
+                /
+                max(hikaricp_connections_max{environment="prod"})
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [ 0.9 ]
+                  operator:
+                    type: and
+                  query:
+                    params: [ C ]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+        noDataState: OK
+        execErrState: Alerting
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: HikariCP connection pool usage is above 90%
+
+  - orgId: 1
+    name: didit-prod-warning
+    folder: Didit Alerts
+    interval: 1m
+    rules:
+      - uid: didit-gc-stw-warning
+        title: GC Stop The World Warning
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 300
+              to: 0
+            model:
+              refId: A
+              expr: |
+                max(jvm_gc_pause_seconds_max{environment="prod"})
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [ 1 ]
+                  operator:
+                    type: and
+                  query:
+                    params: [ C ]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+        noDataState: OK
+        execErrState: Alerting
+        for: 0s
+        labels:
+          severity: warning
+        annotations:
+          summary: JVM GC pause max is above 1 second
+      - uid: didit-http-p99-latency-warning
+        title: p99 Response Time Warning
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              refId: A
+              expr: |
+                histogram_quantile(
+                  0.99,
+                  sum(
+                    rate(
+                      http_server_requests_seconds_bucket{
+                        environment="prod"
+                      }[5m]
+                    )
+                  ) by (le)
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [ 2 ]
+                  operator:
+                    type: and
+                  query:
+                    params: [ C ]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: HTTP p99 response time is above 2 seconds
+
+      - uid: didit-root-disk-usage-warning
+        title: Root Disk Usage Warning
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              refId: A
+              expr: |
+                (
+                  node_filesystem_size_bytes{
+                    environment="prod",
+                    mountpoint="/"
+                  }
+                  -
+                  node_filesystem_free_bytes{
+                    environment="prod",
+                    mountpoint="/"
+                  }
+                )
+                /
+                node_filesystem_size_bytes{
+                  environment="prod",
+                  mountpoint="/"
+                }
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: max
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [ 0.8 ]
+                  operator:
+                    type: and
+                  query:
+                    params: [ C ]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: Root disk usage is above 80%
+
+      - uid: didit-os-memory-usage-warning
+        title: OS Memory Usage Warning
+        condition: C
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange:
+              from: 600
+              to: 0
+            model:
+              refId: A
+              expr: |
+                1 - (
+                  node_memory_MemAvailable_bytes{
+                    environment="prod"
+                  }
+                  /
+                  node_memory_MemTotal_bytes{
+                    environment="prod"
+                  }
+                )
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              expression: A
+              reducer: last
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator:
+                    type: gt
+                    params: [ 0.9 ]
+                  operator:
+                    type: and
+                  query:
+                    params: [ C ]
+                  reducer:
+                    type: last
+                  type: query
+              datasource:
+                type: __expr__
+                uid: __expr__
+
+        noDataState: OK
+        execErrState: Alerting
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: OS memory usage is above 90%

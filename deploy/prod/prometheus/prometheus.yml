@@ -17,6 +17,8 @@ scrape_configs:
     static_configs:
       - targets:
           - node-exporter:9100
+        labels:
+          environment: prod
 
   - job_name: cadvisor
     static_configs:
