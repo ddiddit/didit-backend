@@ -43,14 +43,13 @@ class FeedbackPrompts(
         job: Job?,
         promptType: PromptType,
     ): String {
-        val jobType = job?.toPromptJobType()
+        // job이 null인 경우(온보딩 미완료) DEVELOPER로 폴백하여 DB 프롬프트 조회
+        val jobType = job?.toPromptJobType() ?: PromptJobType.DEVELOPER
 
-        if (jobType != null) {
-            val dbPrompt = promptRepository.findByJobTypeAndPromptType(jobType, promptType)
-            if (dbPrompt != null) {
-                logger.debug("DB 프롬프트 로드 - jobType: $jobType, promptType: $promptType")
-                return dbPrompt.content
-            }
+        val dbPrompt = promptRepository.findByJobTypeAndPromptType(jobType, promptType)
+        if (dbPrompt != null) {
+            logger.debug("DB 프롬프트 로드 - jobType: $jobType, promptType: $promptType")
+            return dbPrompt.content
         }
 
         // DB에 없으면 클래스패스 파일 폴백
