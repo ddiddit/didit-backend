@@ -7,6 +7,7 @@ import com.didit.adapter.webapi.retrospect.dto.AddTagRequest
 import com.didit.adapter.webapi.retrospect.dto.CalendarResponse
 import com.didit.adapter.webapi.retrospect.dto.CompleteRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.DailyRetrospectiveResponse
+import com.didit.adapter.webapi.retrospect.dto.RetrospectWithProjectAndTagResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveDetailResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveSearchResponse
@@ -38,7 +39,6 @@ import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -47,7 +47,6 @@ import org.springframework.web.multipart.MultipartFile
 import java.time.LocalDate
 import java.util.UUID
 
-@RequestMapping("/api/v1/retrospectives")
 @RestController
 class RetrospectApi(
     private val retrospectiveRegister: RetrospectiveRegister,
@@ -60,7 +59,7 @@ class RetrospectApi(
     @Audit(AuditAction.RETROSPECTIVE_STARTED)
     @RequireAuth
     @ResponseStatus(HttpStatus.CREATED)
-    @PostMapping
+    @PostMapping("/api/v1/retrospectives")
     fun start(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<StartRetrospectiveResponse> {
@@ -70,7 +69,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @PostMapping("/{retrospectiveId}/answers")
+    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/answers")
     fun submitAnswer(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -87,7 +86,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @PostMapping("/{retrospectiveId}/answers/voice", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/answers/voice", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun submitVoiceAnswer(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -107,7 +106,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @PostMapping("/{retrospectiveId}/answers/voice/transcribe", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/answers/voice/transcribe", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun transcribeVoiceAnswer(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -128,7 +127,7 @@ class RetrospectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PostMapping("/{retrospectiveId}/skip")
+    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/skip")
     fun skipDeepQuestion(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -137,7 +136,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @PostMapping("/{retrospectiveId}/complete")
+    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/complete")
     fun complete(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -148,7 +147,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @GetMapping("/{retrospectiveId}/deep-question")
+    @GetMapping("/api/v1/retrospectives/{retrospectiveId}/deep-question")
     fun getDeepQuestion(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -159,7 +158,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @PostMapping("/{retrospectiveId}/save")
+    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/save")
     fun save(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -178,7 +177,7 @@ class RetrospectApi(
     @Audit(AuditAction.RETROSPECTIVE_RESTARTED, targetType = "RETROSPECTIVE")
     @RequireAuth
     @ResponseStatus(HttpStatus.CREATED)
-    @PostMapping("/{retrospectiveId}/restart")
+    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/restart")
     fun restart(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -191,7 +190,7 @@ class RetrospectApi(
     @Audit(AuditAction.RETROSPECTIVE_DELETED, targetType = "RETROSPECTIVE")
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @DeleteMapping("/{retrospectiveId}")
+    @DeleteMapping("/api/v1/retrospectives/{retrospectiveId}")
     fun delete(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -200,7 +199,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @GetMapping
+    @GetMapping("/api/v1/retrospectives")
     fun findAll(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<List<RetrospectiveListItemResponse>> {
@@ -209,8 +208,9 @@ class RetrospectApi(
         return SuccessResponse.of(retrospectives.map { RetrospectiveListItemResponse.from(it) })
     }
 
+    @Deprecated("Use v2 endpoint", replaceWith = ReplaceWith("findByIdV2"))
     @RequireAuth
-    @GetMapping("/{retrospectiveId}")
+    @GetMapping("/api/v1/retrospectives/{retrospectiveId}")
     fun findById(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -221,8 +221,21 @@ class RetrospectApi(
     }
 
     @RequireAuth
+    @GetMapping("/api/v2/retrospectives/{retrospectiveId}")
+    fun findByIdV2(
+        @CurrentUserId userId: UUID,
+        @PathVariable("retrospectiveId") retrospectiveId: UUID,
+    ): SuccessResponse<RetrospectWithProjectAndTagResponse> {
+        val result = retrospectiveFinder.findRetrospectWithProjectAndTags(retrospectiveId, userId)
+
+        return SuccessResponse.of(
+            RetrospectWithProjectAndTagResponse.from(result),
+        )
+    }
+
+    @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PatchMapping("/{retrospectiveId}/title")
+    @PatchMapping("/api/v1/retrospectives/{retrospectiveId}/title")
     fun updateTitle(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -233,7 +246,7 @@ class RetrospectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PostMapping("/{retrospectiveId}/exit")
+    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/exit")
     fun exit(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -243,7 +256,7 @@ class RetrospectApi(
 
     @Validated
     @RequireAuth
-    @GetMapping("/calendar")
+    @GetMapping("/api/v1/retrospectives/calendar")
     fun getCalendar(
         @CurrentUserId userId: UUID,
         @RequestParam year: Int,
@@ -257,7 +270,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @GetMapping("/calendar/daily")
+    @GetMapping("/api/v1/retrospectives/calendar/daily")
     fun getDailyRetrospectives(
         @CurrentUserId userId: UUID,
         @RequestParam date: LocalDate,
@@ -268,7 +281,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @GetMapping("/search")
+    @GetMapping("/api/v1/retrospectives/search")
     fun search(
         @CurrentUserId userId: UUID,
         @RequestParam keyword: String,
@@ -280,7 +293,7 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @GetMapping("/search/info")
+    @GetMapping("/api/v1/retrospectives/search/info")
     fun searchInfo(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<List<SearchHistoryResponse>> {
@@ -291,7 +304,7 @@ class RetrospectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PatchMapping("/register-project/{retrospectiveId}")
+    @PatchMapping("/api/v1/retrospectives/register-project/{retrospectiveId}")
     fun registerProject(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -302,7 +315,7 @@ class RetrospectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @DeleteMapping("/{retrospectiveId}/project")
+    @DeleteMapping("/api/v1/retrospectives/{retrospectiveId}/project")
     fun detachProject(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -312,7 +325,7 @@ class RetrospectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PostMapping("/{retrospectiveId}/tags")
+    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/tags")
     fun addTag(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -323,7 +336,7 @@ class RetrospectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @DeleteMapping("/{retrospectiveId}/tags/{tagId}")
+    @DeleteMapping("/api/v1/retrospectives/{retrospectiveId}/tags/{tagId}")
     fun removeTag(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
