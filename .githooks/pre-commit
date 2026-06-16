@@ -1,13 +1,10 @@
-#!/bin/sh
+#!/bin/zsh
 
 echo "코드 스타일 검사 중"
 
 # macOS에서 GUI 앱/IDE로 커밋 시 PATH가 제한되므로 셸 프로파일 소싱
-if [ -f "$HOME/.zshrc" ]; then
-    . "$HOME/.zshrc" 2>/dev/null
-elif [ -f "$HOME/.bash_profile" ]; then
-    . "$HOME/.bash_profile" 2>/dev/null
-fi
+[ -f "$HOME/.zshrc" ] && source "$HOME/.zshrc" 2>/dev/null
+[ -f "$HOME/.bash_profile" ] && source "$HOME/.bash_profile" 2>/dev/null
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
