@@ -30,7 +30,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build with Gradle
-        run: ./gradlew build --no-build-cache
+        run: ./gradlew build
 
       - name: Upload JAR
         if: github.event_name == 'push'
@@ -73,10 +73,11 @@ jobs:
         with:
           context: .
           push: true
-          no-cache: true
           tags: |
             ${{ env.IMAGE_NAME }}:latest
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
   deploy:
     needs: docker-build
