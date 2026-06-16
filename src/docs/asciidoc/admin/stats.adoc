@@ -1,0 +1,12 @@
+= 대시보드 통계 API
+
+== 대시보드 통계 조회
+
+=== Request
+
+include::{snippets}/admin/stats/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/admin/stats/http-response.adoc[]
+include::{snippets}/admin/stats/response-fields.adoc[]

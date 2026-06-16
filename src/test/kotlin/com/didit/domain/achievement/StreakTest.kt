@@ -61,7 +61,7 @@ class StreakTest {
         streak.update(today.minusDays(2))
         streak.update(today.minusDays(1))
         streak.update(today)
-        streak.update(today.plusDays(2)) // 끊김
+        streak.update(today.plusDays(2))
 
         assertThat(streak.currentStreak).isEqualTo(1)
         assertThat(streak.longestStreak).isEqualTo(3)

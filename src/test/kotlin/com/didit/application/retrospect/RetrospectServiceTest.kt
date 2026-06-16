@@ -183,7 +183,7 @@ class RetrospectServiceTest {
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
         whenever(retrospectivePolicy.isWhitelisted(email)).thenReturn(true)
 
-        whenever(retrospectiveFinder.countByUserIdAndDate(any(), any())).thenReturn(10) // 제한 초과
+        whenever(retrospectiveFinder.countByUserIdAndDate(any(), any())).thenReturn(10)
 
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 

@@ -7,13 +7,18 @@ endif::[]
 :source-highlighter: highlightjs
 :toc: left
 :toc-title: 목차
-:toclevels: 2
+:toclevels: 3
 :sectlinks:
+:sectanchors:
 
 include::../shared/overview.adoc[]
-include::setting.adoc[]
 include::auth.adoc[]
 include::management.adoc[]
+include::stats.adoc[]
 include::notice.adoc[]
-include::notice-mail.adoc[]
 include::inquiry.adoc[]
+include::badge.adoc[]
+include::prompt.adoc[]
+include::withdrawal.adoc[]
+include::audit.adoc[]
+include::setting.adoc[]

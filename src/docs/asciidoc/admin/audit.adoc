@@ -1,0 +1,13 @@
+= 감사 로그 API
+
+== 감사 로그 목록 조회
+
+=== Request
+
+include::{snippets}/admin/audit-logs/http-request.adoc[]
+include::{snippets}/admin/audit-logs/query-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/admin/audit-logs/http-response.adoc[]
+include::{snippets}/admin/audit-logs/response-fields.adoc[]
