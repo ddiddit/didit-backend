@@ -2,8 +2,10 @@ package com.didit.application.admin
 
 import com.didit.application.admin.provided.AdminStatsFinder
 import com.didit.application.admin.provided.AdminStatsResult
+import com.didit.application.admin.provided.DailyRetroCount
 import com.didit.application.admin.provided.RecentInquirySummary
 import com.didit.application.admin.provided.RecentUserSummary
+import com.didit.application.audit.AuditReader
 import com.didit.application.inquiry.required.InquiryRepository
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
@@ -13,6 +15,7 @@ import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.LocalTime
 
 @Transactional(readOnly = true)
@@ -21,14 +24,25 @@ class AdminStatsService(
     private val userRepository: UserRepository,
     private val inquiryRepository: InquiryRepository,
     private val retrospectiveRepository: RetrospectiveRepository,
+    private val auditReader: AuditReader,
 ) : AdminStatsFinder {
     override fun getStats(): AdminStatsResult {
+        val now = LocalDateTime.now()
         val todayStart = LocalDate.now().atStartOfDay()
+        val todayEnd = LocalDate.now().atTime(LocalTime.MAX)
+        val sevenDaysAgo = now.minusDays(7)
 
         val totalUsers = userRepository.countByDeletedAtIsNull()
         val newUsersToday = userRepository.countByCreatedAtAfter(todayStart)
         val totalRetrospects = retrospectiveRepository.countByStatusAndDeletedAtIsNull(RetroStatus.COMPLETED)
         val unansweredInquiries = inquiryRepository.countByStatusAndDeletedAtIsNull(InquiryStatus.PENDING)
+        val dau = auditReader.countDau(todayStart)
+        val todayRetrospects = retrospectiveRepository.countByCompletedAtBetweenAndDeletedAtIsNull(todayStart, todayEnd)
+
+        val weeklyRetroTrend =
+            retrospectiveRepository
+                .findWeeklyRetroTrend(sevenDaysAgo)
+                .map { DailyRetroCount(date = it.getDate().toLocalDate(), count = it.getCount()) }
 
         val recentUsers =
             userRepository
@@ -62,6 +76,9 @@ class AdminStatsService(
             newUsersToday = newUsersToday,
             totalRetrospects = totalRetrospects,
             unansweredInquiries = unansweredInquiries,
+            dau = dau,
+            todayRetrospects = todayRetrospects,
+            weeklyRetroTrend = weeklyRetroTrend,
             recentUsers = recentUsers,
             recentInquiries = recentInquiries,
         )

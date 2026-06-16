@@ -1,5 +1,6 @@
 package com.didit.application.admin.provided
 
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -8,8 +9,16 @@ data class AdminStatsResult(
     val newUsersToday: Long,
     val totalRetrospects: Long,
     val unansweredInquiries: Long,
+    val dau: Long,
+    val todayRetrospects: Long,
+    val weeklyRetroTrend: List<DailyRetroCount>,
     val recentUsers: List<RecentUserSummary>,
     val recentInquiries: List<RecentInquirySummary>,
+)
+
+data class DailyRetroCount(
+    val date: LocalDate,
+    val count: Long,
 )
 
 data class RecentUserSummary(

@@ -138,6 +138,25 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
 
     fun countByStatusAndDeletedAtIsNull(status: RetroStatus): Long
 
+    fun countByCompletedAtBetweenAndDeletedAtIsNull(from: LocalDateTime, to: LocalDateTime): Long
+
+    @Query(
+        nativeQuery = true,
+        value = """
+            SELECT DATE(completed_at) as `date`, COUNT(*) as `count`
+            FROM retrospectives
+            WHERE completed_at >= :since AND deleted_at IS NULL AND status = 'COMPLETED'
+            GROUP BY DATE(completed_at)
+            ORDER BY DATE(completed_at)
+        """,
+    )
+    fun findWeeklyRetroTrend(@Param("since") since: LocalDateTime): List<DailyRetroProjection>
+
+    interface DailyRetroProjection {
+        fun getDate(): java.sql.Date
+        fun getCount(): Long
+    }
+
     @Query(
         """
         SELECT r
