@@ -36,6 +36,7 @@ class SecurityConfig(
                         "/actuator/health",
                         "/actuator/prometheus",
                         "/docs/**",
+                        "/favicon.ico",
                         "/api/v1/app/config",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
