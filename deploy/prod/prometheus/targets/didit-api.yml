@@ -3,3 +3,4 @@
   labels:
     service: didit-api
     active_color: green
+    environment: prod
