@@ -27,14 +27,15 @@ class PromptInitializer(
             return
         }
 
-        val targets = listOf(
-            Triple(PromptJobType.DEVELOPER, PromptType.DEEP_QUESTION, "prompts/deep-question-developer.txt"),
-            Triple(PromptJobType.PLANNER,   PromptType.DEEP_QUESTION, "prompts/deep-question-planner.txt"),
-            Triple(PromptJobType.DESIGNER,  PromptType.DEEP_QUESTION, "prompts/deep-question-designer.txt"),
-            Triple(PromptJobType.DEVELOPER, PromptType.SUMMARY,       "prompts/summary-developer.txt"),
-            Triple(PromptJobType.PLANNER,   PromptType.SUMMARY,       "prompts/summary-planner.txt"),
-            Triple(PromptJobType.DESIGNER,  PromptType.SUMMARY,       "prompts/summary-designer.txt"),
-        )
+        val targets =
+            listOf(
+                Triple(PromptJobType.DEVELOPER, PromptType.DEEP_QUESTION, "prompts/deep-question-developer.txt"),
+                Triple(PromptJobType.PLANNER, PromptType.DEEP_QUESTION, "prompts/deep-question-planner.txt"),
+                Triple(PromptJobType.DESIGNER, PromptType.DEEP_QUESTION, "prompts/deep-question-designer.txt"),
+                Triple(PromptJobType.DEVELOPER, PromptType.SUMMARY, "prompts/summary-developer.txt"),
+                Triple(PromptJobType.PLANNER, PromptType.SUMMARY, "prompts/summary-planner.txt"),
+                Triple(PromptJobType.DESIGNER, PromptType.SUMMARY, "prompts/summary-designer.txt"),
+            )
 
         targets.forEach { (jobType, promptType, path) ->
             runCatching {

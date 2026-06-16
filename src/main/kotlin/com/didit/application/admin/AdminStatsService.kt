@@ -6,8 +6,8 @@ import com.didit.application.admin.provided.DailyRetroCount
 import com.didit.application.admin.provided.RecentInquirySummary
 import com.didit.application.admin.provided.RecentUserSummary
 import com.didit.application.audit.AuditReader
-import com.didit.application.inquiry.required.InquiryRepository
 import com.didit.application.auth.required.UserRepository
+import com.didit.application.inquiry.required.InquiryRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.inquiry.InquiryStatus
 import com.didit.domain.retrospect.RetroStatus

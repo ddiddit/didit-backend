@@ -1,7 +1,7 @@
 package com.didit.application.admin
 
-import com.didit.application.admin.provided.AdminWithdrawalStatsResult
 import com.didit.application.admin.provided.AdminWithdrawalStatsFinder
+import com.didit.application.admin.provided.AdminWithdrawalStatsResult
 import com.didit.application.admin.provided.WithdrawalReasonCount
 import com.didit.application.auth.required.WithdrawalRecordRepository
 import org.springframework.stereotype.Service

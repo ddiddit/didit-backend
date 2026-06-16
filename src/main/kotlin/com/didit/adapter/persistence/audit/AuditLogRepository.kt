@@ -1,9 +1,13 @@
 package com.didit.adapter.persistence.audit
 
+import com.didit.application.audit.ActorType
 import com.didit.application.audit.AuditAction
+import org.springframework.data.domain.Page
+import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.Repository
 import org.springframework.data.repository.query.Param
+import java.time.LocalDateTime
 import java.util.UUID
 
 interface AuditLogRepository : Repository<AuditLog, UUID> {
@@ -37,11 +41,11 @@ interface AuditLogRepository : Repository<AuditLog, UUID> {
     )
     fun countDistinctActorSince(
         @Param("action") action: AuditAction,
-        @Param("since") since: java.time.LocalDateTime,
+        @Param("since") since: LocalDateTime,
         @Param("actorType") actorType: ActorType,
     ): Long
 
-    fun findAllByOrderByCreatedAtDesc(pageable: org.springframework.data.domain.Pageable): org.springframework.data.domain.Page<AuditLog>
+    fun findAllByOrderByCreatedAtDesc(pageable: Pageable): Page<AuditLog>
 
     @Query(
         "SELECT a FROM AuditLog a " +
@@ -52,6 +56,6 @@ interface AuditLogRepository : Repository<AuditLog, UUID> {
     fun findFiltered(
         @Param("action") action: AuditAction?,
         @Param("actorType") actorType: ActorType?,
-        pageable: org.springframework.data.domain.Pageable,
-    ): org.springframework.data.domain.Page<AuditLog>
+        pageable: Pageable,
+    ): Page<AuditLog>
 }
