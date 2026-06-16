@@ -11,12 +11,12 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.queryParameters
-import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDateTime
 import java.util.UUID
@@ -28,22 +28,24 @@ class AdminAuditApiTest : AdminAuthenticatedRestDocsSupport() {
 
     @Test
     fun `감사 로그 목록 조회`() {
-        val result = AdminAuditLogsResult(
-            content = listOf(
-                AdminAuditLogItem(
-                    action = "ADMIN_INVITED",
-                    actorId = UUID.randomUUID(),
-                    actorType = "ADMIN",
-                    targetId = UUID.randomUUID(),
-                    targetType = "ADMIN",
-                    payload = mapOf("email" to "new@example.com", "position" to "DEVELOPER"),
-                    createdAt = LocalDateTime.of(2026, 6, 1, 12, 0),
-                ),
-            ),
-            totalElements = 1,
-            totalPages = 1,
-            page = 0,
-        )
+        val result =
+            AdminAuditLogsResult(
+                content =
+                    listOf(
+                        AdminAuditLogItem(
+                            action = "ADMIN_INVITED",
+                            actorId = UUID.randomUUID(),
+                            actorType = "ADMIN",
+                            targetId = UUID.randomUUID(),
+                            targetType = "ADMIN",
+                            payload = mapOf("email" to "new@example.com", "position" to "DEVELOPER"),
+                            createdAt = LocalDateTime.of(2026, 6, 1, 12, 0),
+                        ),
+                    ),
+                totalElements = 1,
+                totalPages = 1,
+                page = 0,
+            )
         whenever(adminAuditFinder.findAuditLogs(any(), any(), any())).thenReturn(result)
 
         mockMvc

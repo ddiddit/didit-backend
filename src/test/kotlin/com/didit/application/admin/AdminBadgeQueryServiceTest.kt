@@ -45,7 +45,9 @@ class AdminBadgeQueryServiceTest {
     fun `배지 보유 유저 목록 - 유저 정보가 매핑된다`() {
         val badgeId = UUID.randomUUID()
         val user = UserFixture.createOnboarded()
-        val userBadge = com.didit.domain.achievement.UserBadge(userId = user.id, badgeId = badgeId)
+        val userBadge =
+            com.didit.domain.achievement
+                .UserBadge(userId = user.id, badgeId = badgeId)
 
         whenever(userBadgeRepository.findAllByBadgeId(badgeId)).thenReturn(listOf(userBadge))
         whenever(userRepository.findById(user.id)).thenReturn(user)

@@ -11,12 +11,12 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.pathParameters
-import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDateTime
 import java.util.UUID
@@ -28,16 +28,17 @@ class AdminBadgeApiTest : AdminAuthenticatedRestDocsSupport() {
 
     @Test
     fun `배지 목록 조회`() {
-        val result = listOf(
-            AdminBadgeResult(
-                id = UUID.randomUUID(),
-                name = "첫 회고",
-                description = "첫 번째 회고를 완료했어요",
-                conditionType = "RETROSPECT_COUNT",
-                acquiredCount = 150,
-                createdAt = LocalDateTime.of(2026, 1, 1, 0, 0),
-            ),
-        )
+        val result =
+            listOf(
+                AdminBadgeResult(
+                    id = UUID.randomUUID(),
+                    name = "첫 회고",
+                    description = "첫 번째 회고를 완료했어요",
+                    conditionType = "RETROSPECT_COUNT",
+                    acquiredCount = 150,
+                    createdAt = LocalDateTime.of(2026, 1, 1, 0, 0),
+                ),
+            )
         whenever(adminBadgeFinder.findAll()).thenReturn(result)
 
         mockMvc
@@ -63,14 +64,15 @@ class AdminBadgeApiTest : AdminAuthenticatedRestDocsSupport() {
     @Test
     fun `배지 보유 유저 목록 조회`() {
         val badgeId = UUID.randomUUID()
-        val result = listOf(
-            AdminBadgeHolder(
-                userId = UUID.randomUUID(),
-                email = "user@example.com",
-                nickname = "디딧유저",
-                acquiredAt = LocalDateTime.of(2026, 6, 1, 12, 0),
-            ),
-        )
+        val result =
+            listOf(
+                AdminBadgeHolder(
+                    userId = UUID.randomUUID(),
+                    email = "user@example.com",
+                    nickname = "디딧유저",
+                    acquiredAt = LocalDateTime.of(2026, 6, 1, 12, 0),
+                ),
+            )
         whenever(adminBadgeFinder.findHolders(any())).thenReturn(result)
 
         mockMvc

@@ -45,11 +45,12 @@ class AdminPromptApiTest : AdminAuthenticatedRestDocsSupport() {
 
     @Test
     fun `프롬프트 목록 조회`() {
-        val result = listOf(
-            createPromptResult(jobType = "DEVELOPER", promptType = "DEEP_QUESTION"),
-            createPromptResult(jobType = "DEVELOPER", promptType = "SUMMARY"),
-            createPromptResult(jobType = "PLANNER", promptType = "DEEP_QUESTION"),
-        )
+        val result =
+            listOf(
+                createPromptResult(jobType = "DEVELOPER", promptType = "DEEP_QUESTION"),
+                createPromptResult(jobType = "DEVELOPER", promptType = "SUMMARY"),
+                createPromptResult(jobType = "PLANNER", promptType = "DEEP_QUESTION"),
+            )
         whenever(adminPromptFinder.findAll()).thenReturn(result)
 
         mockMvc

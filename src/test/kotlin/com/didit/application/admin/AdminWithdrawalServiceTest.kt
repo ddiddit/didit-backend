@@ -13,7 +13,6 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.whenever
 import java.util.UUID
 
-
 @ExtendWith(MockitoExtension::class)
 class AdminWithdrawalServiceTest {
     @Mock
@@ -22,18 +21,20 @@ class AdminWithdrawalServiceTest {
     @InjectMocks
     lateinit var adminWithdrawalService: AdminWithdrawalService
 
-    private fun createRecord(reason: WithdrawalReason) = WithdrawalRecord(
-        userId = UUID.randomUUID(),
-        reason = reason,
-    )
+    private fun createRecord(reason: WithdrawalReason) =
+        WithdrawalRecord(
+            userId = UUID.randomUUID(),
+            reason = reason,
+        )
 
     @Test
     fun `탈퇴 통계 조회 - 건수와 비율이 계산된다`() {
-        val records = listOf(
-            createRecord(WithdrawalReason.NO_LONGER_NEEDED),
-            createRecord(WithdrawalReason.NO_LONGER_NEEDED),
-            createRecord(WithdrawalReason.MISSING_FEATURES),
-        )
+        val records =
+            listOf(
+                createRecord(WithdrawalReason.NO_LONGER_NEEDED),
+                createRecord(WithdrawalReason.NO_LONGER_NEEDED),
+                createRecord(WithdrawalReason.MISSING_FEATURES),
+            )
         whenever(withdrawalRecordRepository.findAll()).thenReturn(records)
 
         val result = adminWithdrawalService.getWithdrawalStats()
@@ -46,11 +47,12 @@ class AdminWithdrawalServiceTest {
 
     @Test
     fun `탈퇴 통계 조회 - 건수 내림차순 정렬`() {
-        val records = listOf(
-            createRecord(WithdrawalReason.MISSING_FEATURES),
-            createRecord(WithdrawalReason.NO_LONGER_NEEDED),
-            createRecord(WithdrawalReason.NO_LONGER_NEEDED),
-        )
+        val records =
+            listOf(
+                createRecord(WithdrawalReason.MISSING_FEATURES),
+                createRecord(WithdrawalReason.NO_LONGER_NEEDED),
+                createRecord(WithdrawalReason.NO_LONGER_NEEDED),
+            )
         whenever(withdrawalRecordRepository.findAll()).thenReturn(records)
 
         val result = adminWithdrawalService.getWithdrawalStats()

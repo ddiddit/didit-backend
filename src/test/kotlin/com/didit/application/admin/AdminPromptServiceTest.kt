@@ -32,10 +32,11 @@ class AdminPromptServiceTest {
 
     @Test
     fun `프롬프트 전체 조회`() {
-        val prompts = listOf(
-            createPrompt(jobType = PromptJobType.DEVELOPER),
-            createPrompt(jobType = PromptJobType.PLANNER),
-        )
+        val prompts =
+            listOf(
+                createPrompt(jobType = PromptJobType.DEVELOPER),
+                createPrompt(jobType = PromptJobType.PLANNER),
+            )
         whenever(promptRepository.findAll()).thenReturn(prompts)
 
         val result = adminPromptService.findAll()

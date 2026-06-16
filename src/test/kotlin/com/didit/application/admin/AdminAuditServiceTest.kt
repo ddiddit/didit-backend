@@ -11,7 +11,6 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.whenever
@@ -25,22 +24,24 @@ class AdminAuditServiceTest {
     @InjectMocks
     lateinit var adminAuditService: AdminAuditService
 
-    private fun createPageResult(vararg actions: AuditAction) = AuditPageResult(
-        content = actions.map {
-            AdminAuditLogEntry(
-                action = it,
-                actorId = null,
-                actorType = "ADMIN",
-                targetId = null,
-                targetType = null,
-                payload = null,
-                createdAt = LocalDateTime.now(),
-            )
-        },
-        totalElements = actions.size.toLong(),
-        totalPages = 1,
-        page = 0,
-    )
+    private fun createPageResult(vararg actions: AuditAction) =
+        AuditPageResult(
+            content =
+                actions.map {
+                    AdminAuditLogEntry(
+                        action = it,
+                        actorId = null,
+                        actorType = "ADMIN",
+                        targetId = null,
+                        targetType = null,
+                        payload = null,
+                        createdAt = LocalDateTime.now(),
+                    )
+                },
+            totalElements = actions.size.toLong(),
+            totalPages = 1,
+            page = 0,
+        )
 
     @Test
     fun `감사 로그 전체 조회`() {

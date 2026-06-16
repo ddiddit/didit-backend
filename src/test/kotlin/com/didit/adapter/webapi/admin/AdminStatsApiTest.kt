@@ -12,10 +12,10 @@ import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
-import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -28,36 +28,40 @@ class AdminStatsApiTest : AdminAuthenticatedRestDocsSupport() {
 
     @Test
     fun `대시보드 통계 조회`() {
-        val result = AdminStatsResult(
-            totalUsers = 1000,
-            newUsersToday = 5,
-            totalRetrospects = 500,
-            unansweredInquiries = 3,
-            dau = 120,
-            todayRetrospects = 20,
-            weeklyRetroTrend = listOf(
-                DailyRetroCount(date = LocalDate.of(2026, 6, 10), count = 30),
-                DailyRetroCount(date = LocalDate.of(2026, 6, 11), count = 25),
-            ),
-            recentUsers = listOf(
-                RecentUserSummary(
-                    id = UUID.randomUUID(),
-                    email = "user@example.com",
-                    nickname = "디딧유저",
-                    job = "DEVELOPER",
-                    createdAt = LocalDateTime.of(2026, 6, 1, 0, 0),
-                ),
-            ),
-            recentInquiries = listOf(
-                RecentInquirySummary(
-                    id = UUID.randomUUID(),
-                    type = "BUG",
-                    content = "오류가 발생합니다.",
-                    status = "PENDING",
-                    createdAt = LocalDateTime.of(2026, 6, 1, 0, 0),
-                ),
-            ),
-        )
+        val result =
+            AdminStatsResult(
+                totalUsers = 1000,
+                newUsersToday = 5,
+                totalRetrospects = 500,
+                unansweredInquiries = 3,
+                dau = 120,
+                todayRetrospects = 20,
+                weeklyRetroTrend =
+                    listOf(
+                        DailyRetroCount(date = LocalDate.of(2026, 6, 10), count = 30),
+                        DailyRetroCount(date = LocalDate.of(2026, 6, 11), count = 25),
+                    ),
+                recentUsers =
+                    listOf(
+                        RecentUserSummary(
+                            id = UUID.randomUUID(),
+                            email = "user@example.com",
+                            nickname = "디딧유저",
+                            job = "DEVELOPER",
+                            createdAt = LocalDateTime.of(2026, 6, 1, 0, 0),
+                        ),
+                    ),
+                recentInquiries =
+                    listOf(
+                        RecentInquirySummary(
+                            id = UUID.randomUUID(),
+                            type = "BUG",
+                            content = "오류가 발생합니다.",
+                            status = "PENDING",
+                            createdAt = LocalDateTime.of(2026, 6, 1, 0, 0),
+                        ),
+                    ),
+            )
         whenever(adminStatsFinder.getStats()).thenReturn(result)
 
         mockMvc
