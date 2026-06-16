@@ -157,6 +157,8 @@ tasks.register<org.asciidoctor.gradle.jvm.AsciidoctorTask>("asciidoctorAdmin") {
 }
 
 tasks.bootJar {
+    outputs.cacheIf { false }
+
     dependsOn(tasks.named("asciidoctorApp"), tasks.named("asciidoctorAdmin"))
 
     from(appDocsOutDir.get().asFile) {
