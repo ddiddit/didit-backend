@@ -25,8 +25,7 @@ class AdminWithdrawalService(
                         count = list.size.toLong(),
                         percentage = if (total == 0L) 0.0 else list.size.toDouble() / total * 100,
                     )
-                }
-                .sortedByDescending { it.count }
+                }.sortedByDescending { it.count }
 
         return AdminWithdrawalStatsResult(total = total, breakdown = breakdown)
     }

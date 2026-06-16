@@ -12,8 +12,7 @@ class AdminPromptService(
     private val promptRepository: PromptRepository,
 ) : AdminPromptFinder {
     @Transactional(readOnly = true)
-    override fun findAll(): List<AdminPromptResult> =
-        promptRepository.findAll().map { it.toResult() }
+    override fun findAll(): List<AdminPromptResult> = promptRepository.findAll().map { it.toResult() }
 
     @Transactional(readOnly = true)
     override fun findById(id: UUID): AdminPromptResult {

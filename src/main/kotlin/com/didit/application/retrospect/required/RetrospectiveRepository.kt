@@ -138,7 +138,10 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
 
     fun countByStatusAndDeletedAtIsNull(status: RetroStatus): Long
 
-    fun countByCompletedAtBetweenAndDeletedAtIsNull(from: LocalDateTime, to: LocalDateTime): Long
+    fun countByCompletedAtBetweenAndDeletedAtIsNull(
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): Long
 
     @Query(
         nativeQuery = true,

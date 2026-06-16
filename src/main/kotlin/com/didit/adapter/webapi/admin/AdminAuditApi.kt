@@ -20,6 +20,5 @@ class AdminAuditApi(
         @RequestParam(required = false) action: String?,
         @RequestParam(required = false) actorType: String?,
         @RequestParam(defaultValue = "0") page: Int,
-    ): SuccessResponse<AdminAuditLogsResult> =
-        SuccessResponse.of(adminAuditFinder.findAuditLogs(action, actorType, page))
+    ): SuccessResponse<AdminAuditLogsResult> = SuccessResponse.of(adminAuditFinder.findAuditLogs(action, actorType, page))
 }
