@@ -3,6 +3,7 @@ package com.didit.application.admin
 import com.didit.application.admin.provided.AdminAuditFinder
 import com.didit.application.admin.provided.AdminAuditLogItem
 import com.didit.application.admin.provided.AdminAuditLogsResult
+import com.didit.application.audit.AdminAuditLogEntry
 import com.didit.application.audit.AuditAction
 import com.didit.application.audit.AuditReader
 import org.springframework.stereotype.Service
@@ -18,29 +19,30 @@ class AdminAuditService(
         actorType: String?,
         page: Int,
     ): AdminAuditLogsResult {
-        val auditAction =
-            action?.let {
-                AuditAction.entries.find { a -> a.name == it }
-                    ?: throw IllegalArgumentException("유효하지 않은 action 값: $it")
-            }
+        val auditAction = resolveAuditAction(action)
         val result = auditReader.findAuditLogs(action = auditAction, actorType = actorType, page = page, size = 20)
-
         return AdminAuditLogsResult(
-            content =
-                result.content.map {
-                    AdminAuditLogItem(
-                        action = it.action.name,
-                        actorId = it.actorId,
-                        actorType = it.actorType,
-                        targetId = it.targetId,
-                        targetType = it.targetType,
-                        payload = it.payload,
-                        createdAt = it.createdAt,
-                    )
-                },
+            content = result.content.map { it.toAdminItem() },
             totalElements = result.totalElements,
             totalPages = result.totalPages,
             page = result.page,
         )
     }
+
+    private fun resolveAuditAction(action: String?): AuditAction? =
+        action?.let {
+            AuditAction.entries.find { a -> a.name == it }
+                ?: throw IllegalArgumentException("유효하지 않은 action 값: $it")
+        }
+
+    private fun AdminAuditLogEntry.toAdminItem() =
+        AdminAuditLogItem(
+            action = action.name,
+            actorId = actorId,
+            actorType = actorType,
+            targetId = targetId,
+            targetType = targetType,
+            payload = payload,
+            createdAt = createdAt,
+        )
 }

@@ -43,7 +43,6 @@ class FeedbackPrompts(
         job: Job?,
         promptType: PromptType,
     ): String {
-        // job이 null인 경우(온보딩 미완료) DEVELOPER로 폴백하여 DB 프롬프트 조회
         val jobType = job?.toPromptJobType() ?: PromptJobType.DEVELOPER
 
         val dbPrompt = promptRepository.findByJobTypeAndPromptType(jobType, promptType)
@@ -52,11 +51,7 @@ class FeedbackPrompts(
             return dbPrompt.content
         }
 
-        // DB에 없으면 클래스패스 파일 폴백
-        val jobName = job?.name?.lowercase() ?: "developer"
-        val typeName = if (promptType == PromptType.DEEP_QUESTION) "deep-question" else "summary"
-        val path = "prompts/$typeName-$jobName.txt"
-
+        val path = "prompts/${promptType.toFileName()}-${jobType.name.lowercase()}.txt"
         return runCatching {
             ClassPathResource(path).inputStream.bufferedReader().readText()
         }.getOrElse {
@@ -65,7 +60,13 @@ class FeedbackPrompts(
         }
     }
 
-    private fun Job.toPromptJobType(): PromptJobType =
+    private fun PromptType.toFileName() =
+        when (this) {
+            PromptType.DEEP_QUESTION -> "deep-question"
+            PromptType.SUMMARY -> "summary"
+        }
+
+    private fun Job.toPromptJobType() =
         when (this) {
             Job.DEVELOPER -> PromptJobType.DEVELOPER
             Job.PLANNER -> PromptJobType.PLANNER

@@ -27,59 +27,51 @@ class AdminStatsService(
     private val auditReader: AuditReader,
 ) : AdminStatsFinder {
     override fun getStats(): AdminStatsResult {
-        val now = LocalDateTime.now()
         val todayStart = LocalDate.now().atStartOfDay()
         val todayEnd = LocalDate.now().atTime(LocalTime.MAX)
-        val sevenDaysAgo = now.minusDays(7)
-
-        val totalUsers = userRepository.countByDeletedAtIsNull()
-        val newUsersToday = userRepository.countByCreatedAtAfterAndDeletedAtIsNull(todayStart)
-        val totalRetrospects = retrospectiveRepository.countByStatusAndDeletedAtIsNull(RetroStatus.COMPLETED)
-        val unansweredInquiries = inquiryRepository.countByStatusAndDeletedAtIsNull(InquiryStatus.PENDING)
-        val dau = auditReader.countDau(todayStart)
-        val todayRetrospects = retrospectiveRepository.countByCompletedAtBetweenAndDeletedAtIsNull(todayStart, todayEnd)
-
-        val weeklyRetroTrend =
-            retrospectiveRepository
-                .findWeeklyRetroTrend(sevenDaysAgo)
-                .map { DailyRetroCount(date = it.getDate().toLocalDate(), count = it.getCount()) }
-
-        val recentUsers =
-            userRepository
-                .findRecentUsers(PageRequest.of(0, 5))
-                .map {
-                    RecentUserSummary(
-                        id = it.id,
-                        email = it.email,
-                        nickname = it.nickname,
-                        job = it.job?.name,
-                        createdAt = it.createdAt,
-                    )
-                }
-
-        val recentInquiries =
-            inquiryRepository
-                .findTop5ByDeletedAtIsNullOrderByCreatedAtDesc()
-                .map {
-                    RecentInquirySummary(
-                        id = it.id,
-                        type = it.type.name,
-                        content = it.content,
-                        status = it.status.name,
-                        createdAt = it.createdAt,
-                    )
-                }
+        val sevenDaysAgo = LocalDateTime.now().minusDays(7)
 
         return AdminStatsResult(
-            totalUsers = totalUsers,
-            newUsersToday = newUsersToday,
-            totalRetrospects = totalRetrospects,
-            unansweredInquiries = unansweredInquiries,
-            dau = dau,
-            todayRetrospects = todayRetrospects,
-            weeklyRetroTrend = weeklyRetroTrend,
-            recentUsers = recentUsers,
-            recentInquiries = recentInquiries,
+            totalUsers = userRepository.countByDeletedAtIsNull(),
+            newUsersToday = userRepository.countByCreatedAtAfterAndDeletedAtIsNull(todayStart),
+            totalRetrospects = retrospectiveRepository.countByStatusAndDeletedAtIsNull(RetroStatus.COMPLETED),
+            unansweredInquiries = inquiryRepository.countByStatusAndDeletedAtIsNull(InquiryStatus.PENDING),
+            dau = auditReader.countDau(todayStart),
+            todayRetrospects = retrospectiveRepository.countByCompletedAtBetweenAndDeletedAtIsNull(todayStart, todayEnd),
+            weeklyRetroTrend = buildWeeklyRetroTrend(sevenDaysAgo),
+            recentUsers = buildRecentUsers(),
+            recentInquiries = buildRecentInquiries(),
         )
     }
+
+    private fun buildWeeklyRetroTrend(since: LocalDateTime) =
+        retrospectiveRepository
+            .findWeeklyRetroTrend(since)
+            .map { DailyRetroCount(date = it.getDate().toLocalDate(), count = it.getCount()) }
+
+    private fun buildRecentUsers() =
+        userRepository
+            .findRecentUsers(PageRequest.of(0, 5))
+            .map {
+                RecentUserSummary(
+                    id = it.id,
+                    email = it.email,
+                    nickname = it.nickname,
+                    job = it.job?.name,
+                    createdAt = it.createdAt,
+                )
+            }
+
+    private fun buildRecentInquiries() =
+        inquiryRepository
+            .findTop5ByDeletedAtIsNullOrderByCreatedAtDesc()
+            .map {
+                RecentInquirySummary(
+                    id = it.id,
+                    type = it.type.name,
+                    content = it.content,
+                    status = it.status.name,
+                    createdAt = it.createdAt,
+                )
+            }
 }

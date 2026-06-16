@@ -31,10 +31,11 @@ class AdminBadgeQueryService(
 
     override fun findHolders(badgeId: UUID): List<AdminBadgeHolder> {
         val userBadges = userBadgeRepository.findAllByBadgeId(badgeId)
-        val userIds = userBadges.map { it.userId }
+        if (userBadges.isEmpty()) return emptyList()
+
         val userMap =
-            userIds
-                .mapNotNull { userRepository.findById(it) }
+            userBadges
+                .mapNotNull { userRepository.findById(it.userId) }
                 .associateBy { it.id }
 
         return userBadges.map { ub ->

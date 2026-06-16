@@ -49,29 +49,31 @@ class AuditReaderImpl(
         page: Int,
         size: Int,
     ): AuditPageResult {
-        val resolvedActorType =
-            actorType?.let {
-                ActorType.entries.find { a -> a.name == it }
-                    ?: throw IllegalArgumentException("유효하지 않은 actorType 값: $it")
-            }
+        val resolvedActorType = resolveActorType(actorType)
         val pageable = PageRequest.of(page, size)
         val result = auditLogRepository.findFiltered(action, resolvedActorType, pageable)
         return AuditPageResult(
-            content =
-                result.content.map {
-                    AdminAuditLogEntry(
-                        action = it.action,
-                        actorId = it.actorId,
-                        actorType = it.actorType.name,
-                        targetId = it.targetId,
-                        targetType = it.targetType,
-                        payload = it.payload,
-                        createdAt = it.createdAt,
-                    )
-                },
+            content = result.content.map { it.toEntry() },
             totalElements = result.totalElements,
             totalPages = result.totalPages,
             page = page,
         )
     }
+
+    private fun resolveActorType(actorType: String?): ActorType? =
+        actorType?.let {
+            ActorType.entries.find { a -> a.name == it }
+                ?: throw IllegalArgumentException("유효하지 않은 actorType 값: $it")
+        }
+
+    private fun AuditLog.toEntry() =
+        AdminAuditLogEntry(
+            action = action,
+            actorId = actorId,
+            actorType = actorType.name,
+            targetId = targetId,
+            targetType = targetType,
+            payload = payload,
+            createdAt = createdAt,
+        )
 }

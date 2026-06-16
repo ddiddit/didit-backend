@@ -91,15 +91,9 @@ class ClovaClient(
 
     private fun parseDeepQuestion(result: ClovaResult): GeneratedDeepQuestion =
         runCatching {
-            data class DeepQuestionDto(
-                val question: String,
-            )
-
             val cleanResponse = cleanJsonResponse(result.message.content)
             val question = objectMapper.readValue<DeepQuestionDto>(cleanResponse).question
-
             logger.debug("심화 질문 토큰 사용량 - promptTokens: ${result.usage.promptTokens}, completionTokens: ${result.usage.completionTokens}")
-
             GeneratedDeepQuestion(
                 content = question,
                 inputTokens = result.usage.promptTokens,
@@ -107,7 +101,6 @@ class ClovaClient(
             )
         }.getOrElse {
             logger.warn("심화 질문 JSON 파싱 실패, 텍스트 그대로 사용. response: ${result.message.content}")
-
             GeneratedDeepQuestion(
                 content =
                     result.message.content
@@ -132,6 +125,10 @@ class ClovaClient(
             throw RuntimeException("회고 요약 파싱에 실패했습니다. response: ${result.message.content}")
         }
 }
+
+private data class DeepQuestionDto(
+    val question: String,
+)
 
 data class ClovaRequest(
     val messages: List<ClovaMessage>,
