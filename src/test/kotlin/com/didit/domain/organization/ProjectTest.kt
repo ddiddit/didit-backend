@@ -42,7 +42,7 @@ class ProjectTest {
 
     @Test
     fun `프로젝트 이름이 15자 초과면 예외 발생`() {
-        val name = "1234567890123456" // 16자
+        val name = "1234567890123456"
 
         val exception =
             assertThrows<IllegalArgumentException> {

@@ -37,7 +37,6 @@ class InquiryModifierService(
 
         logger.info("문의 답변 등록 - inquiryId: $inquiryId, adminId: $adminId")
 
-        // 답변이 등록되면 문의한 사용자에게 인앱 알림을 기록한다.
         notificationHistoryRegister.save(
             NotificationHistoryCreateRequest(
                 userId = inquiry.userId,

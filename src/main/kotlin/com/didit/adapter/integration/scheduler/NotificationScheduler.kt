@@ -48,8 +48,6 @@ class NotificationScheduler(
     }
 
     private fun sendToUser(userId: UUID) {
-        // 인앱 알림 히스토리는 디바이스 토큰 유무와 무관하게 항상 기록한다.
-        // (웹 등 푸시가 없는 환경에서도 알림 목록 조회·읽음 처리가 동작해야 한다.)
         notificationHistoryRegister.save(
             NotificationHistoryCreateRequest(
                 userId = userId,
@@ -58,8 +56,6 @@ class NotificationScheduler(
                 body = DAILY_REMINDER_BODY,
             ),
         )
-
-        // 푸시 발송은 디바이스 토큰이 등록된 경우에만 부가적으로 수행한다.
         sendPush(userId, DAILY_REMINDER_TITLE, DAILY_REMINDER_BODY)
     }
 
