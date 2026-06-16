@@ -6,4 +6,6 @@ import java.util.UUID
 
 interface WithdrawalRecordRepository : Repository<WithdrawalRecord, UUID> {
     fun save(withdrawalRecord: WithdrawalRecord): WithdrawalRecord
+
+    fun findAll(): List<WithdrawalRecord>
 }

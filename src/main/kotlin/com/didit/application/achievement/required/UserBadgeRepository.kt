@@ -12,4 +12,8 @@ interface UserBadgeRepository : Repository<UserBadge, UUID> {
     fun findAllByUserIdAndIsNotifiedFalse(userId: UUID): List<UserBadge>
 
     fun save(userBadge: UserBadge): UserBadge
+
+    fun countByBadgeId(badgeId: UUID): Long
+
+    fun findAllByBadgeId(badgeId: UUID): List<UserBadge>
 }
