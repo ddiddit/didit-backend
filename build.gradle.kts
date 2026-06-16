@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "com.didit"
-version = "1.2.0-SNAPSHOT"
+version = "1.2.0"
 description = "didit backend service"
 
 java {
