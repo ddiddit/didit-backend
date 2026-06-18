@@ -7,7 +7,7 @@ groups:
     interval: 1m
     rules:
       - uid: didit-jvm-heap-usage-critical
-        title: JVM Heap Memory Critical
+        title: '[CRITICAL] JVM Heap 메모리 사용률 85% 초과'
         condition: C
         data:
           - refId: A
@@ -63,10 +63,14 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: JVM heap memory usage is above 85%
+          summary: JVM heap 메모리 사용률이 85%를 초과했습니다
+          description: |
+            - JVM Heap 및 GC 상태
+            - 최근 트래픽 증가 여부
+            - 메모리 누수 및 OOM 로그
 
       - uid: didit-http-5xx-detected
-        title: 5xx Error Detected
+        title: '[CRITICAL] 5xx 에러 발생'
         condition: C
         data:
           - refId: A
@@ -127,9 +131,14 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: 5xx error occurred
+          summary: 5xx 에러가 발생했습니다.
+          description: |
+            - API 서버 ERROR 로그
+            - 발생 API 및 예외 내용
+            - DB 및 외부 연동 서비스 상태
+
       - uid: didit-http-5xx-rate-critical
-        title: 5xx Error Rate Critical
+        title: '[CRITICAL] 5xx 에러율 1% 초과'
         condition: C
         data:
           - refId: A
@@ -198,10 +207,14 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: 5xx error rate is above 1%
+          summary: 5xx 에러율이 1%를 초과했습니다.
+          description: |
+            - API 서버 로그
+            - 최근 배포 여부
+            - 특정 API 및 외부 서비스 장애 여부
 
       - uid: didit-hikaricp-usage-critical
-        title: HikariCP Connection Pool Critical
+        title: '[CRITICAL] HikariCP 커넥션 풀 사용률 90% 초과'
         condition: C
         data:
           - refId: A
@@ -257,7 +270,11 @@ groups:
         labels:
           severity: critical
         annotations:
-          summary: HikariCP connection pool usage is above 90%
+          summary: HikariCP 커넥션 풀 사용률이 90%를 초과했습니다.
+          description: |
+            - HikariCP Active / Idle 커넥션 상태
+            - Slow API 및 DB 병목 여부
+            - DB Slow Query 및 커넥션 누수 여부
 
   - orgId: 1
     name: didit-prod-warning

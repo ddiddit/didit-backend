@@ -10,3 +10,15 @@ contactPoints:
         settings:
           url: $DISCORD_MONITOR_WEBHOOK_URL
           use_discord_username: false
+          title: '{{ if eq .Status "firing" }}{{ else }}[복구] {{ end }} {{ .CommonLabels.alertname }}'
+          message: |
+            {{ range .Alerts }}
+            {{ .Annotations.summary }}
+            
+            확인 필요
+            {{ .Annotations.description }}
+            
+            관련 모니터링 링크
+            - Grafana Alert: {{ .GeneratorURL }}
+            {{ end }}
+            
