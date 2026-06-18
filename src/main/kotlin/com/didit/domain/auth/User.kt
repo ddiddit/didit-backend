@@ -68,7 +68,7 @@ class User(
         now: LocalDateTime = LocalDateTime.now(),
     ) {
         check(!isOnboardingCompleted) { "이미 온보딩이 완료된 회원입니다." }
-        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문, 숫자만 가능합니다." }
+        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문만 가능합니다." }
 
         this.nickname = nickname
         this.job = job
@@ -83,7 +83,7 @@ class User(
         now: LocalDateTime = LocalDateTime.now(),
     ) {
         check(!isOnboardingCompleted) { "이미 온보딩이 완료된 회원입니다." }
-        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문, 숫자만 가능합니다." }
+        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문만 가능합니다." }
 
         this.nickname = nickname
         this.job = job
@@ -96,7 +96,7 @@ class User(
         nickname: String,
         job: Job?,
     ) {
-        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문, 숫자만 가능합니다." }
+        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문만 가능합니다." }
 
         this.nickname = nickname
         this.job = job
@@ -108,7 +108,7 @@ class User(
         age: UserAge?,
         experience: UserExperience?,
     ) {
-        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문, 숫자만 가능합니다." }
+        require(nickname.isValidNickname()) { "닉네임은 2~10자 한글, 영문만 가능합니다." }
 
         this.nickname = nickname
         this.job = job
@@ -145,7 +145,7 @@ class User(
         consent!!.updateMarketing(agreed)
     }
 
-    private fun String.isValidNickname(): Boolean = matches(Regex("^[가-힣a-zA-Z0-9]{2,10}$"))
+    private fun String.isValidNickname(): Boolean = matches(Regex("^[가-힣a-zA-Z]{2,10}$"))
 
     companion object {
         fun register(request: UserRegisterRequest) =
