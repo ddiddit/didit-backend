@@ -1,6 +1,6 @@
 package com.didit.adapter.webapi.app
 
-import com.didit.adapter.webapi.admin.annotation.RequireSuperAdmin
+import com.didit.adapter.webapi.admin.annotation.RequireAdmin
 import com.didit.adapter.webapi.app.dto.AppConfigResponse
 import com.didit.adapter.webapi.app.dto.AppConfigUpdateRequest
 import com.didit.adapter.webapi.response.SuccessResponse
@@ -25,7 +25,7 @@ class AppConfigApi(
     fun getAppConfig(): SuccessResponse<AppConfigResponse> = SuccessResponse.of(AppConfigResponse.from(appConfigManager.getAppConfig()))
 
     @Audit(AuditAction.APP_CONFIG_UPDATED)
-    @RequireSuperAdmin
+    @RequireAdmin
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping("/admin/settings/app-config")
     fun updateAppConfig(

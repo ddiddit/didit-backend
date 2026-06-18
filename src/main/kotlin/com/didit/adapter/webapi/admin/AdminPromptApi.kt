@@ -2,7 +2,6 @@ package com.didit.adapter.webapi.admin
 
 import com.didit.adapter.webapi.admin.annotation.CurrentAdminId
 import com.didit.adapter.webapi.admin.annotation.RequireAdmin
-import com.didit.adapter.webapi.admin.annotation.RequireSuperAdmin
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.admin.AdminPromptService
 import com.didit.application.admin.provided.AdminPromptFinder
@@ -35,7 +34,7 @@ class AdminPromptApi(
         @PathVariable id: UUID,
     ): SuccessResponse<AdminPromptResult> = SuccessResponse.of(adminPromptFinder.findById(id))
 
-    @RequireSuperAdmin
+    @RequireAdmin
     @PutMapping("/{id}")
     fun update(
         @PathVariable id: UUID,
