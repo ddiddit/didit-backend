@@ -12,6 +12,8 @@ DEPLOY_DIR="$WORK_DIR/deploy/prod"
 DB_COMPOSE="docker-compose.db.yaml"
 BLUE_COMPOSE="docker-compose.blue.yaml"
 GREEN_COMPOSE="docker-compose.green.yaml"
+MONITORING_COMPOSE="docker-compose.monitoring.yaml"
+LOGGING_COMPOSE="docker-compose.logging.yaml"
 NGINX_UPSTREAM="/etc/nginx/conf.d/upstream-didit.conf"
 PROMETHEUS_TARGET_FILE="$DEPLOY_DIR/prometheus/targets/didit-api.yml"
 MAX_RETRY=6
@@ -66,14 +68,14 @@ HEALTH_CHECK_URL="http://localhost:${NEXT_PORT}/actuator/health"
 
 echo -e "${YELLOW}[현재: $CURRENT → 배포: $NEXT]${NC}"
 
-echo -e "${YELLOW}[1/8] 오래된 이미지 정리${NC}"
+echo -e "${YELLOW}[1/10] 오래된 이미지 정리${NC}"
 OLD_IMAGES=$(docker images ${REGISTRY} -q | tail -n +3 || true)
 if [ ! -z "${OLD_IMAGES:-}" ]; then
   echo "$OLD_IMAGES" | xargs docker rmi -f 2>/dev/null || true
 fi
 
 # 1. git-sha 태그로 pull
-echo -e "${YELLOW}[2/8] 최신 이미지 다운로드${NC}"
+echo -e "${YELLOW}[2/10] 최신 이미지 다운로드${NC}"
 docker pull ${REGISTRY}:${GIT_SHA}
 docker tag ${REGISTRY}:${GIT_SHA} ${REGISTRY}:latest
 NEW_IMAGE=$(docker images ${REGISTRY}:latest -q || true)
@@ -81,7 +83,7 @@ echo -e "${GREEN}[SUCCESS] 새 이미지: ${NEW_IMAGE} (sha: ${GIT_SHA})${NC}"
 
 cd "$DEPLOY_DIR" || exit 1
 
-echo -e "${YELLOW}[3/8] DB 컨테이너 확인${NC}"
+echo -e "${YELLOW}[3/10] DB 컨테이너 확인${NC}"
 if ! docker ps --format '{{.Names}}' | grep -q '^didit-prod-db$'; then
   docker compose -f "$DB_COMPOSE" up -d
   echo -e "${GREEN}[SUCCESS] DB 컨테이너 시작 완료${NC}"
@@ -89,8 +91,17 @@ else
   echo -e "${GREEN}[SUCCESS] DB 컨테이너 이미 실행 중${NC}"
 fi
 
+echo -e "${YELLOW}[4/10] 모니터링/로깅 이미지 다운로드${NC}"
+docker compose -f "$MONITORING_COMPOSE" pull
+docker compose -f "$LOGGING_COMPOSE" pull
+
+echo -e "${YELLOW}[5/10] 모니터링/로깅 컨테이너 시작${NC}"
+docker compose -f "$MONITORING_COMPOSE" up -d
+docker compose -f "$LOGGING_COMPOSE" up -d
+echo -e "${GREEN}[SUCCESS] 모니터링/로깅 컨테이너 시작 완료${NC}"
+
 # 2. set -e 우회해서 $? 체크
-echo -e "${YELLOW}[4/8] 새 컨테이너($NEXT) 시작${NC}"
+echo -e "${YELLOW}[6/10] 새 컨테이너($NEXT) 시작${NC}"
 set +e
 docker compose -f "$NEXT_COMPOSE" up -d
 COMPOSE_EXIT=$?
@@ -105,10 +116,10 @@ if [ $COMPOSE_EXIT -ne 0 ]; then
   exit 1
 fi
 
-echo -e "${YELLOW}[5/8] 애플리케이션 시작 대기${NC}"
+echo -e "${YELLOW}[7/10] 애플리케이션 시작 대기${NC}"
 sleep 15
 
-echo -e "${YELLOW}[6/8] 헬스체크 ($NEXT)${NC}"
+echo -e "${YELLOW}[8/10] 헬스체크 ($NEXT)${NC}"
 RETRY_COUNT=0
 HEALTH_OK=false
 while [ $RETRY_COUNT -lt $MAX_RETRY ]; do
@@ -134,7 +145,7 @@ if [ "$HEALTH_OK" = false ]; then
   exit 1
 fi
 
-echo -e "${YELLOW}[7/8] Nginx upstream 전환 ($CURRENT → $NEXT)${NC}"
+echo -e "${YELLOW}[9/10] Nginx upstream 전환 ($CURRENT → $NEXT)${NC}"
 cat > "$NGINX_UPSTREAM" << EOF
 upstream didit-api {
     server 127.0.0.1:${NEXT_PORT};
@@ -145,7 +156,7 @@ echo -e "${GREEN}[SUCCESS] Nginx upstream 전환 완료${NC}"
 
 update_prometheus_target "$NEXT"
 
-echo -e "${YELLOW}[8/8] 이전 컨테이너($CURRENT) 종료 및 정리${NC}"
+echo -e "${YELLOW}[10/10] 이전 컨테이너($CURRENT) 종료 및 정리${NC}"
 docker compose -f "$CURRENT_COMPOSE" down 2>/dev/null || true
 docker image prune -f || true
 
