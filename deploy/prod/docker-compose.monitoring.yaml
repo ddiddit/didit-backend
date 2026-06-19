@@ -29,6 +29,8 @@ services:
       - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER}
       - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD}
       - DISCORD_MONITOR_WEBHOOK_URL=${DISCORD_MONITOR_WEBHOOK_URL}
+      - GF_SERVER_DOMAIN=monitoring.didit.ai.kr
+      - GF_SERVER_ROOT_URL=https://monitoring.didit.ai.kr
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning/:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
