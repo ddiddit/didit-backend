@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 echo "코드 스타일 검사 중"
 

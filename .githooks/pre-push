@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/zsh
 
 echo "push 전 테스트 실행"
 

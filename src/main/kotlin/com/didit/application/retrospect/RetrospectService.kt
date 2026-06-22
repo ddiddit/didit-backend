@@ -73,10 +73,6 @@ class RetrospectService(
 
         if (!isWhiteListed && todayCount >= DAILY_LIMIT) throw DailyLimitExceededException(userId)
 
-        return createRetrospective(userId)
-    }
-
-    private fun createRetrospective(userId: UUID): Retrospective {
         val retrospective = Retrospective.create(userId)
         retrospective.addMessage(
             ChatMessage.question(
@@ -142,8 +138,6 @@ class RetrospectService(
         userId: UUID,
     ) {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-        if (!retrospective.canAddDeepQuestion()) return
-
         val job = userFinder.getJobByUserId(retrospective.userId)
         val answers = retrospective.getAnswersUpToQ3()
 
@@ -215,9 +209,9 @@ class RetrospectService(
         retrospective.saveSummary(
             RetrospectiveSummary(
                 summary = summary.summary,
-                blockedPoint = summary.blockedPoint,
-                solutionProcess = summary.solutionProcess,
-                lessonLearned = summary.lessonLearned,
+                blockedPoint = summary.blockedPoint.joinToString("\n"),
+                solutionProcess = summary.solutionProcess.joinToString("\n"),
+                lessonLearned = summary.lessonLearned.joinToString("\n"),
                 insightTitle = summary.insight.title,
                 insightDescription = summary.insight.description,
                 nextActionTitle = summary.nextAction.title,
@@ -280,7 +274,7 @@ class RetrospectService(
 
         logger.info("회고 다시 시작 - userId: $userId, retrospectiveId: $retrospectiveId")
 
-        return createRetrospective(userId)
+        return start(userId)
     }
 
     @Transactional

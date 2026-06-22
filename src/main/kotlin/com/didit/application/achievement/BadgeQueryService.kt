@@ -37,7 +37,6 @@ class BadgeQueryService(
         }
     }
 
-    @Transactional
     override fun findUnnotified(userId: UUID): List<BadgeResponse> {
         val unnotifiedUserBadges = userBadgeRepository.findAllByUserIdAndIsNotifiedFalse(userId)
         val badgeMap = badgeRepository.findAll().associateBy { it.id }

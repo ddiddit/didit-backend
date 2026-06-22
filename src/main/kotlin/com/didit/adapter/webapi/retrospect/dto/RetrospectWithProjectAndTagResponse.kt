@@ -26,9 +26,9 @@ data class RetrospectWithProjectAndTagResponse(
                     result.retrospective.summary?.let {
                         ContentResponse(
                             summary = it.summary,
-                            blockedPoint = it.blockedPoint,
-                            solutionProcess = it.solutionProcess,
-                            lessonLearned = it.lessonLearned,
+                            blockedPoint = it.blockedPoint.split("\n"),
+                            solutionProcess = it.solutionProcess.split("\n"),
+                            lessonLearned = it.lessonLearned.split("\n"),
                             insight =
                                 InsightContentResponse(
                                     title = it.insightTitle,

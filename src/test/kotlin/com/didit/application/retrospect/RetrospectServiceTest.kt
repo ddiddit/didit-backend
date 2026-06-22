@@ -126,9 +126,9 @@ class RetrospectServiceTest {
     private fun summaryFixture() =
         RetrospectiveSummary(
             summary = "오늘 회고 요약 문장입니다.",
-            blockedPoint = listOf("막힌 지점"),
-            solutionProcess = listOf("해결 과정"),
-            lessonLearned = listOf("배운 점"),
+            blockedPoint = "막힌 지점",
+            solutionProcess = "해결 과정",
+            lessonLearned = "배운 점",
             insightTitle = "인사이트 제목",
             insightDescription = "인사이트 설명",
             nextActionTitle = "다음 액션 제목",
@@ -390,26 +390,6 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `generateDeepQuestionAsync - 이미 심화 질문이 있으면 생성하지 않는다`() {
-        val retro =
-            inProgressRetrospective().apply {
-                addMessage(ChatMessage.userAnswer(this, "Q1 답변", QuestionType.Q1, InputType.TEXT))
-                addMessage(ChatMessage.question(this, "Q2", QuestionType.Q2))
-                addMessage(ChatMessage.userAnswer(this, "Q2 답변", QuestionType.Q2, InputType.TEXT))
-                addMessage(ChatMessage.question(this, "Q3", QuestionType.Q3))
-                addMessage(ChatMessage.userAnswer(this, "Q3 답변", QuestionType.Q3, InputType.TEXT))
-                addMessage(ChatMessage.question(this, "심화 질문입니다.", QuestionType.Q4_DEEP))
-            }
-
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
-
-        retrospectService.generateDeepQuestionAsync(retrospectiveId, userId)
-
-        verify(aiClient, never()).generateDeepQuestion(any(), any())
-        verify(retrospectiveRepository, never()).save(any())
-    }
-
-    @Test
     fun `skipDeepQuestion - 심화 질문을 스킵한다`() {
         val retro = inProgressRetrospective()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
@@ -494,28 +474,22 @@ class RetrospectServiceTest {
     @Test
     fun `restart - 기존 회고를 삭제하고 새로 시작한다`() {
         val retro = inProgressRetrospective()
+        val user =
+            mock<User> {
+                on { email } doReturn "test@test.com"
+            }
 
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+
+        whenever(retrospectivePolicy.isWhitelisted("test@test.com")).thenReturn(false)
+        whenever(retrospectiveFinder.countByUserIdAndDate(any(), any())).thenReturn(0)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = retrospectService.restart(retrospectiveId, userId)
 
         assertThat(retro.isDeleted()).isTrue()
         assertThat(result.isPending()).isTrue()
-    }
-
-    @Test
-    fun `restart - 하루 제한을 확인하지 않고 다시 시작한다`() {
-        val retro = inProgressRetrospective()
-
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
-        whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
-
-        val result = retrospectService.restart(retrospectiveId, userId)
-
-        assertThat(result.isPending()).isTrue()
-        verify(retrospectiveFinder, never()).countByUserIdAndDate(any(), any())
-        verify(userFinder, never()).findByIdOrThrow(any())
     }
 
     @Test
