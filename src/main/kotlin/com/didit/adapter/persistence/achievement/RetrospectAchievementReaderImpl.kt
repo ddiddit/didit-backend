@@ -3,6 +3,7 @@ package com.didit.adapter.persistence.achievement
 import com.didit.application.achievement.required.RetrospectAchievementReader
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.RetroStatus
+import com.didit.domain.shared.ServiceTime
 import org.springframework.stereotype.Component
 import java.time.DayOfWeek
 import java.util.UUID
@@ -22,7 +23,7 @@ class RetrospectAchievementReaderImpl(
     override fun countWeeklyGoalAchievedWeeks(userId: UUID): Int =
         retrospectiveRepository
             .findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(userId, RetroStatus.COMPLETED)
-            .map { it.toLocalDate() }
+            .map { ServiceTime.toServiceDate(it) }
             .distinct()
             .groupBy { it.with(DayOfWeek.MONDAY) }
             .count { (_, dates) -> dates.size >= 3 }

@@ -13,4 +13,6 @@ object ServiceTime {
     fun startOfDayUtc(date: LocalDate): LocalDateTime = date.atStartOfDay(ZONE).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime()
 
     fun dayRangeUtc(date: LocalDate): Pair<LocalDateTime, LocalDateTime> = startOfDayUtc(date) to startOfDayUtc(date.plusDays(1))
+
+    fun toServiceDate(utcDateTime: LocalDateTime): LocalDate = utcDateTime.atZone(ZoneOffset.UTC).withZoneSameInstant(ZONE).toLocalDate()
 }
