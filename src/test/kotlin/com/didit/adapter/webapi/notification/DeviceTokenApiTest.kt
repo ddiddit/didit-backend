@@ -40,7 +40,7 @@ class DeviceTokenApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
                         fieldWithPath("token").type(JsonFieldType.STRING).description("FCM 토큰"),
-                        fieldWithPath("deviceType").type(JsonFieldType.STRING).description("기기 타입 (IOS, ANDROID)"),
+                        fieldWithPath("deviceType").type(JsonFieldType.STRING).description("기기 타입 (IOS, ANDROID, WEB)"),
                     ),
                 ),
             )
@@ -58,7 +58,7 @@ class DeviceTokenApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     queryParameters(
-                        parameterWithName("deviceType").description("기기 타입 (IOS, ANDROID)"),
+                        parameterWithName("deviceType").description("기기 타입 (IOS, ANDROID, WEB)"),
                     ),
                 ),
             )

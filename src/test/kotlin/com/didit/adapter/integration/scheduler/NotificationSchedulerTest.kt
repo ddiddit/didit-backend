@@ -49,11 +49,17 @@ class NotificationSchedulerTest {
             )
         whenever(notificationSettingFinder.findAllByReminderTime(any())).thenReturn(listOf(setting))
         whenever(deviceTokenFinder.findAllByUserId(userId)).thenReturn(listOf(token))
-        whenever(fcmClient.sendMessage(any(), any(), any())).thenReturn(false)
+        whenever(fcmClient.sendMessage(any(), any(), any(), any(), any())).thenReturn(false)
 
         notificationScheduler.sendReminderNotifications()
 
-        verify(fcmClient).sendMessage("test-token", NotificationScheduler.DAILY_REMINDER_TITLE, NotificationScheduler.DAILY_REMINDER_BODY)
+        verify(fcmClient).sendMessage(
+            "test-token",
+            NotificationScheduler.DAILY_REMINDER_TITLE,
+            NotificationScheduler.DAILY_REMINDER_BODY,
+            DeviceType.IOS,
+            NotificationScheduler.DAILY_REMINDER_LINK,
+        )
         verify(notificationHistoryRegister).save(any())
     }
 
@@ -63,7 +69,7 @@ class NotificationSchedulerTest {
 
         notificationScheduler.sendReminderNotifications()
 
-        verify(fcmClient, never()).sendMessage(any(), any(), any())
+        verify(fcmClient, never()).sendMessage(any(), any(), any(), any(), any())
         verify(notificationHistoryRegister, never()).save(any())
     }
 
@@ -76,7 +82,7 @@ class NotificationSchedulerTest {
 
         notificationScheduler.sendReminderNotifications()
 
-        verify(fcmClient, never()).sendMessage(any(), any(), any())
+        verify(fcmClient, never()).sendMessage(any(), any(), any(), any(), any())
         verify(notificationHistoryRegister).save(any())
     }
 
@@ -94,7 +100,7 @@ class NotificationSchedulerTest {
             )
         whenever(notificationSettingFinder.findAllByReminderTime(any())).thenReturn(listOf(setting))
         whenever(deviceTokenFinder.findAllByUserId(userId)).thenReturn(listOf(token))
-        whenever(fcmClient.sendMessage(any(), any(), any())).thenReturn(true)
+        whenever(fcmClient.sendMessage(any(), any(), any(), any(), any())).thenReturn(true)
 
         notificationScheduler.sendReminderNotifications()
 
