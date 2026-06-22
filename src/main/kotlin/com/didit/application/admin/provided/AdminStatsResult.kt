@@ -12,6 +12,10 @@ data class AdminStatsResult(
     val dau: Long,
     val todayRetrospects: Long,
     val weeklyRetroTrend: List<DailyRetroCount>,
+    val totalInputTokens: Long,
+    val totalOutputTokens: Long,
+    val textAnswerCount: Long,
+    val voiceAnswerCount: Long,
     val recentUsers: List<RecentUserSummary>,
     val recentInquiries: List<RecentInquirySummary>,
 )

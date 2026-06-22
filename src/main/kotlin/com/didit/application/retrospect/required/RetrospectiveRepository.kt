@@ -1,5 +1,6 @@
 package com.didit.application.retrospect.required
 
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
 import org.springframework.data.domain.Pageable
@@ -174,4 +175,22 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     """,
     )
     fun findAllByTagId(tagId: UUID): List<Retrospective>
+
+    @Query("SELECT COALESCE(SUM(r.inputTokens), 0) FROM Retrospective r WHERE r.deletedAt IS NULL")
+    fun sumInputTokens(): Long
+
+    @Query("SELECT COALESCE(SUM(r.outputTokens), 0) FROM Retrospective r WHERE r.deletedAt IS NULL")
+    fun sumOutputTokens(): Long
+
+    @Query(
+        """
+        SELECT COUNT(m)
+        FROM ChatMessage m
+        WHERE m.sender = com.didit.domain.retrospect.Sender.USER
+        AND m.inputType = :inputType
+    """,
+    )
+    fun countUserAnswersByInputType(
+        @Param("inputType") inputType: InputType,
+    ): Long
 }

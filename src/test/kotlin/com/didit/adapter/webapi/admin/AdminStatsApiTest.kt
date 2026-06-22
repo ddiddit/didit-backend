@@ -41,6 +41,10 @@ class AdminStatsApiTest : AdminAuthenticatedRestDocsSupport() {
                         DailyRetroCount(date = LocalDate.of(2026, 6, 10), count = 30),
                         DailyRetroCount(date = LocalDate.of(2026, 6, 11), count = 25),
                     ),
+                totalInputTokens = 1_200_000,
+                totalOutputTokens = 800_000,
+                textAnswerCount = 1500,
+                voiceAnswerCount = 600,
                 recentUsers =
                     listOf(
                         RecentUserSummary(
@@ -81,6 +85,10 @@ class AdminStatsApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.todayRetrospects").type(JsonFieldType.NUMBER).description("오늘 완료 회고 수"),
                         fieldWithPath("data.weeklyRetroTrend[].date").type(JsonFieldType.STRING).description("날짜"),
                         fieldWithPath("data.weeklyRetroTrend[].count").type(JsonFieldType.NUMBER).description("완료 회고 수"),
+                        fieldWithPath("data.totalInputTokens").type(JsonFieldType.NUMBER).description("전체 입력 토큰 사용량"),
+                        fieldWithPath("data.totalOutputTokens").type(JsonFieldType.NUMBER).description("전체 출력 토큰 사용량"),
+                        fieldWithPath("data.textAnswerCount").type(JsonFieldType.NUMBER).description("텍스트 답변 수"),
+                        fieldWithPath("data.voiceAnswerCount").type(JsonFieldType.NUMBER).description("음성(STT) 답변 수"),
                         fieldWithPath("data.recentUsers[].id").type(JsonFieldType.STRING).description("유저 ID"),
                         fieldWithPath("data.recentUsers[].email").type(JsonFieldType.STRING).optional().description("이메일"),
                         fieldWithPath("data.recentUsers[].nickname").type(JsonFieldType.STRING).optional().description("닉네임"),

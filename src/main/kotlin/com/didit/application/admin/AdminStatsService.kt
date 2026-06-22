@@ -10,6 +10,7 @@ import com.didit.application.auth.required.UserRepository
 import com.didit.application.inquiry.required.InquiryRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.inquiry.InquiryStatus
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.RetroStatus
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -39,6 +40,10 @@ class AdminStatsService(
             dau = auditReader.countDau(todayStart),
             todayRetrospects = retrospectiveRepository.countByCompletedAtBetweenAndDeletedAtIsNull(todayStart, todayEnd),
             weeklyRetroTrend = buildWeeklyRetroTrend(sevenDaysAgo),
+            totalInputTokens = retrospectiveRepository.sumInputTokens(),
+            totalOutputTokens = retrospectiveRepository.sumOutputTokens(),
+            textAnswerCount = retrospectiveRepository.countUserAnswersByInputType(InputType.TEXT),
+            voiceAnswerCount = retrospectiveRepository.countUserAnswersByInputType(InputType.STT),
             recentUsers = buildRecentUsers(),
             recentInquiries = buildRecentInquiries(),
         )
