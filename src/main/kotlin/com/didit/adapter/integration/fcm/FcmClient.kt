@@ -29,10 +29,8 @@ class FcmClient {
             false
         } catch (e: FirebaseMessagingException) {
             when (e.messagingErrorCode) {
-                MessagingErrorCode.UNREGISTERED,
-                MessagingErrorCode.INVALID_ARGUMENT,
-                -> {
-                    logger.warn("무효 FCM 토큰 삭제 대상 - errorCode: ${e.messagingErrorCode}, token: ${token.take(20)}...")
+                MessagingErrorCode.UNREGISTERED -> {
+                    logger.warn("만료된 FCM 토큰 삭제 대상 - token: ${token.take(20)}...")
                     true
                 }
                 MessagingErrorCode.UNAVAILABLE,
