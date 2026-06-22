@@ -4,10 +4,13 @@ spring:
       enabled: false
 
   datasource:
-    url: jdbc:mysql://didit-prod-db:3306/didit?serverTimezone=Asia/Seoul&characterEncoding=UTF-8
+    url: jdbc:mysql://didit-prod-db:3306/didit?serverTimezone=UTC&characterEncoding=UTF-8
     username: ${DB_USER}
     password: ${DB_PASSWORD}
     driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jackson:
+    time-zone: UTC
 
   jpa:
     hibernate:
@@ -17,6 +20,8 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.MySQLDialect
+        jdbc:
+          time_zone: UTC
 
   flyway:
     enabled: true

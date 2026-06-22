@@ -20,11 +20,20 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
 
     fun findByIdAndDeletedAtIsNull(retrospectiveId: UUID): Retrospective?
 
-    fun countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween(
-        userId: UUID,
-        status: RetroStatus,
-        from: LocalDateTime,
-        to: LocalDateTime,
+    @Query(
+        """
+        SELECT COUNT(r) FROM Retrospective r
+        WHERE r.userId = :userId
+        AND r.status <> :status
+        AND r.deletedAt IS NULL
+        AND r.createdAt >= :from AND r.createdAt < :to
+    """,
+    )
+    fun countByUserIdAndCreatedAtInPeriod(
+        @Param("userId") userId: UUID,
+        @Param("status") status: RetroStatus,
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime,
     ): Int
 
     fun countByUserIdAndStatusAndDeletedAtIsNull(
@@ -65,7 +74,7 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         WHERE r.userId = :userId
         AND r.status = 'COMPLETED'
         AND r.deletedAt IS NULL
-        AND r.completedAt BETWEEN :from AND :to
+        AND r.completedAt >= :from AND r.completedAt < :to
         ORDER BY r.completedAt DESC
     """,
     )

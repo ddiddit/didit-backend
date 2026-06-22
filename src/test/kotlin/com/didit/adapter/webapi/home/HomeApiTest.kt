@@ -7,6 +7,7 @@ import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.organization.Project
 import com.didit.domain.organization.Tag
+import com.didit.domain.shared.ServiceTime
 import com.didit.support.RetrospectiveFixture
 import com.didit.support.UserFixture
 import org.junit.jupiter.api.Test
@@ -18,7 +19,6 @@ import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
-import java.time.LocalDate
 import java.util.UUID
 
 class HomeApiTest : AuthenticatedRestDocsSupport() {
@@ -34,7 +34,7 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
 
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
         whenever(retrospectiveFinder.findRecentByUserId(userId, 5)).thenReturn(listOf(retro))
-        whenever(retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())).thenReturn(1)
+        whenever(retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())).thenReturn(1)
 
         mockMvc
             .perform(get("/api/v1/home"))
@@ -70,7 +70,7 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
 
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
         whenever(retrospectiveFinder.findRecentWithProjectAndTagsByUserId(userId, 5)).thenReturn(listOf(result))
-        whenever(retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())).thenReturn(1)
+        whenever(retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())).thenReturn(1)
 
         mockMvc
             .perform(get("/api/v2/home"))
