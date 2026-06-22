@@ -68,4 +68,9 @@ interface RetrospectiveFinder {
         userId: UUID,
         tagId: UUID,
     ): List<RetrospectiveDetailResult>
+
+    fun findRecentWithProjectAndTagsByUserId(
+        userId: UUID,
+        limit: Int,
+    ): List<RetrospectiveDetailResult>
 }

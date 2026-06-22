@@ -10,3 +10,15 @@ include::{snippets}/home/get/http-request.adoc[]
 
 include::{snippets}/home/get/http-response.adoc[]
 include::{snippets}/home/get/response-fields.adoc[]
+
+== 홈 조회 (v2)
+최근 회고에 프로젝트명과 태그 정보를 포함한 v2 홈 조회 엔드포인트
+
+=== Request
+
+include::{snippets}/home/v2/get/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/home/v2/get/http-response.adoc[]
+include::{snippets}/home/v2/get/response-fields.adoc[]

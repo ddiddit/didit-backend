@@ -180,6 +180,15 @@ class RetrospectQueryService(
         return toDetailResults(userId, retrospectiveRepository.findAllByTagId(tagId))
     }
 
+    override fun findRecentWithProjectAndTagsByUserId(
+        userId: UUID,
+        limit: Int,
+    ): List<RetrospectiveDetailResult> =
+        toDetailResults(
+            userId,
+            retrospectiveRepository.findRecentCompletedByUserId(userId, PageRequest.of(0, limit)),
+        )
+
     private fun toDetailResults(
         userId: UUID,
         retrospectives: List<Retrospective>,
