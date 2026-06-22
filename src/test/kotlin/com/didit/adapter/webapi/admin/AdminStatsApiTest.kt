@@ -46,6 +46,8 @@ class AdminStatsApiTest : AdminAuthenticatedRestDocsSupport() {
                 totalOutputTokens = 800_000,
                 todayInputTokens = 30_000,
                 todayOutputTokens = 12_000,
+                monthInputTokens = 600_000,
+                monthOutputTokens = 240_000,
                 textAnswerCount = 1500,
                 voiceAnswerCount = 600,
                 recentUsers =
@@ -93,6 +95,8 @@ class AdminStatsApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.totalOutputTokens").type(JsonFieldType.NUMBER).description("전체 출력 토큰 사용량"),
                         fieldWithPath("data.todayInputTokens").type(JsonFieldType.NUMBER).description("오늘(완료일 기준) 입력 토큰 사용량"),
                         fieldWithPath("data.todayOutputTokens").type(JsonFieldType.NUMBER).description("오늘(완료일 기준) 출력 토큰 사용량"),
+                        fieldWithPath("data.monthInputTokens").type(JsonFieldType.NUMBER).description("이번달(완료일 기준) 입력 토큰 사용량"),
+                        fieldWithPath("data.monthOutputTokens").type(JsonFieldType.NUMBER).description("이번달(완료일 기준) 출력 토큰 사용량"),
                         fieldWithPath("data.textAnswerCount").type(JsonFieldType.NUMBER).description("텍스트 답변 수"),
                         fieldWithPath("data.voiceAnswerCount").type(JsonFieldType.NUMBER).description("음성(STT) 답변 수"),
                         fieldWithPath("data.recentUsers[].id").type(JsonFieldType.STRING).description("유저 ID"),

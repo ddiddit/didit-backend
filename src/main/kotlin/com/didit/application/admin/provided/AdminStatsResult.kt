@@ -17,6 +17,8 @@ data class AdminStatsResult(
     val totalOutputTokens: Long,
     val todayInputTokens: Long,
     val todayOutputTokens: Long,
+    val monthInputTokens: Long,
+    val monthOutputTokens: Long,
     val textAnswerCount: Long,
     val voiceAnswerCount: Long,
     val recentUsers: List<RecentUserSummary>,
