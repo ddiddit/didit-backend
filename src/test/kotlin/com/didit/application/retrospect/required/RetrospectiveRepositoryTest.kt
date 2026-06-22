@@ -25,9 +25,9 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     private fun summary(feedback: String = "피드백") =
         RetrospectiveSummary(
             summary = "...",
-            blockedPoint = "...",
-            solutionProcess = "...",
-            lessonLearned = "...",
+            blockedPoint = listOf("..."),
+            solutionProcess = listOf("..."),
+            lessonLearned = listOf("..."),
             insightTitle = "",
             insightDescription = "",
             nextActionTitle = "",
@@ -103,13 +103,30 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `countByUserIdAndStatusNotAndCreatedAtBetween - PENDING 상태는 카운트에서 제외된다`() {
+    fun `countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween - PENDING 상태는 카운트에서 제외된다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
         retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })
         retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
 
         val count =
-            retrospectiveRepository.countByUserIdAndStatusNotAndCreatedAtBetween(
+            retrospectiveRepository.countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween(
+                userId = userId,
+                status = RetroStatus.PENDING,
+                from = LocalDateTime.now().toLocalDate().atStartOfDay(),
+                to = LocalDateTime.now().toLocalDate().atTime(23, 59, 59),
+            )
+
+        assertThat(count).isEqualTo(2)
+    }
+
+    @Test
+    fun `countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween - 삭제된 회고는 카운트에서 제외된다`() {
+        retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })
+        retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
+        retrospectiveRepository.save(completedRetrospective(userId, "삭제된 회고").apply { softDelete() })
+
+        val count =
+            retrospectiveRepository.countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween(
                 userId = userId,
                 status = RetroStatus.PENDING,
                 from = LocalDateTime.now().toLocalDate().atStartOfDay(),

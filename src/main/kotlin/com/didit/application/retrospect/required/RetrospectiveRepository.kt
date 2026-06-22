@@ -19,7 +19,7 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
 
     fun findByIdAndDeletedAtIsNull(retrospectiveId: UUID): Retrospective?
 
-    fun countByUserIdAndStatusNotAndCreatedAtBetween(
+    fun countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween(
         userId: UUID,
         status: RetroStatus,
         from: LocalDateTime,
