@@ -62,6 +62,7 @@ class AdminAuditServiceTest {
         val result = adminAuditService.findAuditLogs("ADMIN_INVITED", null, 0)
 
         assertThat(result.content[0].action).isEqualTo("ADMIN_INVITED")
+        assertThat(result.content[0].actionLabel).isEqualTo("관리자 초대")
     }
 
     @Test
