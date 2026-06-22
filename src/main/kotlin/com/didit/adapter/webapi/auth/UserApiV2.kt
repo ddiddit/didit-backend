@@ -2,10 +2,9 @@ package com.didit.adapter.webapi.auth
 
 import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
-import com.didit.adapter.webapi.auth.dto.NicknameCheckResponse
-import com.didit.adapter.webapi.auth.dto.OnboardingRequest
-import com.didit.adapter.webapi.auth.dto.UpdateProfileRequest
-import com.didit.adapter.webapi.auth.dto.UserProfileResponse
+import com.didit.adapter.webapi.auth.dto.OnboardingRequestV2
+import com.didit.adapter.webapi.auth.dto.UpdateProfileRequestV2
+import com.didit.adapter.webapi.auth.dto.UserProfileResponseV2
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.achievement.provided.BadgeFinder
 import com.didit.application.audit.Audit
@@ -19,38 +18,31 @@ import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
-@RequestMapping("/api/v1/users")
+@RequestMapping("/api/v2/users")
 @RestController
-class UserApi(
+class UserApiV2(
     private val userFinder: UserFinder,
     private val userRegister: UserRegister,
     private val badgeFinder: BadgeFinder,
 ) {
-    @GetMapping("/nickname/check")
-    fun checkNickname(
-        @RequestParam nickname: String,
-    ): SuccessResponse<NicknameCheckResponse> {
-        val isDuplicate = userFinder.existsByNickname(nickname)
-        return SuccessResponse.of(NicknameCheckResponse(isDuplicate = isDuplicate))
-    }
-
     @Audit(AuditAction.USER_SIGNED_UP)
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PostMapping("/onboarding")
     fun onboarding(
         @CurrentUserId userId: UUID,
-        @Valid @RequestBody request: OnboardingRequest,
+        @Valid @RequestBody request: OnboardingRequestV2,
     ) {
-        userRegister.register(
+        userRegister.registerV2(
             userId = userId,
             nickname = request.nickname,
             job = request.job,
+            age = request.age,
+            experience = request.experience,
             marketingAgreed = request.marketingAgreed,
             nightPushAgreed = request.nightPushAgreed,
         )
@@ -60,11 +52,11 @@ class UserApi(
     @GetMapping("/profile")
     fun getProfile(
         @CurrentUserId userId: UUID,
-    ): SuccessResponse<UserProfileResponse> {
+    ): SuccessResponse<UserProfileResponseV2> {
         val user = userFinder.findByIdOrThrow(userId)
         val recentBadges = badgeFinder.findRecent(userId)
 
-        return SuccessResponse.of(UserProfileResponse.from(user, recentBadges))
+        return SuccessResponse.of(UserProfileResponseV2.from(user, recentBadges))
     }
 
     @RequireAuth
@@ -72,12 +64,14 @@ class UserApi(
     @PatchMapping("/profile")
     fun updateProfile(
         @CurrentUserId userId: UUID,
-        @Valid @RequestBody request: UpdateProfileRequest,
+        @Valid @RequestBody request: UpdateProfileRequestV2,
     ) {
-        userRegister.updateProfile(
+        userRegister.updateProfileV2(
             userId = userId,
             nickname = request.nickname,
             job = request.job,
+            age = request.age,
+            experience = request.experience,
         )
     }
 }

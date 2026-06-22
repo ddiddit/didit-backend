@@ -17,9 +17,9 @@ class RetrospectiveTest {
     private fun summary() =
         RetrospectiveSummary(
             summary = "오늘 회고 요약 문장입니다.",
-            blockedPoint = listOf("막힌 지점"),
-            solutionProcess = listOf("해결 과정"),
-            lessonLearned = listOf("배운 점"),
+            blockedPoint = "막힌 지점",
+            solutionProcess = "해결 과정",
+            lessonLearned = "배운 점",
             insightTitle = "인사이트 제목",
             insightDescription = "인사이트 설명",
             nextActionTitle = "다음 액션 제목",

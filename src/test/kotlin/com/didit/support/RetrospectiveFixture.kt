@@ -21,9 +21,9 @@ object RetrospectiveFixture {
                 saveSummary(
                     RetrospectiveSummary(
                         summary = "오늘은 로그인 API 연동 작업을 마무리하면서 토큰 만료 처리 로직에서 예상치 못한 엣지 케이스를 발견하고 해결한 하루였어요.",
-                        blockedPoint = listOf("토큰 만료 처리 로직이 복잡했습니다."),
-                        solutionProcess = listOf("공식 문서를 참고하여 해결했습니다."),
-                        lessonLearned = listOf("초반에 에러 처리를 설계해두면 편합니다."),
+                        blockedPoint = "토큰 만료 처리 로직이 복잡했습니다.",
+                        solutionProcess = "공식 문서를 참고하여 해결했습니다.",
+                        lessonLearned = "초반에 에러 처리를 설계해두면 편합니다.",
                         insightTitle = "문제를 작게 나누는 것의 중요성",
                         insightDescription = "문제를 작게 나누어 접근하면 복잡한 이슈도 더 안정적으로 해결할 수 있다는 점을 느꼈어요.",
                         nextActionTitle = "토큰 만료 엣지 케이스 테스트 작성",

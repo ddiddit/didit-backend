@@ -67,15 +67,3 @@ include::{snippets}/project/retrospect-list/path-parameters.adoc[]
 
 include::{snippets}/project/retrospect-list/http-response.adoc[]
 include::{snippets}/project/retrospect-list/response-fields.adoc[]
-
-== 프로젝트별 회고 리스트 조회 (v2)
-
-=== request
-
-include::{snippets}/project/v2/retrospect-list/http-request.adoc[]
-include::{snippets}/project/v2/retrospect-list/path-parameters.adoc[]
-
-=== response
-
-include::{snippets}/project/v2/retrospect-list/http-response.adoc[]
-include::{snippets}/project/v2/retrospect-list/response-fields.adoc[]

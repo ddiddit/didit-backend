@@ -8,7 +8,6 @@ import com.didit.adapter.webapi.organization.dto.ProjectOrderRequest
 import com.didit.adapter.webapi.organization.dto.RetrospectiveListResponse
 import com.didit.adapter.webapi.organization.dto.UpdateProjectNameRequest
 import com.didit.adapter.webapi.response.SuccessResponse
-import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemV2Response
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectModifier
 import com.didit.application.organization.provided.ProjectRegister
@@ -21,10 +20,12 @@ import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import java.util.UUID
 
+@RequestMapping("/api/v1/projects")
 @RestController
 class ProjectApi(
     private val projectRegister: ProjectRegister,
@@ -34,7 +35,7 @@ class ProjectApi(
 ) {
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PostMapping("/api/v1/projects")
+    @PostMapping
     fun create(
         @CurrentUserId userId: UUID,
         @Valid @RequestBody request: ProjectCreateRequest,
@@ -43,7 +44,7 @@ class ProjectApi(
     }
 
     @RequireAuth
-    @GetMapping("/api/v1/projects")
+    @GetMapping
     fun list(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<List<ProjectListResponse>> {
@@ -53,7 +54,7 @@ class ProjectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PatchMapping("/api/v1/projects/{projectId}/name")
+    @PatchMapping("/{projectId}/name")
     fun update(
         @CurrentUserId userId: UUID,
         @PathVariable("projectId") projectId: UUID,
@@ -64,7 +65,7 @@ class ProjectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @DeleteMapping("/api/v1/projects/{projectId}")
+    @DeleteMapping("/{projectId}")
     fun delete(
         @CurrentUserId userId: UUID,
         @PathVariable projectId: UUID,
@@ -74,7 +75,7 @@ class ProjectApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PatchMapping("/api/v1/projects/order")
+    @PatchMapping("/order")
     fun reorder(
         @CurrentUserId userId: UUID,
         @RequestBody request: ProjectOrderRequest,
@@ -82,9 +83,8 @@ class ProjectApi(
         projectRegister.reorder(userId, request.projectIds)
     }
 
-    @Deprecated("Use v2 endpoint", replaceWith = ReplaceWith("findByProjectV2"))
     @RequireAuth
-    @GetMapping("/api/v1/projects/{projectId}")
+    @GetMapping("/{projectId}")
     fun findByProject(
         @CurrentUserId userId: UUID,
         @PathVariable("projectId") projectId: UUID,
@@ -93,16 +93,5 @@ class ProjectApi(
             retrospectiveFinder.findByProject(userId, projectId).map { RetrospectiveListResponse.from(it) }
 
         return SuccessResponse.of(retrospectives)
-    }
-
-    @RequireAuth
-    @GetMapping("/api/v2/projects/{projectId}")
-    fun findByProjectV2(
-        @CurrentUserId userId: UUID,
-        @PathVariable("projectId") projectId: UUID,
-    ): SuccessResponse<List<RetrospectiveListItemV2Response>> {
-        val results = retrospectiveFinder.findByProjectWithProjectAndTags(userId, projectId)
-
-        return SuccessResponse.of(results.map { RetrospectiveListItemV2Response.from(it) })
     }
 }

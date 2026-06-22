@@ -49,7 +49,7 @@ class UserTest {
 
         assertThatThrownBy { user.completeOnboarding(nickname = "a", job = Job.DEVELOPER) }
             .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("닉네임은 2~10자 한글, 영문만 가능합니다.")
+            .hasMessage("닉네임은 2~10자 한글, 영문, 숫자만 가능합니다.")
     }
 
     @Test
@@ -58,7 +58,7 @@ class UserTest {
 
         assertThatThrownBy { user.completeOnboarding(nickname = "닉네임!", job = Job.DEVELOPER) }
             .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("닉네임은 2~10자 한글, 영문만 가능합니다.")
+            .hasMessage("닉네임은 2~10자 한글, 영문, 숫자만 가능합니다.")
     }
 
     @Test
@@ -121,7 +121,7 @@ class UserTest {
 
         assertThatThrownBy { user.updateProfile(nickname = "a", job = null) }
             .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("닉네임은 2~10자 한글, 영문만 가능합니다.")
+            .hasMessage("닉네임은 2~10자 한글, 영문, 숫자만 가능합니다.")
     }
 
     @Test
@@ -130,7 +130,7 @@ class UserTest {
 
         assertThatThrownBy { user.updateProfile(nickname = "닉네임!", job = null) }
             .isInstanceOf(IllegalArgumentException::class.java)
-            .hasMessage("닉네임은 2~10자 한글, 영문만 가능합니다.")
+            .hasMessage("닉네임은 2~10자 한글, 영문, 숫자만 가능합니다.")
     }
 
     @Test

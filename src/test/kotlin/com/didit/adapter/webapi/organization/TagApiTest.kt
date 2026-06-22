@@ -5,15 +5,11 @@ import com.didit.application.organization.provided.RetrospectTagFinder
 import com.didit.application.organization.provided.TagFinder
 import com.didit.application.organization.provided.TagModifier
 import com.didit.application.organization.provided.TagRegister
-import com.didit.application.retrospect.dto.RetrospectiveDetailResult
-import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
-import com.didit.domain.organization.Project
 import com.didit.domain.organization.Tag
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
-import com.didit.support.RetrospectiveFixture
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doNothing
 import org.mockito.kotlin.whenever
@@ -38,9 +34,8 @@ class TagApiTest : AuthenticatedRestDocsSupport() {
     private val tagFinder: TagFinder = org.mockito.Mockito.mock(TagFinder::class.java)
     private val tagModifier: TagModifier = org.mockito.Mockito.mock(TagModifier::class.java)
     private val retrospectTagFinder: RetrospectTagFinder = org.mockito.Mockito.mock(RetrospectTagFinder::class.java)
-    private val retrospectiveFinder: RetrospectiveFinder = org.mockito.Mockito.mock(RetrospectiveFinder::class.java)
 
-    override fun initController() = TagApi(tagRegister, tagFinder, tagModifier, retrospectTagFinder, retrospectiveFinder)
+    override fun initController() = TagApi(tagRegister, tagFinder, tagModifier, retrospectTagFinder)
 
     @Test
     fun `태그 생성`() {
@@ -127,9 +122,9 @@ class TagApiTest : AuthenticatedRestDocsSupport() {
             Retrospective.create(userId).apply {
                 RetrospectiveSummary(
                     summary = "첫 번째 회고 요약입니다.",
-                    blockedPoint = listOf("문제 1"),
-                    solutionProcess = listOf("해결 1"),
-                    lessonLearned = listOf("배운 점 1"),
+                    blockedPoint = "문제 1",
+                    solutionProcess = "해결 1",
+                    lessonLearned = "배운 점 1",
                     insightTitle = "인사이트 1",
                     insightDescription = "인사이트 설명 1",
                     nextActionTitle = "다음 액션 1",
@@ -144,9 +139,9 @@ class TagApiTest : AuthenticatedRestDocsSupport() {
                 summary =
                     RetrospectiveSummary(
                         summary = "두 번째 회고 요약입니다.",
-                        blockedPoint = listOf("문제 2"),
-                        solutionProcess = listOf("해결 2"),
-                        lessonLearned = listOf("배운 점 2"),
+                        blockedPoint = "문제 2",
+                        solutionProcess = "해결 2",
+                        lessonLearned = "배운 점 2",
                         insightTitle = "인사이트 2",
                         insightDescription = "인사이트 설명 2",
                         nextActionTitle = "다음 액션 2",
@@ -182,52 +177,6 @@ class TagApiTest : AuthenticatedRestDocsSupport() {
                             .type(JsonFieldType.STRING)
                             .description("완료 시간")
                             .optional(),
-                    ),
-                ),
-            )
-    }
-
-    @Test
-    fun `태그 기준 회고 목록 조회 v2`() {
-        val tagId = UUID.randomUUID()
-
-        val results =
-            listOf(
-                RetrospectiveDetailResult(
-                    retrospective = RetrospectiveFixture.createCompleted(userId),
-                    project = Project(UUID.randomUUID(), userId, "프로젝트 이름"),
-                    tags = listOf(Tag(tagId, userId, "태그1"), Tag(UUID.randomUUID(), userId, "태그2")),
-                ),
-            )
-
-        whenever(retrospectiveFinder.findByTagIdWithProjectAndTags(userId, tagId)).thenReturn(results)
-
-        mockMvc
-            .perform(get("/api/v2/tags/{tagId}", tagId))
-            .andExpect(status().isOk)
-            .andDo(
-                document(
-                    "tag/v2/retrospect-list",
-                    ApiDocumentUtils.getDocumentRequest(),
-                    ApiDocumentUtils.getDocumentResponse(),
-                    pathParameters(
-                        parameterWithName("tagId").description("조회할 태그 ID"),
-                    ),
-                    responseFields(
-                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
-                        fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data[].summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
-                        fieldWithPath("data[].completedAt")
-                            .type(JsonFieldType.STRING)
-                            .description("완료 시간")
-                            .optional(),
-                        fieldWithPath("data[].projectName")
-                            .type(JsonFieldType.STRING)
-                            .description("프로젝트 이름")
-                            .optional(),
-                        fieldWithPath("data[].tags").type(JsonFieldType.ARRAY).description("태그 목록"),
-                        fieldWithPath("data[].tags[].id").type(JsonFieldType.STRING).description("태그 ID"),
-                        fieldWithPath("data[].tags[].name").type(JsonFieldType.STRING).description("태그 이름"),
                     ),
                 ),
             )
