@@ -36,7 +36,9 @@ class RetrospectiveNotificationEventListenerTest {
     @Test
     fun `onRetrospectiveCompleted - 이벤트 수신 시 회고 결과 생성 완료 알림을 저장한다`() {
         val userId = UUID.randomUUID()
-        val event = RetrospectiveCompletedEvent(userId = userId, retroDate = LocalDate.now())
+        val retrospectiveId = UUID.randomUUID()
+        val expectedLink = "/retrospects/$retrospectiveId"
+        val event = RetrospectiveCompletedEvent(userId = userId, retrospectiveId = retrospectiveId, retroDate = LocalDate.now())
 
         listener.onRetrospectiveCompleted(event)
 
@@ -45,20 +47,22 @@ class RetrospectiveNotificationEventListenerTest {
                 this.userId == userId &&
                     this.type == NotificationType.RETROSPECTIVE_RESULT_CREATED &&
                     this.title == RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_TITLE &&
-                    this.body == RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_BODY
+                    this.body == RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_BODY &&
+                    this.link == expectedLink
             },
         )
         verify(userPushSender).sendToUser(
             eq(userId),
             eq(RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_TITLE),
             eq(RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_BODY),
-            eq(RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_LINK),
+            eq(expectedLink),
         )
     }
 
     @Test
     fun `onRetrospectiveCompleted - 알림 저장 실패 시 예외를 전파하지 않는다`() {
-        val event = RetrospectiveCompletedEvent(userId = UUID.randomUUID(), retroDate = LocalDate.now())
+        val event =
+            RetrospectiveCompletedEvent(userId = UUID.randomUUID(), retrospectiveId = UUID.randomUUID(), retroDate = LocalDate.now())
         whenever(notificationHistoryRegister.save(any())).thenThrow(RuntimeException("알림 저장 실패"))
 
         assertDoesNotThrow {

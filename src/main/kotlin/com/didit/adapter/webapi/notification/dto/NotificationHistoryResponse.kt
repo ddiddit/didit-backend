@@ -10,6 +10,7 @@ data class NotificationHistoryResponse(
     val type: NotificationType,
     val title: String,
     val body: String,
+    val link: String?,
     val isRead: Boolean,
     val createdAt: LocalDateTime?,
 ) {
@@ -20,6 +21,7 @@ data class NotificationHistoryResponse(
                 type = history.type,
                 title = history.title,
                 body = history.body,
+                link = history.link,
                 isRead = history.isRead,
                 createdAt = history.createdAt,
             )

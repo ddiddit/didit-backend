@@ -153,14 +153,25 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         to: LocalDateTime,
     ): Long
 
+    fun countByCreatedAtBetweenAndDeletedAtIsNull(
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): Long
+
+    fun countByCreatedAtBetweenAndStatusAndDeletedAtIsNull(
+        from: LocalDateTime,
+        to: LocalDateTime,
+        status: RetroStatus,
+    ): Long
+
     @Query(
         nativeQuery = true,
         value = """
-            SELECT DATE(completed_at) as `date`, COUNT(*) as `count`
+            SELECT DATE(CONVERT_TZ(completed_at, '+00:00', '+09:00')) as `date`, COUNT(*) as `count`
             FROM retrospectives
             WHERE completed_at >= :since AND deleted_at IS NULL AND status = 'COMPLETED'
-            GROUP BY DATE(completed_at)
-            ORDER BY DATE(completed_at)
+            GROUP BY DATE(CONVERT_TZ(completed_at, '+00:00', '+09:00'))
+            ORDER BY DATE(CONVERT_TZ(completed_at, '+00:00', '+09:00'))
         """,
     )
     fun findWeeklyRetroTrend(
@@ -190,6 +201,18 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
 
     @Query("SELECT COALESCE(SUM(r.outputTokens), 0) FROM Retrospective r WHERE r.deletedAt IS NULL")
     fun sumOutputTokens(): Long
+
+    @Query("SELECT COALESCE(SUM(r.inputTokens), 0) FROM Retrospective r WHERE r.deletedAt IS NULL AND r.completedAt BETWEEN :from AND :to")
+    fun sumInputTokensByCompletedAtBetween(
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime,
+    ): Long
+
+    @Query("SELECT COALESCE(SUM(r.outputTokens), 0) FROM Retrospective r WHERE r.deletedAt IS NULL AND r.completedAt BETWEEN :from AND :to")
+    fun sumOutputTokensByCompletedAtBetween(
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime,
+    ): Long
 
     @Query(
         """

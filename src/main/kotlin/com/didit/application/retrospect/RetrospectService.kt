@@ -249,6 +249,7 @@ class RetrospectService(
         eventPublisher.publishEvent(
             RetrospectiveCompletedEvent(
                 userId = userId,
+                retrospectiveId = retrospectiveId,
                 retroDate = ServiceTime.today(),
             ),
         )
