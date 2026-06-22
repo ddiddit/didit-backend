@@ -18,6 +18,7 @@ import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.shared.ServiceTime
 import com.didit.support.RetrospectiveFixture
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -173,6 +174,37 @@ class RetrospectQueryServiceTest {
 
         assertThat(result).isEmpty()
         verify(searchHistoryRegister).register(userId, keyword)
+    }
+
+    @Test
+    fun `searchByTitle - tagId가 있으면 태그로 필터링된 검색 결과를 반환한다`() {
+        val keyword = "회고"
+        val tagId = UUID.randomUUID()
+        val tag = Tag(tagId, userId, "업무")
+        val retros = listOf(Retrospective.create(userId).apply { updateTitle("오늘 회고") })
+
+        whenever(tagRepository.findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)).thenReturn(tag)
+
+        whenever(retrospectiveRepository.searchByUserIdAndTitleAndTagId(userId, keyword, tagId)).thenReturn(retros)
+
+        val result = retrospectQueryService.searchByTitle(userId, keyword, tagId)
+
+        assertThat(result).hasSize(1)
+        verify(searchHistoryRegister).register(userId, keyword)
+        verify(tagRepository).findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)
+        verify(retrospectiveRepository).searchByUserIdAndTitleAndTagId(userId, keyword, tagId)
+    }
+
+    @Test
+    fun `searchByTitle - tagId가 존재하지 않으면 예외가 발생한다`() {
+        val keyword = "회고"
+        val tagId = UUID.randomUUID()
+
+        whenever(tagRepository.findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)).thenReturn(null)
+
+        assertThatThrownBy {
+            retrospectQueryService.searchByTitle(userId, keyword, tagId)
+        }.isInstanceOf(TagNotFoundException::class.java)
     }
 
     @Test

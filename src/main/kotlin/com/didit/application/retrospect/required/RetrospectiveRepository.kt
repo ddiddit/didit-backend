@@ -89,6 +89,7 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         SELECT r FROM Retrospective r
         WHERE r.deletedAt IS NULL
         AND r.userId = :userId
+        AND r.status = 'COMPLETED'
         AND LOWER(r.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
         ORDER BY r.createdAt DESC
     """,
@@ -96,6 +97,26 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     fun searchByUserIdAndTitle(
         @Param("userId") userId: UUID,
         @Param("keyword") keyword: String,
+    ): List<Retrospective>
+
+    @Query(
+        """
+            SELECT r FROM Retrospective r
+            JOIN RetrospectiveTag rt ON rt.retrospectiveId = r.id
+            WHERE r.deletedAt IS NULL
+            AND r.userId = :userId
+            AND r.status = 'COMPLETED'
+            AND LOWER(r.title) LIKE LOWER(CONCAT('%', :keyword, '%'))
+            AND rt.tagId = :tagId
+            AND rt.isActive = true
+            AND rt.deletedAt IS NULL
+            ORDER BY r.createdAt DESC
+        """,
+    )
+    fun searchByUserIdAndTitleAndTagId(
+        @Param("userId") userId: UUID,
+        @Param("keyword") keyword: String,
+        @Param("tagId") tagId: UUID,
     ): List<Retrospective>
 
     @Query(

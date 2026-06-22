@@ -116,9 +116,17 @@ class RetrospectQueryService(
     override fun searchByTitle(
         userId: UUID,
         keyword: String,
+        tagId: UUID?,
     ): List<Retrospective> {
         searchHistoryRegister.register(userId, keyword)
-        return retrospectiveRepository.searchByUserIdAndTitle(userId, keyword)
+
+        if (tagId == null) {
+            return retrospectiveRepository.searchByUserIdAndTitle(userId, keyword)
+        }
+
+        tagRepository.findByIdAndUserIdAndDeletedAtIsNull(tagId, userId) ?: throw TagNotFoundException(tagId)
+
+        return retrospectiveRepository.searchByUserIdAndTitleAndTagId(userId, keyword, tagId)
     }
 
     override fun findByProject(
@@ -211,7 +219,9 @@ class RetrospectQueryService(
 
         val tagMap =
             if (retrospectTags.isNotEmpty()) {
-                tagRepository.findAllByIdInAndDeletedAtIsNull(retrospectTags.map { it.tagId }.distinct()).associateBy { it.id }
+                tagRepository
+                    .findAllByIdInAndDeletedAtIsNull(retrospectTags.map { it.tagId }.distinct())
+                    .associateBy { it.id }
             } else {
                 emptyMap()
             }

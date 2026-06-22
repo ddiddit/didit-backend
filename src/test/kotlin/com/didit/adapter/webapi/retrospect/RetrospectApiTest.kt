@@ -274,10 +274,16 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.content.lessonLearned").type(JsonFieldType.ARRAY).description("배운 점"),
                         fieldWithPath("data.content.insight").type(JsonFieldType.OBJECT).description("인사이트"),
                         fieldWithPath("data.content.insight.title").type(JsonFieldType.STRING).description("인사이트 제목"),
-                        fieldWithPath("data.content.insight.description").type(JsonFieldType.STRING).description("인사이트 설명"),
+                        fieldWithPath("data.content.insight.description")
+                            .type(JsonFieldType.STRING)
+                            .description("인사이트 설명"),
                         fieldWithPath("data.content.nextAction").type(JsonFieldType.OBJECT).description("다음 행동 제안"),
-                        fieldWithPath("data.content.nextAction.title").type(JsonFieldType.STRING).description("다음 행동 제목"),
-                        fieldWithPath("data.content.nextAction.description").type(JsonFieldType.STRING).description("다음 행동 설명"),
+                        fieldWithPath("data.content.nextAction.title")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 행동 제목"),
+                        fieldWithPath("data.content.nextAction.description")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 행동 설명"),
                     ),
                 ),
             )
@@ -363,11 +369,26 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                             .description("배운 점")
                             .optional(),
                         fieldWithPath("data.content.insight").type(JsonFieldType.OBJECT).description("인사이트").optional(),
-                        fieldWithPath("data.content.insight.title").type(JsonFieldType.STRING).description("인사이트 제목").optional(),
-                        fieldWithPath("data.content.insight.description").type(JsonFieldType.STRING).description("인사이트 설명").optional(),
-                        fieldWithPath("data.content.nextAction").type(JsonFieldType.OBJECT).description("다음 행동 제안").optional(),
-                        fieldWithPath("data.content.nextAction.title").type(JsonFieldType.STRING).description("다음 행동 제목").optional(),
-                        fieldWithPath("data.content.nextAction.description").type(JsonFieldType.STRING).description("다음 행동 설명").optional(),
+                        fieldWithPath("data.content.insight.title")
+                            .type(JsonFieldType.STRING)
+                            .description("인사이트 제목")
+                            .optional(),
+                        fieldWithPath("data.content.insight.description")
+                            .type(JsonFieldType.STRING)
+                            .description("인사이트 설명")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction")
+                            .type(JsonFieldType.OBJECT)
+                            .description("다음 행동 제안")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction.title")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 행동 제목")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction.description")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 행동 설명")
+                            .optional(),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
@@ -502,11 +523,26 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                             .description("배운 점")
                             .optional(),
                         fieldWithPath("data.content.insight").type(JsonFieldType.OBJECT).description("인사이트").optional(),
-                        fieldWithPath("data.content.insight.title").type(JsonFieldType.STRING).description("인사이트 제목").optional(),
-                        fieldWithPath("data.content.insight.description").type(JsonFieldType.STRING).description("인사이트 설명").optional(),
-                        fieldWithPath("data.content.nextAction").type(JsonFieldType.OBJECT).description("다음 행동 제안").optional(),
-                        fieldWithPath("data.content.nextAction.title").type(JsonFieldType.STRING).description("다음 행동 제목").optional(),
-                        fieldWithPath("data.content.nextAction.description").type(JsonFieldType.STRING).description("다음 행동 설명").optional(),
+                        fieldWithPath("data.content.insight.title")
+                            .type(JsonFieldType.STRING)
+                            .description("인사이트 제목")
+                            .optional(),
+                        fieldWithPath("data.content.insight.description")
+                            .type(JsonFieldType.STRING)
+                            .description("인사이트 설명")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction")
+                            .type(JsonFieldType.OBJECT)
+                            .description("다음 행동 제안")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction.title")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 행동 제목")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction.description")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 행동 설명")
+                            .optional(),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),
                     ),
                 ),
@@ -596,8 +632,9 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
     }
 
     @Test
-    fun `회고 제목 검색`() {
+    fun `회고 검색`() {
         val keyword = "로그인"
+        val tagId = UUID.randomUUID()
         val retros =
             listOf(
                 Retrospective.create(userId).apply {
@@ -631,12 +668,13 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         )
                 },
             )
-        whenever(retrospectiveFinder.searchByTitle(userId, keyword)).thenReturn(retros)
+        whenever(retrospectiveFinder.searchByTitle(userId, keyword, tagId)).thenReturn(retros)
 
         mockMvc
             .perform(
                 get("/api/v1/retrospectives/search")
-                    .param("keyword", keyword),
+                    .param("keyword", keyword)
+                    .param("tagId", tagId.toString()),
             ).andExpect(status().isOk)
             .andDo(
                 document(
@@ -645,6 +683,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentResponse(),
                     queryParameters(
                         parameterWithName("keyword").description("검색 키워드 (예시: 로그인)"),
+                        parameterWithName("tagId").optional().description("필터링할 태그 ID"),
                     ),
                     responseFields(
                         fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
@@ -654,6 +693,30 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     ),
                 ),
             )
+        verify(retrospectiveFinder).searchByTitle(userId, keyword, tagId)
+    }
+
+    @Test
+    fun `회고 검색 - tagId 없이 키워드로만 검색`() {
+        val keyword = "회고"
+
+        val retros =
+            listOf(
+                Retrospective.create(userId).apply {
+                    title = "오늘 회고"
+                    completedAt = LocalDateTime.now()
+                },
+            )
+
+        whenever(retrospectiveFinder.searchByTitle(userId, keyword, null)).thenReturn(retros)
+
+        mockMvc
+            .perform(
+                get("/api/v1/retrospectives/search")
+                    .param("keyword", keyword),
+            ).andExpect(status().isOk)
+
+        verify(retrospectiveFinder).searchByTitle(userId, keyword, null)
     }
 
     @Test

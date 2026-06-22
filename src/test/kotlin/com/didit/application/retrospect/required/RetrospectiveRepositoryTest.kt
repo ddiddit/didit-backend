@@ -178,6 +178,47 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
+    fun `searchByUserIdAndTitleAndTagId - 제목과 태그가 모두 일치하는 완료 회고만 조회한다`() {
+        val tagId = UUID.randomUUID()
+        val otherTagId = UUID.randomUUID()
+        val otherUserId = UUID.randomUUID()
+
+        val matchedRetro = retrospectiveRepository.save(completedRetrospective(userId, "회고"))
+        val titleMatchedButOtherTagRetro = retrospectiveRepository.save(completedRetrospective(userId, "회고 다른 태그"))
+        val tagMatchedButTitleNotMatchedRetro = retrospectiveRepository.save(completedRetrospective(userId, "다른 내용"))
+        val deletedTagMappingRetro = retrospectiveRepository.save(completedRetrospective(userId, "삭제된 태그 회고"))
+        val otherUserRetro = retrospectiveRepository.save(completedRetrospective(otherUserId, "회고"))
+        val pendingRetro =
+            retrospectiveRepository.save(
+                Retrospective.create(userId).apply {
+                    updateTitle("회고 진행중")
+                },
+            )
+
+        retrospectiveTagRepository.save(RetrospectiveTag.add(matchedRetro.id, tagId))
+        retrospectiveTagRepository.save(RetrospectiveTag.add(titleMatchedButOtherTagRetro.id, otherTagId))
+        retrospectiveTagRepository.save(RetrospectiveTag.add(tagMatchedButTitleNotMatchedRetro.id, tagId))
+        retrospectiveTagRepository.save(
+            RetrospectiveTag.add(deletedTagMappingRetro.id, tagId).apply {
+                delete()
+            },
+        )
+        retrospectiveTagRepository.save(RetrospectiveTag.add(otherUserRetro.id, tagId))
+        retrospectiveTagRepository.save(RetrospectiveTag.add(pendingRetro.id, tagId))
+
+        val result =
+            retrospectiveRepository.searchByUserIdAndTitleAndTagId(
+                userId = userId,
+                keyword = "회고",
+                tagId = tagId,
+            )
+
+        assertThat(result)
+            .extracting<UUID> { it.id }
+            .containsExactly(matchedRetro.id)
+    }
+
+    @Test
     fun `countByUserIdAndStatusAndDeletedAtIsNull - COMPLETED 상태만 카운트한다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
         retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })

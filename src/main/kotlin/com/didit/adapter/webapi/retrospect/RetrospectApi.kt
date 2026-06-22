@@ -87,7 +87,10 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/answers/voice", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @PostMapping(
+        "/api/v1/retrospectives/{retrospectiveId}/answers/voice",
+        consumes = [MediaType.MULTIPART_FORM_DATA_VALUE],
+    )
     fun submitVoiceAnswer(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -107,7 +110,10 @@ class RetrospectApi(
     }
 
     @RequireAuth
-    @PostMapping("/api/v1/retrospectives/{retrospectiveId}/answers/voice/transcribe", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
+    @PostMapping(
+        "/api/v1/retrospectives/{retrospectiveId}/answers/voice/transcribe",
+        consumes = [MediaType.MULTIPART_FORM_DATA_VALUE],
+    )
     fun transcribeVoiceAnswer(
         @CurrentUserId userId: UUID,
         @PathVariable retrospectiveId: UUID,
@@ -297,9 +303,9 @@ class RetrospectApi(
     fun search(
         @CurrentUserId userId: UUID,
         @RequestParam keyword: String,
+        @RequestParam(required = false) tagId: UUID?,
     ): SuccessResponse<List<RetrospectiveSearchResponse>> {
-        searchHistoryRegister.register(userId, keyword)
-        val retrospectives = retrospectiveFinder.searchByTitle(userId, keyword)
+        val retrospectives = retrospectiveFinder.searchByTitle(userId, keyword, tagId)
 
         return SuccessResponse.of(retrospectives.map { RetrospectiveSearchResponse.from(it) })
     }
