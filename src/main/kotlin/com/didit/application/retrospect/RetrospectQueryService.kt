@@ -1,6 +1,7 @@
 package com.didit.application.retrospect
 
 import com.didit.application.organization.exception.ProjectNotFoundException
+import com.didit.application.organization.exception.TagNotFoundException
 import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.organization.required.RetrospectTagRepository
 import com.didit.application.organization.required.TagRepository
@@ -53,7 +54,7 @@ class RetrospectQueryService(
         userId: UUID,
         date: LocalDate,
     ): Int =
-        retrospectiveRepository.countByUserIdAndStatusNotAndCreatedAtBetween(
+        retrospectiveRepository.countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween(
             userId = userId,
             status = RetroStatus.PENDING,
             from = date.atStartOfDay(),
@@ -154,5 +155,58 @@ class RetrospectQueryService(
             project = project,
             tags = tags,
         )
+    }
+
+    override fun findAllWithProjectAndTagsByUserId(userId: UUID): List<RetrospectiveDetailResult> =
+        toDetailResults(userId, retrospectiveRepository.findAllCompletedByUserId(userId))
+
+    override fun findByProjectWithProjectAndTags(
+        userId: UUID,
+        projectId: UUID,
+    ): List<RetrospectiveDetailResult> {
+        projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)
+            ?: throw ProjectNotFoundException(projectId)
+
+        return toDetailResults(userId, retrospectiveRepository.findAllByUserIdAndProjectId(userId, projectId))
+    }
+
+    override fun findByTagIdWithProjectAndTags(
+        userId: UUID,
+        tagId: UUID,
+    ): List<RetrospectiveDetailResult> {
+        tagRepository.findByIdAndDeletedAtIsNull(tagId)
+            ?: throw TagNotFoundException(tagId)
+
+        return toDetailResults(userId, retrospectiveRepository.findAllByTagId(tagId))
+    }
+
+    private fun toDetailResults(
+        userId: UUID,
+        retrospectives: List<Retrospective>,
+    ): List<RetrospectiveDetailResult> {
+        if (retrospectives.isEmpty()) return emptyList()
+
+        val projectMap = projectRepository.findAllByUserIdAndDeletedAtIsNull(userId).associateBy { it.id }
+
+        val retrospectTags =
+            retrospectTagRepository.findAllByRetrospectiveIdInAndIsActiveTrueAndDeletedAtIsNull(
+                retrospectives.map { it.id },
+            )
+        val tagsByRetrospectiveId = retrospectTags.groupBy { it.retrospectiveId }
+
+        val tagMap =
+            if (retrospectTags.isNotEmpty()) {
+                tagRepository.findAllByIdInAndDeletedAtIsNull(retrospectTags.map { it.tagId }.distinct()).associateBy { it.id }
+            } else {
+                emptyMap()
+            }
+
+        return retrospectives.map { retrospective ->
+            RetrospectiveDetailResult(
+                retrospective = retrospective,
+                project = retrospective.projectId?.let { projectMap[it] },
+                tags = tagsByRetrospectiveId[retrospective.id].orEmpty().mapNotNull { tagMap[it.tagId] },
+            )
+        }
     }
 }

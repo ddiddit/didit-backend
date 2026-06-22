@@ -120,6 +120,47 @@ class RetrospectV2ApiTest : AuthenticatedRestDocsSupport() {
             )
     }
 
+    @Test
+    fun `회고 목록 조회 v2`() {
+        val results =
+            listOf(
+                RetrospectiveDetailResult(
+                    retrospective = completedRetrospective(),
+                    project = project(),
+                    tags = listOf(tag1(), tag2()),
+                ),
+            )
+
+        whenever(retrospectiveFinder.findAllWithProjectAndTagsByUserId(userId)).thenReturn(results)
+
+        mockMvc
+            .perform(get("/api/v2/retrospectives"))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/v2/find-all",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data[].summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
+                        fieldWithPath("data[].completedAt")
+                            .type(JsonFieldType.STRING)
+                            .description("완료 시간")
+                            .optional(),
+                        fieldWithPath("data[].projectName")
+                            .type(JsonFieldType.STRING)
+                            .description("프로젝트 이름")
+                            .optional(),
+                        fieldWithPath("data[].tags").type(JsonFieldType.ARRAY).description("태그 목록"),
+                        fieldWithPath("data[].tags[].id").type(JsonFieldType.STRING).description("태그 ID"),
+                        fieldWithPath("data[].tags[].name").type(JsonFieldType.STRING).description("태그 이름"),
+                    ),
+                ),
+            )
+    }
+
     private fun completedRetrospective() = RetrospectiveFixture.createCompleted(userId)
 
     private fun project() =

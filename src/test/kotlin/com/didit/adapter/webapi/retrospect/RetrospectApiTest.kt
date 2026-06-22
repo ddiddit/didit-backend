@@ -603,9 +603,9 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     summary =
                         RetrospectiveSummary(
                             summary = "오늘 로그인 API 연동 작업을 마무리한 하루였어요.",
-                            blockedPoint = "토큰 만료 처리 어려움",
-                            solutionProcess = "공식 문서 참고",
-                            lessonLearned = "초반에 에러 처리 설계",
+                            blockedPoint = listOf("토큰 만료 처리 어려움"),
+                            solutionProcess = listOf("공식 문서 참고"),
+                            lessonLearned = listOf("초반에 에러 처리 설계"),
                             insightTitle = "문제를 작게 나누는 것의 중요성",
                             insightDescription = "문제를 작게 나누면 복잡한 이슈를 더 안정적으로 해결할 수 있다는 점을 느꼈어요.",
                             nextActionTitle = "토큰 만료 엣지 케이스 테스트 작성",
@@ -618,9 +618,9 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     summary =
                         RetrospectiveSummary(
                             summary = "오늘 로그인 버그를 수정한 하루였어요.",
-                            blockedPoint = "세션 처리 어려움",
-                            solutionProcess = "팀 코드 리뷰 참고",
-                            lessonLearned = "테스트 먼저 작성",
+                            blockedPoint = listOf("세션 처리 어려움"),
+                            solutionProcess = listOf("팀 코드 리뷰 참고"),
+                            lessonLearned = listOf("테스트 먼저 작성"),
                             insightTitle = "작게 나누는 습관의 필요성",
                             insightDescription = "문제를 작게 나누어 보면 디버깅과 수정 방향을 더 빠르게 잡을 수 있다는 점을 느꼈어요.",
                             nextActionTitle = "세션 처리 로직 리팩토링",

@@ -122,9 +122,9 @@ class TagApiTest : AuthenticatedRestDocsSupport() {
             Retrospective.create(userId).apply {
                 RetrospectiveSummary(
                     summary = "첫 번째 회고 요약입니다.",
-                    blockedPoint = "문제 1",
-                    solutionProcess = "해결 1",
-                    lessonLearned = "배운 점 1",
+                    blockedPoint = listOf("문제 1"),
+                    solutionProcess = listOf("해결 1"),
+                    lessonLearned = listOf("배운 점 1"),
                     insightTitle = "인사이트 1",
                     insightDescription = "인사이트 설명 1",
                     nextActionTitle = "다음 액션 1",
@@ -139,9 +139,9 @@ class TagApiTest : AuthenticatedRestDocsSupport() {
                 summary =
                     RetrospectiveSummary(
                         summary = "두 번째 회고 요약입니다.",
-                        blockedPoint = "문제 2",
-                        solutionProcess = "해결 2",
-                        lessonLearned = "배운 점 2",
+                        blockedPoint = listOf("문제 2"),
+                        solutionProcess = listOf("해결 2"),
+                        lessonLearned = listOf("배운 점 2"),
                         insightTitle = "인사이트 2",
                         insightDescription = "인사이트 설명 2",
                         nextActionTitle = "다음 액션 2",

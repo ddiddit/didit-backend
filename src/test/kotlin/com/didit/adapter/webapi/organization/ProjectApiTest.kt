@@ -232,9 +232,9 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                     saveSummary(
                         RetrospectiveSummary(
                             summary = "...",
-                            blockedPoint = "...",
-                            solutionProcess = "...",
-                            lessonLearned = "...",
+                            blockedPoint = listOf("..."),
+                            solutionProcess = listOf("..."),
+                            lessonLearned = listOf("..."),
                             insightTitle = "insight title",
                             insightDescription = "insight description",
                             nextActionTitle = "next title",
@@ -248,9 +248,9 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                     saveSummary(
                         RetrospectiveSummary(
                             summary = "...",
-                            blockedPoint = "...",
-                            solutionProcess = "...",
-                            lessonLearned = "...",
+                            blockedPoint = listOf("..."),
+                            solutionProcess = listOf("..."),
+                            lessonLearned = listOf("..."),
                             insightTitle = "insight title",
                             insightDescription = "insight description",
                             nextActionTitle = "next title",
