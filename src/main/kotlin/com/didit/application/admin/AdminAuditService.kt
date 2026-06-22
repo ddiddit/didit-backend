@@ -38,6 +38,7 @@ class AdminAuditService(
     private fun AdminAuditLogEntry.toAdminItem() =
         AdminAuditLogItem(
             action = action.name,
+            actionLabel = action.label,
             actorId = actorId,
             actorType = actorType,
             targetId = targetId,
