@@ -28,6 +28,8 @@ class NotificationHistory(
     val title: String,
     @Column(nullable = false)
     val body: String,
+    @Column
+    val link: String? = null,
     @Column(nullable = false)
     var isRead: Boolean = false,
     @CreatedDate
@@ -47,6 +49,7 @@ class NotificationHistory(
                 type = request.type,
                 title = request.title,
                 body = request.body,
+                link = request.link,
             )
     }
 }

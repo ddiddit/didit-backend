@@ -32,6 +32,11 @@ class AdminStatsService(
         val todayEnd = LocalDate.now().atTime(LocalTime.MAX)
         val sevenDaysAgo = LocalDateTime.now().minusDays(7)
 
+        val todayCreated = retrospectiveRepository.countByCreatedAtBetweenAndDeletedAtIsNull(todayStart, todayEnd)
+        val todayCreatedCompleted =
+            retrospectiveRepository.countByCreatedAtBetweenAndStatusAndDeletedAtIsNull(todayStart, todayEnd, RetroStatus.COMPLETED)
+        val todayCompletionRate = if (todayCreated == 0L) 0.0 else todayCreatedCompleted.toDouble() / todayCreated * 100
+
         return AdminStatsResult(
             totalUsers = userRepository.countByDeletedAtIsNull(),
             newUsersToday = userRepository.countByCreatedAtAfterAndDeletedAtIsNull(todayStart),
@@ -40,8 +45,11 @@ class AdminStatsService(
             dau = auditReader.countDau(todayStart),
             todayRetrospects = retrospectiveRepository.countByCompletedAtBetweenAndDeletedAtIsNull(todayStart, todayEnd),
             weeklyRetroTrend = buildWeeklyRetroTrend(sevenDaysAgo),
+            todayCompletionRate = todayCompletionRate,
             totalInputTokens = retrospectiveRepository.sumInputTokens(),
             totalOutputTokens = retrospectiveRepository.sumOutputTokens(),
+            todayInputTokens = retrospectiveRepository.sumInputTokensByCompletedAtBetween(todayStart, todayEnd),
+            todayOutputTokens = retrospectiveRepository.sumOutputTokensByCompletedAtBetween(todayStart, todayEnd),
             textAnswerCount = retrospectiveRepository.countUserAnswersByInputType(InputType.TEXT),
             voiceAnswerCount = retrospectiveRepository.countUserAnswersByInputType(InputType.STT),
             recentUsers = buildRecentUsers(),

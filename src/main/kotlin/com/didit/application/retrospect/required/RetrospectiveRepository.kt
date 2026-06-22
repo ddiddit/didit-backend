@@ -153,6 +153,17 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         to: LocalDateTime,
     ): Long
 
+    fun countByCreatedAtBetweenAndDeletedAtIsNull(
+        from: LocalDateTime,
+        to: LocalDateTime,
+    ): Long
+
+    fun countByCreatedAtBetweenAndStatusAndDeletedAtIsNull(
+        from: LocalDateTime,
+        to: LocalDateTime,
+        status: RetroStatus,
+    ): Long
+
     @Query(
         nativeQuery = true,
         value = """
@@ -190,6 +201,18 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
 
     @Query("SELECT COALESCE(SUM(r.outputTokens), 0) FROM Retrospective r WHERE r.deletedAt IS NULL")
     fun sumOutputTokens(): Long
+
+    @Query("SELECT COALESCE(SUM(r.inputTokens), 0) FROM Retrospective r WHERE r.deletedAt IS NULL AND r.completedAt BETWEEN :from AND :to")
+    fun sumInputTokensByCompletedAtBetween(
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime,
+    ): Long
+
+    @Query("SELECT COALESCE(SUM(r.outputTokens), 0) FROM Retrospective r WHERE r.deletedAt IS NULL AND r.completedAt BETWEEN :from AND :to")
+    fun sumOutputTokensByCompletedAtBetween(
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime,
+    ): Long
 
     @Query(
         """

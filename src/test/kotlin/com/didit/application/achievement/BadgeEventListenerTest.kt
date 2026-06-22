@@ -27,7 +27,7 @@ class BadgeEventListenerTest {
     @Test
     fun `onRetrospectiveCompleted - 이벤트 수신 시 배지 부여를 호출한다`() {
         val userId = UUID.randomUUID()
-        val event = RetrospectiveCompletedEvent(userId = userId, retroDate = LocalDate.now())
+        val event = RetrospectiveCompletedEvent(userId = userId, retrospectiveId = UUID.randomUUID(), retroDate = LocalDate.now())
         whenever(badgeAwarder.awardBadges(any(), any())).thenReturn(emptyList())
 
         listener.onRetrospectiveCompleted(event)
@@ -37,7 +37,8 @@ class BadgeEventListenerTest {
 
     @Test
     fun `onRetrospectiveCompleted - 배지 부여 실패해도 예외가 전파되지 않는다`() {
-        val event = RetrospectiveCompletedEvent(userId = UUID.randomUUID(), retroDate = LocalDate.now())
+        val event =
+            RetrospectiveCompletedEvent(userId = UUID.randomUUID(), retrospectiveId = UUID.randomUUID(), retroDate = LocalDate.now())
         whenever(badgeAwarder.awardBadges(any(), any())).thenThrow(RuntimeException("배지 부여 실패"))
 
         org.junit.jupiter.api.assertDoesNotThrow {
