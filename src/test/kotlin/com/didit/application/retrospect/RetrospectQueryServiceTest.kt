@@ -348,4 +348,26 @@ class RetrospectQueryServiceTest {
             retrospectQueryService.findByTagIdWithProjectAndTags(userId, tagId)
         }
     }
+
+    @Test
+    fun `findRecentWithProjectAndTagsByUserId - 최근 회고를 프로젝트명·태그와 함께 반환한다`() {
+        val projectId = UUID.randomUUID()
+        val tagId = UUID.randomUUID()
+        val retro = RetrospectiveFixture.createCompleted(userId).apply { registerProject(projectId) }
+
+        whenever(retrospectiveRepository.findRecentCompletedByUserId(userId, PageRequest.of(0, 5)))
+            .thenReturn(listOf(retro))
+        whenever(projectRepository.findAllByUserIdAndDeletedAtIsNull(userId))
+            .thenReturn(listOf(Project(projectId, userId, "프로젝트")))
+        whenever(retrospectTagRepository.findAllByRetrospectiveIdInAndIsActiveTrueAndDeletedAtIsNull(listOf(retro.id)))
+            .thenReturn(listOf(RetrospectiveTag(retrospectiveId = retro.id, tagId = tagId)))
+        whenever(tagRepository.findAllByIdInAndDeletedAtIsNull(listOf(tagId)))
+            .thenReturn(listOf(Tag(tagId, userId, "태그1")))
+
+        val result = retrospectQueryService.findRecentWithProjectAndTagsByUserId(userId, 5)
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].project?.name).isEqualTo("프로젝트")
+        assertThat(result[0].tags).extracting("name").containsExactly("태그1")
+    }
 }
