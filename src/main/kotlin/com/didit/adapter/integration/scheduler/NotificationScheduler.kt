@@ -28,6 +28,7 @@ class NotificationScheduler(
 
         const val DAILY_REMINDER_TITLE = "회고 작성 알림"
         const val DAILY_REMINDER_BODY = "하루를 마무리하며 오늘의 회고를 기록해 보세요."
+        const val DAILY_REMINDER_LINK = "/"
     }
 
     @Scheduled(cron = "0 */10 * * * *")
@@ -74,6 +75,8 @@ class NotificationScheduler(
                         token = deviceToken.token,
                         title = title,
                         body = body,
+                        deviceType = deviceToken.deviceType,
+                        link = DAILY_REMINDER_LINK,
                     )
 
                 if (isExpired) {
