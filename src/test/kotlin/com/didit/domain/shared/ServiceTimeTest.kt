@@ -29,4 +29,11 @@ class ServiceTimeTest {
     fun `today - JVM 기본 타임존과 무관하게 KST 기준 날짜를 반환한다`() {
         assertThat(ServiceTime.today()).isEqualTo(LocalDate.now(ServiceTime.ZONE))
     }
+
+    @Test
+    fun `toServiceDate - UTC 시각을 KST 날짜로 변환한다 (자정 직후 경계)`() {
+        val utc = LocalDateTime.of(2026, 2, 28, 15, 30)
+
+        assertThat(ServiceTime.toServiceDate(utc)).isEqualTo(LocalDate.of(2026, 3, 1))
+    }
 }
