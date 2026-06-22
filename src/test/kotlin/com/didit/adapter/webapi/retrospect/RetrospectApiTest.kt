@@ -9,6 +9,7 @@ import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.InsightResponse
 import com.didit.application.retrospect.dto.NextActionResponse
+import com.didit.application.retrospect.dto.RetrospectiveDetailResult
 import com.didit.application.retrospect.dto.SubmitAnswerResponse
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
@@ -16,6 +17,8 @@ import com.didit.application.retrospect.provided.SearchHistoryFinder
 import com.didit.application.retrospect.provided.SearchHistoryRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
+import com.didit.domain.organization.Project
+import com.didit.domain.organization.Tag
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
@@ -603,9 +606,9 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     summary =
                         RetrospectiveSummary(
                             summary = "오늘 로그인 API 연동 작업을 마무리한 하루였어요.",
-                            blockedPoint = "토큰 만료 처리 어려움",
-                            solutionProcess = "공식 문서 참고",
-                            lessonLearned = "초반에 에러 처리 설계",
+                            blockedPoint = listOf("토큰 만료 처리 어려움"),
+                            solutionProcess = listOf("공식 문서 참고"),
+                            lessonLearned = listOf("초반에 에러 처리 설계"),
                             insightTitle = "문제를 작게 나누는 것의 중요성",
                             insightDescription = "문제를 작게 나누면 복잡한 이슈를 더 안정적으로 해결할 수 있다는 점을 느꼈어요.",
                             nextActionTitle = "토큰 만료 엣지 케이스 테스트 작성",
@@ -618,9 +621,9 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                     summary =
                         RetrospectiveSummary(
                             summary = "오늘 로그인 버그를 수정한 하루였어요.",
-                            blockedPoint = "세션 처리 어려움",
-                            solutionProcess = "팀 코드 리뷰 참고",
-                            lessonLearned = "테스트 먼저 작성",
+                            blockedPoint = listOf("세션 처리 어려움"),
+                            solutionProcess = listOf("팀 코드 리뷰 참고"),
+                            lessonLearned = listOf("테스트 먼저 작성"),
                             insightTitle = "작게 나누는 습관의 필요성",
                             insightDescription = "문제를 작게 나누어 보면 디버깅과 수정 방향을 더 빠르게 잡을 수 있다는 점을 느꼈어요.",
                             nextActionTitle = "세션 처리 로직 리팩토링",
@@ -787,4 +790,159 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
         verify(retrospectTagModifier).delete(userId, retrospectiveId, tagId)
     }
+
+    @Test
+    fun `회고 상세 조회 v2`() {
+        val result =
+            RetrospectiveDetailResult(
+                retrospective = completedRetrospective(),
+                project = project(),
+                tags = listOf(tag1(), tag2()),
+            )
+
+        whenever(
+            retrospectiveFinder.findRetrospectWithProjectAndTags(retrospectiveId, userId),
+        ).thenReturn(result)
+
+        mockMvc
+            .perform(get("/api/v2/retrospectives/{retrospectiveId}", retrospectiveId))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/v2/find-by-id",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("retrospectiveId").description("회고 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data.status").type(JsonFieldType.STRING).description("회고 상태"),
+                        fieldWithPath("data.content").type(JsonFieldType.OBJECT).description("회고 내용").optional(),
+                        fieldWithPath("data.content.summary")
+                            .type(JsonFieldType.STRING)
+                            .description("회고 요약")
+                            .optional(),
+                        fieldWithPath("data.content.blockedPoint")
+                            .type(JsonFieldType.ARRAY)
+                            .description("막힌 지점")
+                            .optional(),
+                        fieldWithPath("data.content.solutionProcess")
+                            .type(JsonFieldType.ARRAY)
+                            .description("해결 과정")
+                            .optional(),
+                        fieldWithPath("data.content.lessonLearned")
+                            .type(JsonFieldType.ARRAY)
+                            .description("배운 점")
+                            .optional(),
+                        fieldWithPath("data.content.insight")
+                            .type(JsonFieldType.OBJECT)
+                            .description("인사이트")
+                            .optional(),
+                        fieldWithPath("data.content.insight.title")
+                            .type(JsonFieldType.STRING)
+                            .description("인사이트 제목")
+                            .optional(),
+                        fieldWithPath("data.content.insight.description")
+                            .type(JsonFieldType.STRING)
+                            .description("인사이트 설명")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction")
+                            .type(JsonFieldType.OBJECT)
+                            .description("다음 액션")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction.title")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 액션 제목")
+                            .optional(),
+                        fieldWithPath("data.content.nextAction.description")
+                            .type(JsonFieldType.STRING)
+                            .description("다음 액션 설명")
+                            .optional(),
+                        fieldWithPath("data.completedAt")
+                            .type(JsonFieldType.STRING)
+                            .description("완료 시간")
+                            .optional(),
+                        fieldWithPath("data.project")
+                            .type(JsonFieldType.OBJECT)
+                            .description("프로젝트 정보")
+                            .optional(),
+                        fieldWithPath("data.project.id")
+                            .type(JsonFieldType.STRING)
+                            .description("프로젝트 ID")
+                            .optional(),
+                        fieldWithPath("data.project.name")
+                            .type(JsonFieldType.STRING)
+                            .description("프로젝트 이름")
+                            .optional(),
+                        fieldWithPath("data.tags").type(JsonFieldType.ARRAY).description("태그 목록"),
+                        fieldWithPath("data.tags[].id").type(JsonFieldType.STRING).description("태그 ID"),
+                        fieldWithPath("data.tags[].name").type(JsonFieldType.STRING).description("태그 이름"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `회고 목록 조회 v2`() {
+        val results =
+            listOf(
+                RetrospectiveDetailResult(
+                    retrospective = completedRetrospective(),
+                    project = project(),
+                    tags = listOf(tag1(), tag2()),
+                ),
+            )
+
+        whenever(retrospectiveFinder.findAllWithProjectAndTagsByUserId(userId)).thenReturn(results)
+
+        mockMvc
+            .perform(get("/api/v2/retrospectives"))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "retrospect/v2/find-all",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data[].summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
+                        fieldWithPath("data[].completedAt")
+                            .type(JsonFieldType.STRING)
+                            .description("완료 시간")
+                            .optional(),
+                        fieldWithPath("data[].projectName")
+                            .type(JsonFieldType.STRING)
+                            .description("프로젝트 이름")
+                            .optional(),
+                        fieldWithPath("data[].tags").type(JsonFieldType.ARRAY).description("태그 목록"),
+                        fieldWithPath("data[].tags[].id").type(JsonFieldType.STRING).description("태그 ID"),
+                        fieldWithPath("data[].tags[].name").type(JsonFieldType.STRING).description("태그 이름"),
+                    ),
+                ),
+            )
+    }
+
+    private fun project() =
+        Project(
+            id = UUID.randomUUID(),
+            userId = userId,
+            name = "프로젝트 이름",
+        )
+
+    private fun tag1() =
+        Tag(
+            id = UUID.randomUUID(),
+            userId = userId,
+            name = "태그1",
+        )
+
+    private fun tag2() =
+        Tag(
+            id = UUID.randomUUID(),
+            userId = userId,
+            name = "태그2",
+        )
 }
