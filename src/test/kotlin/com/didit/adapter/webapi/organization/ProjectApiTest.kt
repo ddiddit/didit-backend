@@ -6,12 +6,15 @@ import com.didit.adapter.webapi.organization.dto.UpdateProjectNameRequest
 import com.didit.application.organization.provided.ProjectFinder
 import com.didit.application.organization.provided.ProjectModifier
 import com.didit.application.organization.provided.ProjectRegister
+import com.didit.application.retrospect.dto.RetrospectiveDetailResult
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.organization.Project
+import com.didit.domain.organization.Tag
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveSummary
+import com.didit.support.RetrospectiveFixture
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.eq
@@ -280,6 +283,52 @@ class ProjectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목"),
                         fieldWithPath("data[].summary").type(JsonFieldType.STRING).description("회고 요약"),
                         fieldWithPath("data[].completedAt").type(JsonFieldType.STRING).description("완료일"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `프로젝트별 회고 목록 조회 v2`() {
+        val projectId = UUID.randomUUID()
+
+        val results =
+            listOf(
+                RetrospectiveDetailResult(
+                    retrospective = RetrospectiveFixture.createCompleted(userId),
+                    project = Project(projectId, userId, "프로젝트 이름"),
+                    tags = listOf(Tag(UUID.randomUUID(), userId, "태그1"), Tag(UUID.randomUUID(), userId, "태그2")),
+                ),
+            )
+
+        whenever(retrospectiveFinder.findByProjectWithProjectAndTags(userId, projectId)).thenReturn(results)
+
+        mockMvc
+            .perform(get("/api/v2/projects/{projectId}", projectId))
+            .andExpect(status().isOk)
+            .andDo(
+                document(
+                    "project/v2/retrospect-list",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("projectId").description("프로젝트 ID"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data[].id").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
+                        fieldWithPath("data[].summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
+                        fieldWithPath("data[].completedAt")
+                            .type(JsonFieldType.STRING)
+                            .description("완료 시간")
+                            .optional(),
+                        fieldWithPath("data[].projectName")
+                            .type(JsonFieldType.STRING)
+                            .description("프로젝트 이름")
+                            .optional(),
+                        fieldWithPath("data[].tags").type(JsonFieldType.ARRAY).description("태그 목록"),
+                        fieldWithPath("data[].tags[].id").type(JsonFieldType.STRING).description("태그 ID"),
+                        fieldWithPath("data[].tags[].name").type(JsonFieldType.STRING).description("태그 이름"),
                     ),
                 ),
             )

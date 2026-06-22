@@ -174,7 +174,7 @@ class RetrospectQueryService(
         userId: UUID,
         tagId: UUID,
     ): List<RetrospectiveDetailResult> {
-        tagRepository.findByIdAndDeletedAtIsNull(tagId)
+        tagRepository.findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)
             ?: throw TagNotFoundException(tagId)
 
         return toDetailResults(userId, retrospectiveRepository.findAllByTagId(tagId))

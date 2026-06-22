@@ -4,7 +4,7 @@ set -o pipefail
 DATE=$(date +%Y-%m-%d)
 BACKUP_DIR="/home/didit-prod/backups"
 BACKUP_FILE="$BACKUP_DIR/didit-$DATE.sql.gz"
-BUCKET="didit-prod-db-backup"
+BUCKET="didit-prod-db-backup-493168377333-ap-northeast-2-an"
 RETENTION_DAYS=30
 
 if [ -f "/home/didit-prod/didit/deploy/prod/.env" ]; then

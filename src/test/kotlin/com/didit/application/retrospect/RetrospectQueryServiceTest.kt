@@ -323,7 +323,7 @@ class RetrospectQueryServiceTest {
         val tagId = UUID.randomUUID()
         val retro = RetrospectiveFixture.createCompleted(userId)
 
-        whenever(tagRepository.findByIdAndDeletedAtIsNull(tagId)).thenReturn(Tag(tagId, userId, "태그1"))
+        whenever(tagRepository.findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)).thenReturn(Tag(tagId, userId, "태그1"))
         whenever(retrospectiveRepository.findAllByTagId(tagId)).thenReturn(listOf(retro))
         whenever(projectRepository.findAllByUserIdAndDeletedAtIsNull(userId)).thenReturn(emptyList())
         whenever(retrospectTagRepository.findAllByRetrospectiveIdInAndIsActiveTrueAndDeletedAtIsNull(listOf(retro.id)))
@@ -342,7 +342,7 @@ class RetrospectQueryServiceTest {
     fun `findByTagIdWithProjectAndTags - 태그가 없으면 예외가 발생한다`() {
         val tagId = UUID.randomUUID()
 
-        whenever(tagRepository.findByIdAndDeletedAtIsNull(tagId)).thenReturn(null)
+        whenever(tagRepository.findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)).thenReturn(null)
 
         assertThrows<TagNotFoundException> {
             retrospectQueryService.findByTagIdWithProjectAndTags(userId, tagId)
