@@ -5,6 +5,7 @@ import com.didit.application.auth.required.UserRepository
 import com.didit.application.inquiry.required.InquiryRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.inquiry.InquiryStatus
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.RetroStatus
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -42,6 +43,10 @@ class AdminStatsServiceTest {
         whenever(auditReader.countDau(any())).thenReturn(80L)
         whenever(retrospectiveRepository.countByCompletedAtBetweenAndDeletedAtIsNull(any(), any())).thenReturn(20L)
         whenever(retrospectiveRepository.findWeeklyRetroTrend(any())).thenReturn(emptyList())
+        whenever(retrospectiveRepository.sumInputTokens()).thenReturn(12000L)
+        whenever(retrospectiveRepository.sumOutputTokens()).thenReturn(8000L)
+        whenever(retrospectiveRepository.countUserAnswersByInputType(InputType.TEXT)).thenReturn(300L)
+        whenever(retrospectiveRepository.countUserAnswersByInputType(InputType.STT)).thenReturn(150L)
         whenever(userRepository.findRecentUsers(any<PageRequest>())).thenReturn(emptyList())
         whenever(inquiryRepository.findTop5ByDeletedAtIsNullOrderByCreatedAtDesc()).thenReturn(emptyList())
 
@@ -54,6 +59,10 @@ class AdminStatsServiceTest {
         assertThat(result.dau).isEqualTo(80L)
         assertThat(result.todayRetrospects).isEqualTo(20L)
         assertThat(result.weeklyRetroTrend).isEmpty()
+        assertThat(result.totalInputTokens).isEqualTo(12000L)
+        assertThat(result.totalOutputTokens).isEqualTo(8000L)
+        assertThat(result.textAnswerCount).isEqualTo(300L)
+        assertThat(result.voiceAnswerCount).isEqualTo(150L)
         assertThat(result.recentUsers).isEmpty()
         assertThat(result.recentInquiries).isEmpty()
     }
