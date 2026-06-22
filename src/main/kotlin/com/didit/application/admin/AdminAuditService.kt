@@ -1,5 +1,6 @@
 package com.didit.application.admin
 
+import com.didit.application.admin.provided.AdminAuditActionItem
 import com.didit.application.admin.provided.AdminAuditFinder
 import com.didit.application.admin.provided.AdminAuditLogItem
 import com.didit.application.admin.provided.AdminAuditLogsResult
@@ -28,6 +29,15 @@ class AdminAuditService(
             page = result.page,
         )
     }
+
+    override fun findAuditActions(): List<AdminAuditActionItem> =
+        AuditAction.entries.map {
+            AdminAuditActionItem(
+                action = it.name,
+                label = it.label,
+                actorType = it.actorType.name,
+            )
+        }
 
     private fun resolveAuditAction(action: String?): AuditAction? =
         action?.let {

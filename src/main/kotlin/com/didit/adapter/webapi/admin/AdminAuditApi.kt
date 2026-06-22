@@ -2,6 +2,7 @@ package com.didit.adapter.webapi.admin
 
 import com.didit.adapter.webapi.admin.annotation.RequireAdmin
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.admin.provided.AdminAuditActionItem
 import com.didit.application.admin.provided.AdminAuditFinder
 import com.didit.application.admin.provided.AdminAuditLogsResult
 import org.springframework.web.bind.annotation.GetMapping
@@ -21,4 +22,8 @@ class AdminAuditApi(
         @RequestParam(required = false) actorType: String?,
         @RequestParam(defaultValue = "0") page: Int,
     ): SuccessResponse<AdminAuditLogsResult> = SuccessResponse.of(adminAuditFinder.findAuditLogs(action, actorType, page))
+
+    @RequireAdmin
+    @GetMapping("/actions")
+    fun findAuditActions(): SuccessResponse<List<AdminAuditActionItem>> = SuccessResponse.of(adminAuditFinder.findAuditActions())
 }

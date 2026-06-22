@@ -91,17 +91,30 @@ class AdminInviteService(
 
         adminInviteRepository.save(invite)
 
-        adminRepository.save(
-            Admin.register(
-                AdminRegisterRequest(
-                    email = email,
-                    encodedPassword = passwordEncryptor.encode(password),
-                    position = invite.position,
+        val admin =
+            adminRepository.save(
+                Admin.register(
+                    AdminRegisterRequest(
+                        email = email,
+                        encodedPassword = passwordEncryptor.encode(password),
+                        position = invite.position,
+                    ),
                 ),
-            ),
-        )
+            )
 
         logger.info("어드민 등록 완료 - email: $email, position: ${invite.position}")
+
+        // 등록 시점엔 인증 컨텍스트가 없어 @Audit으로는 actor를 잡을 수 없으므로 새 어드민 id로 직접 기록한다.
+        auditLogger.log(
+            actorId = admin.id,
+            actorType = ActorType.ADMIN,
+            action = AuditAction.ADMIN_REGISTERED,
+            payload =
+                mapOf(
+                    "email" to email,
+                    "position" to invite.position.name,
+                ),
+        )
     }
 
     private fun buildInviteEmailBody(token: UUID): String {
