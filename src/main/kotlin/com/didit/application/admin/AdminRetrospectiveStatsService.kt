@@ -7,9 +7,9 @@ import com.didit.application.auth.required.UserRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.RetroStatus
+import com.didit.domain.shared.ServiceTime
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDate
 
 @Transactional(readOnly = true)
 @Service
@@ -24,8 +24,8 @@ class AdminRetrospectiveStatsService(
         val total = completed + pending + inProgress
         val totalUsers = userRepository.countByDeletedAtIsNull()
 
-        // 최근 30일(오늘 포함) 완료 추이
-        val thirtyDaysAgo = LocalDate.now().minusDays(29).atStartOfDay()
+        // 최근 30일(오늘 포함) 완료 추이 — KST 기준 날짜 경계
+        val thirtyDaysAgo = ServiceTime.startOfDayUtc(ServiceTime.today().minusDays(29))
 
         return AdminRetrospectiveStatsResult(
             total = total,

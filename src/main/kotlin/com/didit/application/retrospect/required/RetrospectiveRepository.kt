@@ -167,11 +167,11 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     @Query(
         nativeQuery = true,
         value = """
-            SELECT DATE(completed_at) as `date`, COUNT(*) as `count`
+            SELECT DATE(CONVERT_TZ(completed_at, '+00:00', '+09:00')) as `date`, COUNT(*) as `count`
             FROM retrospectives
             WHERE completed_at >= :since AND deleted_at IS NULL AND status = 'COMPLETED'
-            GROUP BY DATE(completed_at)
-            ORDER BY DATE(completed_at)
+            GROUP BY DATE(CONVERT_TZ(completed_at, '+00:00', '+09:00'))
+            ORDER BY DATE(CONVERT_TZ(completed_at, '+00:00', '+09:00'))
         """,
     )
     fun findWeeklyRetroTrend(

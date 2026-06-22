@@ -12,12 +12,13 @@ import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.inquiry.InquiryStatus
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.RetroStatus
+import com.didit.domain.shared.ServiceTime
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.ZoneOffset
 
 @Transactional(readOnly = true)
 @Service
@@ -28,9 +29,15 @@ class AdminStatsService(
     private val auditReader: AuditReader,
 ) : AdminStatsFinder {
     override fun getStats(): AdminStatsResult {
-        val todayStart = LocalDate.now().atStartOfDay()
-        val todayEnd = LocalDate.now().atTime(LocalTime.MAX)
-        val sevenDaysAgo = LocalDateTime.now().minusDays(7)
+        val today = ServiceTime.today()
+        val todayStart = ServiceTime.startOfDayUtc(today)
+        val todayEnd =
+            today
+                .atTime(LocalTime.MAX)
+                .atZone(ServiceTime.ZONE)
+                .withZoneSameInstant(ZoneOffset.UTC)
+                .toLocalDateTime()
+        val sevenDaysAgo = ServiceTime.startOfDayUtc(today.minusDays(6))
 
         val todayCreated = retrospectiveRepository.countByCreatedAtBetweenAndDeletedAtIsNull(todayStart, todayEnd)
         val todayCreatedCompleted =
