@@ -1,10 +1,8 @@
 package com.didit.adapter.integration.scheduler
 
-import com.didit.adapter.integration.fcm.FcmClient
-import com.didit.application.notification.provided.DeviceTokenFinder
 import com.didit.application.notification.provided.NotificationHistoryRegister
 import com.didit.application.notification.provided.NotificationSettingFinder
-import com.didit.application.notification.required.DeviceTokenRepository
+import com.didit.application.notification.provided.UserPushSender
 import com.didit.domain.notification.NotificationHistoryCreateRequest
 import com.didit.domain.notification.NotificationType
 import jakarta.transaction.Transactional
@@ -18,10 +16,8 @@ import java.util.UUID
 @Component
 class NotificationScheduler(
     private val notificationSettingFinder: NotificationSettingFinder,
-    private val deviceTokenFinder: DeviceTokenFinder,
-    private val deviceTokenRepository: DeviceTokenRepository,
-    private val fcmClient: FcmClient,
     private val notificationHistoryRegister: NotificationHistoryRegister,
+    private val userPushSender: UserPushSender,
 ) {
     companion object {
         private val logger = LoggerFactory.getLogger(NotificationScheduler::class.java)
@@ -57,39 +53,6 @@ class NotificationScheduler(
                 body = DAILY_REMINDER_BODY,
             ),
         )
-        sendPush(userId, DAILY_REMINDER_TITLE, DAILY_REMINDER_BODY)
-    }
-
-    private fun sendPush(
-        userId: UUID,
-        title: String,
-        body: String,
-    ) {
-        val tokens = deviceTokenFinder.findAllByUserId(userId)
-        if (tokens.isEmpty()) return
-
-        val successCount =
-            tokens.count { deviceToken ->
-                val isExpired =
-                    fcmClient.sendMessage(
-                        token = deviceToken.token,
-                        title = title,
-                        body = body,
-                        deviceType = deviceToken.deviceType,
-                        link = DAILY_REMINDER_LINK,
-                    )
-
-                if (isExpired) {
-                    deviceTokenRepository.deleteByToken(deviceToken.token)
-
-                    logger.warn("만료된 FCM 토큰 삭제 - userId: $userId, token: ${deviceToken.token.take(20)}...")
-                }
-
-                !isExpired
-            }
-
-        if (successCount > 0) {
-            logger.info("회고 알림 푸시 전송 성공 - userId: $userId, 성공 토큰 수: $successCount")
-        }
+        userPushSender.sendToUser(userId, DAILY_REMINDER_TITLE, DAILY_REMINDER_BODY, DAILY_REMINDER_LINK)
     }
 }

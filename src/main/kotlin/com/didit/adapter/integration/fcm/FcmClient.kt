@@ -1,5 +1,6 @@
 package com.didit.adapter.integration.fcm
 
+import com.didit.application.notification.required.PushMessageSender
 import com.didit.domain.notification.DeviceType
 import com.google.firebase.messaging.FirebaseMessaging
 import com.google.firebase.messaging.FirebaseMessagingException
@@ -10,12 +11,12 @@ import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 
 @Component
-class FcmClient {
+class FcmClient : PushMessageSender {
     companion object {
         private val logger = LoggerFactory.getLogger(FcmClient::class.java)
     }
 
-    fun sendMessage(
+    override fun sendMessage(
         token: String,
         title: String,
         body: String,

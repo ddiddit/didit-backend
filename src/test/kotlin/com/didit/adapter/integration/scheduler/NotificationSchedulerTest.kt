@@ -1,13 +1,8 @@
 package com.didit.adapter.integration.scheduler
 
-import com.didit.adapter.integration.fcm.FcmClient
-import com.didit.application.notification.provided.DeviceTokenFinder
 import com.didit.application.notification.provided.NotificationHistoryRegister
 import com.didit.application.notification.provided.NotificationSettingFinder
-import com.didit.application.notification.required.DeviceTokenRepository
-import com.didit.domain.notification.DeviceToken
-import com.didit.domain.notification.DeviceTokenRegisterRequest
-import com.didit.domain.notification.DeviceType
+import com.didit.application.notification.provided.UserPushSender
 import com.didit.domain.notification.NotificationSetting
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -15,6 +10,7 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -24,13 +20,9 @@ import java.util.UUID
 class NotificationSchedulerTest {
     @Mock lateinit var notificationSettingFinder: NotificationSettingFinder
 
-    @Mock lateinit var deviceTokenFinder: DeviceTokenFinder
-
-    @Mock lateinit var deviceTokenRepository: DeviceTokenRepository
-
-    @Mock lateinit var fcmClient: FcmClient
-
     @Mock lateinit var notificationHistoryRegister: NotificationHistoryRegister
+
+    @Mock lateinit var userPushSender: UserPushSender
 
     @InjectMocks
     lateinit var notificationScheduler: NotificationScheduler
@@ -39,28 +31,17 @@ class NotificationSchedulerTest {
     fun `send reminder notifications`() {
         val userId = UUID.randomUUID()
         val setting = NotificationSetting.create(userId)
-        val token =
-            DeviceToken.register(
-                DeviceTokenRegisterRequest(
-                    userId = userId,
-                    token = "test-token",
-                    deviceType = DeviceType.IOS,
-                ),
-            )
         whenever(notificationSettingFinder.findAllByReminderTime(any())).thenReturn(listOf(setting))
-        whenever(deviceTokenFinder.findAllByUserId(userId)).thenReturn(listOf(token))
-        whenever(fcmClient.sendMessage(any(), any(), any(), any(), any())).thenReturn(false)
 
         notificationScheduler.sendReminderNotifications()
 
-        verify(fcmClient).sendMessage(
-            "test-token",
-            NotificationScheduler.DAILY_REMINDER_TITLE,
-            NotificationScheduler.DAILY_REMINDER_BODY,
-            DeviceType.IOS,
-            NotificationScheduler.DAILY_REMINDER_LINK,
-        )
         verify(notificationHistoryRegister).save(any())
+        verify(userPushSender).sendToUser(
+            eq(userId),
+            eq(NotificationScheduler.DAILY_REMINDER_TITLE),
+            eq(NotificationScheduler.DAILY_REMINDER_BODY),
+            eq(NotificationScheduler.DAILY_REMINDER_LINK),
+        )
     }
 
     @Test
@@ -69,42 +50,7 @@ class NotificationSchedulerTest {
 
         notificationScheduler.sendReminderNotifications()
 
-        verify(fcmClient, never()).sendMessage(any(), any(), any(), any(), any())
+        verify(userPushSender, never()).sendToUser(any(), any(), any(), any())
         verify(notificationHistoryRegister, never()).save(any())
-    }
-
-    @Test
-    fun `디바이스 토큰이 없어도 인앱 알림 히스토리는 저장된다`() {
-        val userId = UUID.randomUUID()
-        val setting = NotificationSetting.create(userId)
-        whenever(notificationSettingFinder.findAllByReminderTime(any())).thenReturn(listOf(setting))
-        whenever(deviceTokenFinder.findAllByUserId(userId)).thenReturn(emptyList())
-
-        notificationScheduler.sendReminderNotifications()
-
-        verify(fcmClient, never()).sendMessage(any(), any(), any(), any(), any())
-        verify(notificationHistoryRegister).save(any())
-    }
-
-    @Test
-    fun `expired token - 만료된 토큰은 삭제되고 인앱 알림은 저장된다`() {
-        val userId = UUID.randomUUID()
-        val setting = NotificationSetting.create(userId)
-        val token =
-            DeviceToken.register(
-                DeviceTokenRegisterRequest(
-                    userId = userId,
-                    token = "expired-token",
-                    deviceType = DeviceType.IOS,
-                ),
-            )
-        whenever(notificationSettingFinder.findAllByReminderTime(any())).thenReturn(listOf(setting))
-        whenever(deviceTokenFinder.findAllByUserId(userId)).thenReturn(listOf(token))
-        whenever(fcmClient.sendMessage(any(), any(), any(), any(), any())).thenReturn(true)
-
-        notificationScheduler.sendReminderNotifications()
-
-        verify(deviceTokenRepository).deleteByToken("expired-token")
-        verify(notificationHistoryRegister).save(any())
     }
 }

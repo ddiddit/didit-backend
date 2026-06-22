@@ -4,6 +4,7 @@ import com.didit.application.inquiry.exception.InquiryNotFoundException
 import com.didit.application.inquiry.provided.InquiryModifier
 import com.didit.application.inquiry.required.InquiryRepository
 import com.didit.application.notification.provided.NotificationHistoryRegister
+import com.didit.application.notification.provided.UserPushSender
 import com.didit.domain.inquiry.Inquiry
 import com.didit.domain.notification.NotificationHistoryCreateRequest
 import com.didit.domain.notification.NotificationType
@@ -17,12 +18,14 @@ import java.util.UUID
 class InquiryModifierService(
     private val inquiryRepository: InquiryRepository,
     private val notificationHistoryRegister: NotificationHistoryRegister,
+    private val userPushSender: UserPushSender,
 ) : InquiryModifier {
     companion object {
         private val logger = LoggerFactory.getLogger(InquiryModifierService::class.java)
 
         const val INQUIRY_ANSWERED_TITLE = "문의 답변 알림"
         const val INQUIRY_ANSWERED_BODY = "문의하신 내용에 답변이 등록되었어요. 지금 확인해 보세요."
+        const val INQUIRY_ANSWERED_LINK = "/my/inquiry"
     }
 
     @Transactional
@@ -44,6 +47,13 @@ class InquiryModifierService(
                 title = INQUIRY_ANSWERED_TITLE,
                 body = INQUIRY_ANSWERED_BODY,
             ),
+        )
+
+        userPushSender.sendToUser(
+            userId = inquiry.userId,
+            title = INQUIRY_ANSWERED_TITLE,
+            body = INQUIRY_ANSWERED_BODY,
+            link = INQUIRY_ANSWERED_LINK,
         )
 
         return inquiryRepository.save(inquiry)
