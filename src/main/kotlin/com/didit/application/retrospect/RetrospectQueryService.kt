@@ -15,6 +15,7 @@ import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.Sender
+import com.didit.domain.shared.ServiceTime
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -53,42 +54,47 @@ class RetrospectQueryService(
     override fun countByUserIdAndDate(
         userId: UUID,
         date: LocalDate,
-    ): Int =
-        retrospectiveRepository.countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween(
+    ): Int {
+        val (from, to) = ServiceTime.dayRangeUtc(date)
+        return retrospectiveRepository.countByUserIdAndCreatedAtInPeriod(
             userId = userId,
             status = RetroStatus.PENDING,
-            from = date.atStartOfDay(),
-            to = date.atTime(23, 59, 59),
+            from = from,
+            to = to,
         )
+    }
 
     override fun findByUserIdAndYearMonth(
         userId: UUID,
         year: Int,
         month: Int,
     ): List<Retrospective> {
-        val from = LocalDate.of(year, month, 1).atStartOfDay()
-        val to = LocalDate.of(year, month, 1).plusMonths(1).atStartOfDay()
+        val firstDay = LocalDate.of(year, month, 1)
+        val from = ServiceTime.startOfDayUtc(firstDay)
+        val to = ServiceTime.startOfDayUtc(firstDay.plusMonths(1))
         return retrospectiveRepository.findCompletedByUserIdAndPeriod(userId, from, to)
     }
 
     override fun findByUserIdAndDate(
         userId: UUID,
         date: LocalDate,
-    ): List<Retrospective> =
-        retrospectiveRepository.findCompletedByUserIdAndPeriod(
+    ): List<Retrospective> {
+        val (from, to) = ServiceTime.dayRangeUtc(date)
+        return retrospectiveRepository.findCompletedByUserIdAndPeriod(
             userId = userId,
-            from = date.atStartOfDay(),
-            to = date.atTime(23, 59, 59),
+            from = from,
+            to = to,
         )
+    }
 
     override fun findByUserIdAndCurrentWeek(userId: UUID): List<Retrospective> {
-        val today = LocalDate.now()
+        val today = ServiceTime.today()
         val weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         val weekEnd = today.with(TemporalAdjusters.nextOrSame(DayOfWeek.SUNDAY))
         return retrospectiveRepository.findCompletedByUserIdAndPeriod(
             userId = userId,
-            from = weekStart.atStartOfDay(),
-            to = weekEnd.atTime(23, 59, 59),
+            from = ServiceTime.startOfDayUtc(weekStart),
+            to = ServiceTime.startOfDayUtc(weekEnd.plusDays(1)),
         )
     }
 

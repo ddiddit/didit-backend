@@ -15,6 +15,7 @@ import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.shared.ServiceTime
 import com.didit.support.RetrospectiveFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -109,18 +110,19 @@ class RetrospectQueryServiceTest {
     }
 
     @Test
-    fun `countByUserIdAndDate - 오늘 회고 횟수를 반환한다`() {
-        val today = LocalDate.now()
+    fun `countByUserIdAndDate - 해당 날짜의 KST 자정 경계를 UTC 범위로 변환해 조회한다`() {
+        val date = LocalDate.of(2026, 6, 23)
+        val (from, to) = ServiceTime.dayRangeUtc(date)
         whenever(
-            retrospectiveRepository.countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween(
+            retrospectiveRepository.countByUserIdAndCreatedAtInPeriod(
                 userId = userId,
                 status = RetroStatus.PENDING,
-                from = today.atStartOfDay(),
-                to = today.atTime(23, 59, 59),
+                from = from,
+                to = to,
             ),
         ).thenReturn(2)
 
-        val result = retrospectQueryService.countByUserIdAndDate(userId, today)
+        val result = retrospectQueryService.countByUserIdAndDate(userId, date)
 
         assertThat(result).isEqualTo(2)
     }

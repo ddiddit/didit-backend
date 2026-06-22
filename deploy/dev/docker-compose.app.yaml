@@ -5,7 +5,7 @@ services:
     restart: always
     environment:
       SPRING_PROFILES_ACTIVE: dev
-      TZ: Asia/Seoul
+      TZ: UTC
     networks:
       - didit-network
     env_file:
@@ -15,7 +15,7 @@ services:
     volumes:
       - /home/didit-dev/didit/firebase:/home/didit-dev/didit/firebase
       - /home/didit-dev/logs/didit-api:/home/didit-dev/logs/didit-api
-    command: [ "java", "-Duser.timezone=Asia/Seoul", "-jar", "app.jar" ]
+    command: [ "java", "-Duser.timezone=UTC", "-jar", "app.jar" ]
 
 networks:
   didit-network:
