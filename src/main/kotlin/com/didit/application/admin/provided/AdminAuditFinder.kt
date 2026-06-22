@@ -6,4 +6,6 @@ interface AdminAuditFinder {
         actorType: String?,
         page: Int,
     ): AdminAuditLogsResult
+
+    fun findAuditActions(): List<AdminAuditActionItem>
 }

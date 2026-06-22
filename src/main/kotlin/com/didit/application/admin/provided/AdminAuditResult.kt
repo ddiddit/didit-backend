@@ -20,3 +20,9 @@ data class AdminAuditLogItem(
     val payload: Map<String, Any>?,
     val createdAt: LocalDateTime,
 )
+
+data class AdminAuditActionItem(
+    val action: String,
+    val label: String,
+    val actorType: String,
+)
