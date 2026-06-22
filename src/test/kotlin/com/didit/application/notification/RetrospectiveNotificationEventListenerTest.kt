@@ -1,6 +1,7 @@
 package com.didit.application.notification
 
 import com.didit.application.notification.provided.NotificationHistoryRegister
+import com.didit.application.notification.provided.UserPushSender
 import com.didit.domain.notification.NotificationHistoryCreateRequest
 import com.didit.domain.notification.NotificationType
 import com.didit.domain.retrospect.RetrospectiveCompletedEvent
@@ -11,6 +12,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.time.LocalDate
@@ -21,11 +23,14 @@ class RetrospectiveNotificationEventListenerTest {
     @Mock
     lateinit var notificationHistoryRegister: NotificationHistoryRegister
 
+    @Mock
+    lateinit var userPushSender: UserPushSender
+
     private lateinit var listener: RetrospectiveNotificationEventListener
 
     @org.junit.jupiter.api.BeforeEach
     fun setup() {
-        listener = RetrospectiveNotificationEventListener(notificationHistoryRegister)
+        listener = RetrospectiveNotificationEventListener(notificationHistoryRegister, userPushSender)
     }
 
     @Test
@@ -42,6 +47,12 @@ class RetrospectiveNotificationEventListenerTest {
                     this.title == RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_TITLE &&
                     this.body == RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_BODY
             },
+        )
+        verify(userPushSender).sendToUser(
+            eq(userId),
+            eq(RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_TITLE),
+            eq(RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_BODY),
+            eq(RetrospectiveNotificationEventListener.RETROSPECTIVE_RESULT_CREATED_LINK),
         )
     }
 

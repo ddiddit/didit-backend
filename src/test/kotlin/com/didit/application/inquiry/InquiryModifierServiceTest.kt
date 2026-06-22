@@ -3,6 +3,7 @@ package com.didit.application.inquiry
 import com.didit.application.inquiry.exception.InquiryNotFoundException
 import com.didit.application.inquiry.required.InquiryRepository
 import com.didit.application.notification.provided.NotificationHistoryRegister
+import com.didit.application.notification.provided.UserPushSender
 import com.didit.domain.inquiry.Inquiry
 import com.didit.domain.inquiry.InquiryStatus
 import com.didit.domain.notification.NotificationHistoryCreateRequest
@@ -17,6 +18,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argThat
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -29,6 +31,9 @@ class InquiryModifierServiceTest {
 
     @Mock
     lateinit var notificationHistoryRegister: NotificationHistoryRegister
+
+    @Mock
+    lateinit var userPushSender: UserPushSender
 
     @InjectMocks
     lateinit var inquiryModifierService: InquiryModifierService
@@ -71,6 +76,12 @@ class InquiryModifierServiceTest {
             argThat<NotificationHistoryCreateRequest> {
                 this.userId == userId && this.type == NotificationType.INQUIRY_ANSWERED
             },
+        )
+        verify(userPushSender).sendToUser(
+            eq(userId),
+            eq(InquiryModifierService.INQUIRY_ANSWERED_TITLE),
+            eq(InquiryModifierService.INQUIRY_ANSWERED_BODY),
+            eq(InquiryModifierService.INQUIRY_ANSWERED_LINK),
         )
     }
 
