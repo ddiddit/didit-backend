@@ -8,9 +8,9 @@ import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemV2Response
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.retrospect.provided.RetrospectiveFinder
+import com.didit.domain.shared.ServiceTime
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
-import java.time.LocalDate
 import java.util.UUID
 
 @RestController
@@ -26,7 +26,7 @@ class HomeApi(
     ): SuccessResponse<HomeResponse> {
         val user = userFinder.findByIdOrThrow(userId)
         val recentRetros = retrospectiveFinder.findRecentByUserId(userId, limit = 5)
-        val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())
+        val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())
 
         return SuccessResponse.of(
             HomeResponse(
@@ -47,7 +47,7 @@ class HomeApi(
     ): SuccessResponse<HomeV2Response> {
         val user = userFinder.findByIdOrThrow(userId)
         val recentRetros = retrospectiveFinder.findRecentWithProjectAndTagsByUserId(userId, limit = 5)
-        val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())
+        val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())
 
         return SuccessResponse.of(
             HomeV2Response(

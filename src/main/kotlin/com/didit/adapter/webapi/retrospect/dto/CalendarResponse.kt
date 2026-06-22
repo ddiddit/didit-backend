@@ -1,6 +1,7 @@
 package com.didit.adapter.webapi.retrospect.dto
 
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.shared.ServiceTime
 import java.time.LocalDate
 
 data class CalendarResponse(
@@ -27,7 +28,7 @@ data class CalendarResponse(
             val days =
                 retrospectives
                     .filter { it.completedAt != null }
-                    .groupBy { it.completedAt!!.toLocalDate() }
+                    .groupBy { ServiceTime.toServiceDate(it.completedAt!!) }
                     .map { (date, retros) -> CalendarDayResponse(date = date, count = retros.size) }
                     .sortedBy { it.date }
 

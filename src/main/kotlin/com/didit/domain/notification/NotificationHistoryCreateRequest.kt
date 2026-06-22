@@ -7,4 +7,5 @@ data class NotificationHistoryCreateRequest(
     val type: NotificationType,
     val title: String,
     val body: String,
+    val link: String? = null,
 )

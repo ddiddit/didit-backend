@@ -102,6 +102,7 @@ spotless {
 tasks.test {
     useJUnitPlatform()
     outputs.dir(snippetsDir)
+    systemProperty("user.timezone", "UTC")
 }
 
 tasks.named("check") {

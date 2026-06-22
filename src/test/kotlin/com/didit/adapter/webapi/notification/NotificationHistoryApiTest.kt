@@ -28,7 +28,7 @@ class NotificationHistoryApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `알림 히스토리 조회`() {
-        val histories = listOf(NotificationHistory.create(NotificationHistoryFixture.createRequest(userId)))
+        val histories = listOf(NotificationHistory.create(NotificationHistoryFixture.createRequest(userId, link = "/retrospect/start")))
         whenever(notificationHistoryFinder.findAllByUserId(userId)).thenReturn(histories)
 
         mockMvc
@@ -44,6 +44,7 @@ class NotificationHistoryApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data[].type").type(JsonFieldType.STRING).description("알림 타입"),
                         fieldWithPath("data[].title").type(JsonFieldType.STRING).description("알림 제목"),
                         fieldWithPath("data[].body").type(JsonFieldType.STRING).description("알림 내용"),
+                        fieldWithPath("data[].link").type(JsonFieldType.STRING).optional().description("이동 링크 (없으면 null)"),
                         fieldWithPath("data[].isRead").type(JsonFieldType.BOOLEAN).description("읽음 여부"),
                         fieldWithPath("data[].createdAt").type(JsonFieldType.NULL).description("생성 시간"),
                     ),

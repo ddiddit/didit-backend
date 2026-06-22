@@ -29,12 +29,12 @@ import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveCompletedEvent
 import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.domain.retrospect.Sender
+import com.didit.domain.shared.ServiceTime
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import java.time.LocalDate
 import java.util.UUID
 
 @Transactional(readOnly = true)
@@ -69,7 +69,7 @@ class RetrospectService(
         val user = userFinder.findByIdOrThrow(userId)
         val isWhiteListed = retrospectivePolicy.isWhitelisted(user.email)
 
-        val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, LocalDate.now())
+        val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())
 
         if (!isWhiteListed && todayCount >= DAILY_LIMIT) throw DailyLimitExceededException(userId)
 
@@ -249,7 +249,8 @@ class RetrospectService(
         eventPublisher.publishEvent(
             RetrospectiveCompletedEvent(
                 userId = userId,
-                retroDate = LocalDate.now(),
+                retrospectiveId = retrospectiveId,
+                retroDate = ServiceTime.today(),
             ),
         )
 

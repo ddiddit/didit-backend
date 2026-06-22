@@ -8,11 +8,14 @@ object NotificationHistoryFixture {
     const val TITLE = "회고 작성 알림"
     const val BODY = "하루를 마무리하며 오늘의 회고를 기록해 보세요."
 
-    fun createRequest(userId: UUID = UUID.randomUUID()) =
-        NotificationHistoryCreateRequest(
-            userId = userId,
-            type = NotificationType.DAILY_REMINDER,
-            title = TITLE,
-            body = BODY,
-        )
+    fun createRequest(
+        userId: UUID = UUID.randomUUID(),
+        link: String? = null,
+    ) = NotificationHistoryCreateRequest(
+        userId = userId,
+        type = NotificationType.DAILY_REMINDER,
+        title = TITLE,
+        body = BODY,
+        link = link,
+    )
 }

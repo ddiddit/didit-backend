@@ -5,5 +5,6 @@ import java.util.UUID
 
 data class RetrospectiveCompletedEvent(
     val userId: UUID,
+    val retrospectiveId: UUID,
     val retroDate: LocalDate,
 )

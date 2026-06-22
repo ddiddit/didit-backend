@@ -22,19 +22,21 @@ class RetrospectiveNotificationEventListener(
 
         const val RETROSPECTIVE_RESULT_CREATED_TITLE = "회고 결과 알림"
         const val RETROSPECTIVE_RESULT_CREATED_BODY = "작성한 회고 결과가 생성되었어요. 지금 확인해 보세요."
-        const val RETROSPECTIVE_RESULT_CREATED_LINK = "/retrospects"
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     fun onRetrospectiveCompleted(event: RetrospectiveCompletedEvent) {
         try {
+            val link = "/retrospects/${event.retrospectiveId}"
+
             notificationHistoryRegister.save(
                 NotificationHistoryCreateRequest(
                     userId = event.userId,
                     type = NotificationType.RETROSPECTIVE_RESULT_CREATED,
                     title = RETROSPECTIVE_RESULT_CREATED_TITLE,
                     body = RETROSPECTIVE_RESULT_CREATED_BODY,
+                    link = link,
                 ),
             )
 
@@ -42,7 +44,7 @@ class RetrospectiveNotificationEventListener(
                 userId = event.userId,
                 title = RETROSPECTIVE_RESULT_CREATED_TITLE,
                 body = RETROSPECTIVE_RESULT_CREATED_BODY,
-                link = RETROSPECTIVE_RESULT_CREATED_LINK,
+                link = link,
             )
         } catch (e: Exception) {
             logger.error("회고 결과 생성 완료 알림 저장 실패 - userId: ${event.userId}", e)
