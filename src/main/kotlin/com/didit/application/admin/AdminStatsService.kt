@@ -39,6 +39,17 @@ class AdminStatsService(
                 .toLocalDateTime()
         val sevenDaysAgo = ServiceTime.startOfDayUtc(today.minusDays(6))
 
+        val monthFirstDay = today.withDayOfMonth(1)
+        val monthStart = ServiceTime.startOfDayUtc(monthFirstDay)
+        val monthEnd =
+            monthFirstDay
+                .plusMonths(1)
+                .minusDays(1)
+                .atTime(LocalTime.MAX)
+                .atZone(ServiceTime.ZONE)
+                .withZoneSameInstant(ZoneOffset.UTC)
+                .toLocalDateTime()
+
         val todayCreated = retrospectiveRepository.countByCreatedAtBetweenAndDeletedAtIsNull(todayStart, todayEnd)
         val todayCreatedCompleted =
             retrospectiveRepository.countByCreatedAtBetweenAndStatusAndDeletedAtIsNull(todayStart, todayEnd, RetroStatus.COMPLETED)
@@ -57,6 +68,8 @@ class AdminStatsService(
             totalOutputTokens = retrospectiveRepository.sumOutputTokens(),
             todayInputTokens = retrospectiveRepository.sumInputTokensByCompletedAtBetween(todayStart, todayEnd),
             todayOutputTokens = retrospectiveRepository.sumOutputTokensByCompletedAtBetween(todayStart, todayEnd),
+            monthInputTokens = retrospectiveRepository.sumInputTokensByCompletedAtBetween(monthStart, monthEnd),
+            monthOutputTokens = retrospectiveRepository.sumOutputTokensByCompletedAtBetween(monthStart, monthEnd),
             textAnswerCount = retrospectiveRepository.countUserAnswersByInputType(InputType.TEXT),
             voiceAnswerCount = retrospectiveRepository.countUserAnswersByInputType(InputType.STT),
             recentUsers = buildRecentUsers(),
