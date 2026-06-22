@@ -7,6 +7,8 @@ import com.didit.adapter.webapi.notification.dto.UpdateConsentRequest
 import com.didit.adapter.webapi.notification.dto.UpdateMarketingConsentRequest
 import com.didit.adapter.webapi.notification.dto.UpdateNotificationSettingRequest
 import com.didit.adapter.webapi.response.SuccessResponse
+import com.didit.application.audit.Audit
+import com.didit.application.audit.AuditAction
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import com.didit.application.notification.provided.NotificationSettingFinder
@@ -43,6 +45,7 @@ class NotificationSettingApi(
         )
     }
 
+    @Audit(AuditAction.USER_NOTIFICATION_SETTING_UPDATED)
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping
@@ -53,6 +56,7 @@ class NotificationSettingApi(
         notificationSettingModifier.updateSetting(userId, request.enabled, request.reminderTime)
     }
 
+    @Audit(AuditAction.USER_NIGHT_PUSH_CONSENT_UPDATED)
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PutMapping("/night-push-consent")
