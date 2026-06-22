@@ -1,5 +1,7 @@
 package com.didit.application.retrospect
 
+import com.didit.application.organization.exception.ProjectNotFoundException
+import com.didit.application.organization.exception.TagNotFoundException
 import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.organization.required.RetrospectTagRepository
 import com.didit.application.organization.required.TagRepository
@@ -110,7 +112,7 @@ class RetrospectQueryServiceTest {
     fun `countByUserIdAndDate - 오늘 회고 횟수를 반환한다`() {
         val today = LocalDate.now()
         whenever(
-            retrospectiveRepository.countByUserIdAndStatusNotAndCreatedAtBetween(
+            retrospectiveRepository.countByUserIdAndStatusNotAndDeletedAtIsNullAndCreatedAtBetween(
                 userId = userId,
                 status = RetroStatus.PENDING,
                 from = today.atStartOfDay(),
@@ -262,5 +264,88 @@ class RetrospectQueryServiceTest {
         val result = retrospectQueryService.findRetrospectWithProjectAndTags(retrospectiveId, userId)
 
         assertThat(result.project).isNull()
+    }
+
+    @Test
+    fun `findAllWithProjectAndTagsByUserId - 프로젝트명과 태그를 포함해 반환한다`() {
+        val projectId = UUID.randomUUID()
+        val tagId = UUID.randomUUID()
+        val retro = RetrospectiveFixture.createCompleted(userId).apply { registerProject(projectId) }
+
+        whenever(retrospectiveRepository.findAllCompletedByUserId(userId)).thenReturn(listOf(retro))
+        whenever(projectRepository.findAllByUserIdAndDeletedAtIsNull(userId))
+            .thenReturn(listOf(Project(projectId, userId, "프로젝트")))
+        whenever(retrospectTagRepository.findAllByRetrospectiveIdInAndIsActiveTrueAndDeletedAtIsNull(listOf(retro.id)))
+            .thenReturn(listOf(RetrospectiveTag(retrospectiveId = retro.id, tagId = tagId)))
+        whenever(tagRepository.findAllByIdInAndDeletedAtIsNull(listOf(tagId)))
+            .thenReturn(listOf(Tag(tagId, userId, "태그1")))
+
+        val result = retrospectQueryService.findAllWithProjectAndTagsByUserId(userId)
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].project?.name).isEqualTo("프로젝트")
+        assertThat(result[0].tags).extracting("name").containsExactly("태그1")
+    }
+
+    @Test
+    fun `findByProjectWithProjectAndTags - 프로젝트의 회고 목록을 반환한다`() {
+        val projectId = UUID.randomUUID()
+        val retro = RetrospectiveFixture.createCompleted(userId).apply { registerProject(projectId) }
+
+        whenever(projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId))
+            .thenReturn(Project(projectId, userId, "프로젝트"))
+        whenever(retrospectiveRepository.findAllByUserIdAndProjectId(userId, projectId)).thenReturn(listOf(retro))
+        whenever(projectRepository.findAllByUserIdAndDeletedAtIsNull(userId))
+            .thenReturn(listOf(Project(projectId, userId, "프로젝트")))
+        whenever(retrospectTagRepository.findAllByRetrospectiveIdInAndIsActiveTrueAndDeletedAtIsNull(listOf(retro.id)))
+            .thenReturn(emptyList())
+
+        val result = retrospectQueryService.findByProjectWithProjectAndTags(userId, projectId)
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].project?.name).isEqualTo("프로젝트")
+        assertThat(result[0].tags).isEmpty()
+    }
+
+    @Test
+    fun `findByProjectWithProjectAndTags - 프로젝트가 없으면 예외가 발생한다`() {
+        val projectId = UUID.randomUUID()
+
+        whenever(projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)).thenReturn(null)
+
+        assertThrows<ProjectNotFoundException> {
+            retrospectQueryService.findByProjectWithProjectAndTags(userId, projectId)
+        }
+    }
+
+    @Test
+    fun `findByTagIdWithProjectAndTags - 태그 기준 회고 목록을 반환한다`() {
+        val tagId = UUID.randomUUID()
+        val retro = RetrospectiveFixture.createCompleted(userId)
+
+        whenever(tagRepository.findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)).thenReturn(Tag(tagId, userId, "태그1"))
+        whenever(retrospectiveRepository.findAllByTagId(tagId)).thenReturn(listOf(retro))
+        whenever(projectRepository.findAllByUserIdAndDeletedAtIsNull(userId)).thenReturn(emptyList())
+        whenever(retrospectTagRepository.findAllByRetrospectiveIdInAndIsActiveTrueAndDeletedAtIsNull(listOf(retro.id)))
+            .thenReturn(listOf(RetrospectiveTag(retrospectiveId = retro.id, tagId = tagId)))
+        whenever(tagRepository.findAllByIdInAndDeletedAtIsNull(listOf(tagId)))
+            .thenReturn(listOf(Tag(tagId, userId, "태그1")))
+
+        val result = retrospectQueryService.findByTagIdWithProjectAndTags(userId, tagId)
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].project).isNull()
+        assertThat(result[0].tags).extracting("name").containsExactly("태그1")
+    }
+
+    @Test
+    fun `findByTagIdWithProjectAndTags - 태그가 없으면 예외가 발생한다`() {
+        val tagId = UUID.randomUUID()
+
+        whenever(tagRepository.findByIdAndUserIdAndDeletedAtIsNull(tagId, userId)).thenReturn(null)
+
+        assertThrows<TagNotFoundException> {
+            retrospectQueryService.findByTagIdWithProjectAndTags(userId, tagId)
+        }
     }
 }

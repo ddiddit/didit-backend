@@ -56,4 +56,16 @@ interface RetrospectiveFinder {
         retrospectiveId: UUID,
         userId: UUID,
     ): RetrospectiveDetailResult
+
+    fun findAllWithProjectAndTagsByUserId(userId: UUID): List<RetrospectiveDetailResult>
+
+    fun findByProjectWithProjectAndTags(
+        userId: UUID,
+        projectId: UUID,
+    ): List<RetrospectiveDetailResult>
+
+    fun findByTagIdWithProjectAndTags(
+        userId: UUID,
+        tagId: UUID,
+    ): List<RetrospectiveDetailResult>
 }

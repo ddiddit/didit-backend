@@ -12,6 +12,7 @@ data class AdminAuditLogsResult(
 
 data class AdminAuditLogItem(
     val action: String,
+    val actionLabel: String,
     val actorId: UUID?,
     val actorType: String?,
     val targetId: UUID?,

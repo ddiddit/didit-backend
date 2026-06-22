@@ -34,6 +34,7 @@ class AdminAuditApiTest : AdminAuthenticatedRestDocsSupport() {
                     listOf(
                         AdminAuditLogItem(
                             action = "ADMIN_INVITED",
+                            actionLabel = "관리자 초대",
                             actorId = UUID.randomUUID(),
                             actorType = "ADMIN",
                             targetId = UUID.randomUUID(),
@@ -67,7 +68,8 @@ class AdminAuditApiTest : AdminAuthenticatedRestDocsSupport() {
                         parameterWithName("page").optional().description("페이지 번호 (기본값 0)"),
                     ),
                     responseFields(
-                        fieldWithPath("data.content[].action").type(JsonFieldType.STRING).description("액션"),
+                        fieldWithPath("data.content[].action").type(JsonFieldType.STRING).description("액션 (enum 이름)"),
+                        fieldWithPath("data.content[].actionLabel").type(JsonFieldType.STRING).description("액션 한글 라벨"),
                         fieldWithPath("data.content[].actorId").type(JsonFieldType.STRING).optional().description("액터 ID"),
                         fieldWithPath("data.content[].actorType").type(JsonFieldType.STRING).optional().description("액터 유형"),
                         fieldWithPath("data.content[].targetId").type(JsonFieldType.STRING).optional().description("대상 ID"),
