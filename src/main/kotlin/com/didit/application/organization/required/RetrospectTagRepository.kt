@@ -25,6 +25,8 @@ interface RetrospectTagRepository : Repository<RetrospectiveTag, UUID> {
 
     fun findAllByRetrospectiveIdAndIsActiveTrueAndDeletedAtIsNull(retrospectiveId: UUID): List<RetrospectiveTag>
 
+    fun findAllByRetrospectiveIdInAndIsActiveTrueAndDeletedAtIsNull(retrospectiveIds: List<UUID>): List<RetrospectiveTag>
+
     @Modifying
     @Query("DELETE FROM RetrospectiveTag rt WHERE rt.retrospectiveId = :retrospectiveId")
     fun deleteAllByRetrospectiveId(retrospectiveId: UUID)

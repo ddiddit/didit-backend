@@ -10,6 +10,7 @@ import com.didit.adapter.webapi.retrospect.dto.DailyRetrospectiveResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectWithProjectAndTagResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveDetailResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemResponse
+import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemV2Response
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveSearchResponse
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.SearchHistoryResponse
@@ -198,6 +199,7 @@ class RetrospectApi(
         retrospectiveRegister.delete(retrospectiveId, userId)
     }
 
+    @Deprecated("Use v2 endpoint", replaceWith = ReplaceWith("findAllV2"))
     @RequireAuth
     @GetMapping("/api/v1/retrospectives")
     fun findAll(
@@ -206,6 +208,16 @@ class RetrospectApi(
         val retrospectives = retrospectiveFinder.findAllByUserId(userId)
 
         return SuccessResponse.of(retrospectives.map { RetrospectiveListItemResponse.from(it) })
+    }
+
+    @RequireAuth
+    @GetMapping("/api/v2/retrospectives")
+    fun findAllV2(
+        @CurrentUserId userId: UUID,
+    ): SuccessResponse<List<RetrospectiveListItemV2Response>> {
+        val results = retrospectiveFinder.findAllWithProjectAndTagsByUserId(userId)
+
+        return SuccessResponse.of(results.map { RetrospectiveListItemV2Response.from(it) })
     }
 
     @Deprecated("Use v2 endpoint", replaceWith = ReplaceWith("findByIdV2"))

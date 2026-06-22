@@ -22,9 +22,9 @@ data class RetrospectiveDetailResponse(
                     retrospective.summary?.let {
                         ContentResponse(
                             summary = it.summary,
-                            blockedPoint = it.blockedPoint.split("\n"),
-                            solutionProcess = it.solutionProcess.split("\n"),
-                            lessonLearned = it.lessonLearned.split("\n"),
+                            blockedPoint = it.blockedPoint,
+                            solutionProcess = it.solutionProcess,
+                            lessonLearned = it.lessonLearned,
                             insight =
                                 InsightContentResponse(
                                     title = it.insightTitle,
