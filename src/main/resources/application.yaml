@@ -52,6 +52,13 @@ clova:
     invoke-url: ${CLOVA_SPEECH_INVOKE_URL}
     secret-key: ${CLOVA_SPEECH_SECRET_KEY}
 
+openai:
+  api-key: ${OPENAI_API_KEY}
+  chat:
+    model: gpt-5.4-mini
+  speech:
+    model: gpt-4o-transcribe
+
 admin:
   initial:
     username: ${ADMIN_INITIAL_USERNAME}
