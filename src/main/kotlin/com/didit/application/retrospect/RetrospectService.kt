@@ -399,7 +399,7 @@ class RetrospectService(
     ): String {
         if (audioBytes.isEmpty()) throw SpeechEmptyFileException()
 
-        val supportedExtensions = listOf("wav", "m4a", "mp3", "aac", "ac3", "ogg", "flac")
+        val supportedExtensions = listOf("flac", "mp3", "mp4", "mpeg", "mpga", "m4a", "ogg", "wav", "webm")
         val extension = filename.substringAfterLast('.', "").lowercase()
 
         if (extension !in supportedExtensions) {
