@@ -4,23 +4,15 @@ spring:
       enabled: true
       lifecycle-management: start_only
 
-  datasource:
-    url: jdbc:mysql://localhost:3309/didit
-    username: root
-    password: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
-
-
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
 
     show-sql: true
     open-in-view: false
 
   flyway:
-    enabled: true
-    baseline-on-migrate: true
+    enabled: false
 
 management:
   endpoints:
