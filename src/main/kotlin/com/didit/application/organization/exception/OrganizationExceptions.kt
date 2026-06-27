@@ -33,6 +33,11 @@ class TagNotFoundException(
         "tagId: $tagId not found",
     )
 
+class InvalidTagNameException :
+    BusinessException(
+        OrganizationErrorCode.INVALID_TAG_NAME,
+    )
+
 class RetroTagNotFoundException(
     retrospectId: UUID,
     tagId: UUID,
