@@ -10,12 +10,16 @@ import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
+import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDate
 
@@ -92,5 +96,27 @@ class MissionApiTest : AuthenticatedRestDocsSupport() {
                     ),
                 ),
             )
+    }
+
+    @Test
+    fun `팝업 확인을 처리한다`() {
+        mockMvc
+            .perform(
+                patch("/api/v1/missions/popup")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"type":"LEVEL_UP"}"""),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "mission/confirm-popup",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    requestFields(
+                        fieldWithPath("type").type(JsonFieldType.STRING).description("팝업 타입 (LEVEL_UP, FAILURE)"),
+                    ),
+                ),
+            )
+
+        verify(userMissionRegister).confirmPopup(userId, "LEVEL_UP")
     }
 }
