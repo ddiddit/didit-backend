@@ -10,3 +10,14 @@ include::{snippets}/mission/current/http-request.adoc[]
 
 include::{snippets}/mission/current/http-response.adoc[]
 include::{snippets}/mission/current/response-fields.adoc[]
+
+== 팝업 확인 처리
+
+=== Request
+
+include::{snippets}/mission/confirm-popup/http-request.adoc[]
+include::{snippets}/mission/confirm-popup/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/mission/confirm-popup/http-response.adoc[]
