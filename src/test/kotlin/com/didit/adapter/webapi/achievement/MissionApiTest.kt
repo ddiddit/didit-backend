@@ -111,4 +111,20 @@ class MissionApiTest : AuthenticatedRestDocsSupport() {
 
         verify(userMissionRegister).confirmLevelUp(userId)
     }
+
+    @Test
+    fun `재도전을 시작한다`() {
+        mockMvc
+            .perform(post("/api/v1/missions/retry"))
+            .andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "mission/retry",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                ),
+            )
+
+        verify(userMissionRegister).retryMission(userId)
+    }
 }
