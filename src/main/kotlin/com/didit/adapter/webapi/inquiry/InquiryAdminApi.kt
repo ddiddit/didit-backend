@@ -68,7 +68,7 @@ class InquiryAdminApi(
     fun findAll(
         @CurrentAdminId adminId: UUID,
     ): SuccessResponse<List<InquiryAdminListResponse>> {
-        val inquiries = inquiryFinder.findAll()
+        val inquiries = inquiryFinder.findAllForAdmin()
 
         return SuccessResponse.of(inquiries.map { InquiryAdminListResponse.from(it) })
     }
