@@ -10,22 +10,26 @@ import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpEntity
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
+import org.springframework.stereotype.Component
 import org.springframework.util.LinkedMultiValueMap
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
 
-class ClovaSpeechClient(
+@Component
+class OpenAiSpeechClient(
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
-    @param:Value("\${clova.speech.invoke-url}") private val invokeUrl: String,
-    @param:Value("\${clova.speech.secret-key}") private val secretKey: String,
+    @param:Value("\${openai.api-key}") private val apiKey: String,
+    @param:Value("\${openai.speech.model}") private val model: String,
 ) : SpeechClient {
     companion object {
-        private const val LANGUAGE = "ko-KR"
-        private const val COMPLETION = "sync"
-        private const val API_KEY_HEADER = "X-CLOVASPEECH-API-KEY"
-        private const val COMPLETED = "COMPLETED"
-        private const val RECOGNIZER_UPLOAD_PATH = "/recognizer/upload"
+        private const val TRANSCRIPTIONS_URL = "https://api.openai.com/v1/audio/transcriptions"
+        private const val AUTHORIZATION_HEADER = "Authorization"
+        private const val BEARER_PREFIX = "Bearer "
+        private const val FILE_PART_NAME = "file"
+        private const val MODEL_PART_NAME = "model"
+        private const val LANGUAGE_PART_NAME = "language"
+        private const val LANGUAGE = "ko"
     }
 
     override fun transcribe(
@@ -34,7 +38,6 @@ class ClovaSpeechClient(
     ): String {
         val response = requestTranscription(audioBytes, filename)
         val result = parseResponse(response)
-        validateResult(result)
         return result.text
     }
 
@@ -44,41 +47,30 @@ class ClovaSpeechClient(
     ): String {
         val requestBody =
             LinkedMultiValueMap<String, Any>().apply {
-                add("media", createMediaPart(audioBytes, filename))
-                add("params", createParams())
+                add(FILE_PART_NAME, createFilePart(audioBytes, filename))
+                add(MODEL_PART_NAME, model)
+                add(LANGUAGE_PART_NAME, LANGUAGE)
             }
 
         return restClient
             .post()
-            .uri("$invokeUrl$RECOGNIZER_UPLOAD_PATH")
-            .header(API_KEY_HEADER, secretKey)
+            .uri(TRANSCRIPTIONS_URL)
+            .header(AUTHORIZATION_HEADER, "$BEARER_PREFIX$apiKey")
             .contentType(MediaType.MULTIPART_FORM_DATA)
             .body(requestBody)
             .retrieve()
             .body<String>()
-            ?: throw SpeechTranscriptionFailedException("CLOVA Speech 응답을 받지 못했습니다.")
+            ?: throw SpeechTranscriptionFailedException("OpenAI STT 응답을 받지 못했습니다.")
     }
 
-    private fun parseResponse(response: String): ClovaSpeechResponse =
+    private fun parseResponse(response: String): OpenAiSpeechResponse =
         runCatching {
-            objectMapper.readValue(response, ClovaSpeechResponse::class.java)
+            objectMapper.readValue(response, OpenAiSpeechResponse::class.java)
         }.getOrElse {
-            throw SpeechTranscriptionFailedException("CLOVA Speech 응답 파싱 실패. response: $response")
+            throw SpeechTranscriptionFailedException("OpenAI STT 응답 파싱 실패. response: $response")
         }
 
-    private fun validateResult(result: ClovaSpeechResponse) {
-        if (result.result != COMPLETED) {
-            throw SpeechTranscriptionFailedException("result: ${result.result}, message: ${result.message}")
-        }
-    }
-
-    private fun createParams(): HttpEntity<String> =
-        HttpEntity(
-            """{ "language": "$LANGUAGE", "completion": "$COMPLETION" }""",
-            HttpHeaders().apply { contentType = MediaType.APPLICATION_JSON },
-        )
-
-    private fun createMediaPart(
+    private fun createFilePart(
         audioBytes: ByteArray,
         filename: String,
     ): HttpEntity<ByteArrayResource> =
@@ -91,7 +83,7 @@ class ClovaSpeechClient(
                 contentDisposition =
                     ContentDisposition
                         .builder("form-data")
-                        .name("media")
+                        .name(FILE_PART_NAME)
                         .filename(filename)
                         .build()
             },
@@ -102,16 +94,16 @@ class ClovaSpeechClient(
             "wav" -> MediaType.parseMediaType("audio/wav")
             "m4a" -> MediaType.parseMediaType("audio/m4a")
             "mp3" -> MediaType.parseMediaType("audio/mpeg")
-            "aac" -> MediaType.parseMediaType("audio/aac")
+            "mp4" -> MediaType.parseMediaType("audio/mp4")
+            "mpeg", "mpga" -> MediaType.parseMediaType("audio/mpeg")
             "ogg" -> MediaType.parseMediaType("audio/ogg")
             "flac" -> MediaType.parseMediaType("audio/flac")
+            "webm" -> MediaType.parseMediaType("audio/webm")
             else -> MediaType.APPLICATION_OCTET_STREAM
         }
 }
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-data class ClovaSpeechResponse(
-    val result: String,
-    val message: String,
+data class OpenAiSpeechResponse(
     val text: String,
 )

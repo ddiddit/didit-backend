@@ -9,11 +9,9 @@ import com.fasterxml.jackson.module.kotlin.readValue
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
-import org.springframework.stereotype.Component
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
 
-@Component
 class ClovaClient(
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
@@ -92,7 +90,7 @@ class ClovaClient(
     private fun parseDeepQuestion(result: ClovaResult): GeneratedDeepQuestion =
         runCatching {
             val cleanResponse = cleanJsonResponse(result.message.content)
-            val question = objectMapper.readValue<DeepQuestionDto>(cleanResponse).question
+            val question = objectMapper.readValue<ClovaDeepQuestionDto>(cleanResponse).question
             logger.debug("심화 질문 토큰 사용량 - promptTokens: ${result.usage.promptTokens}, completionTokens: ${result.usage.completionTokens}")
             GeneratedDeepQuestion(
                 content = question,
@@ -126,7 +124,7 @@ class ClovaClient(
         }
 }
 
-private data class DeepQuestionDto(
+private data class ClovaDeepQuestionDto(
     val question: String,
 )
 
