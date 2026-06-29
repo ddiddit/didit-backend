@@ -175,7 +175,8 @@ class MissionQueryServiceTest {
                 userId = userId,
                 missionId = mission.id,
                 status = MissionStatus.IN_PROGRESS,
-                popupStatus = """{"levelUpPopupShown":false,"failurePopupShown":true}""",
+                levelUpPopupShown = false,
+                failurePopupShown = true,
             )
 
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
@@ -200,7 +201,8 @@ class MissionQueryServiceTest {
                 userId = userId,
                 missionId = mission.id,
                 status = MissionStatus.IN_PROGRESS,
-                popupStatus = """{"levelUpPopupShown":true,"failurePopupShown":false}""",
+                levelUpPopupShown = true,
+                failurePopupShown = false,
             )
 
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
@@ -225,7 +227,8 @@ class MissionQueryServiceTest {
                 userId = userId,
                 missionId = mission.id,
                 status = MissionStatus.IN_PROGRESS,
-                popupStatus = """{"levelUpPopupShown":true,"failurePopupShown":true}""",
+                levelUpPopupShown = true,
+                failurePopupShown = true,
             )
 
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)

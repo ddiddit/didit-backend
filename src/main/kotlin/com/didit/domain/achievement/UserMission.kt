@@ -30,8 +30,10 @@ class UserMission(
     var lastRetroDate: LocalDate? = null,
     @Column(nullable = false)
     var failureCount: Int = 0,
-    @Column(columnDefinition = "JSON")
-    var popupStatus: String = """{"levelUpPopupShown":false,"failurePopupShown":false}""",
+    @Column(nullable = false)
+    var levelUpPopupShown: Boolean = false,
+    @Column(nullable = false)
+    var failurePopupShown: Boolean = false,
     @Column(name = "started_at", nullable = false)
     var startedAt: LocalDateTime = LocalDateTime.now(),
     @Column(name = "completed_at")
@@ -56,39 +58,10 @@ class UserMission(
         this.progress += 1
     }
 
-    fun setLevelUpPopupShown(shown: Boolean) {
-        val statusMap = parsePopupStatus().toMutableMap()
-        statusMap["levelUpPopupShown"] = shown
-        popupStatus = statusMap.toJsonString()
-    }
-
-    fun setFailurePopupShown(shown: Boolean) {
-        val statusMap = parsePopupStatus().toMutableMap()
-        statusMap["failurePopupShown"] = shown
-        popupStatus = statusMap.toJsonString()
-    }
-
-    fun isLevelUpPopupShown(): Boolean = parsePopupStatus()["levelUpPopupShown"] as? Boolean ?: false
-
-    fun isFailurePopupShown(): Boolean = parsePopupStatus()["failurePopupShown"] as? Boolean ?: false
-
     fun setFailureWaitingConfirm() {
         this.status = MissionStatus.WAIT_CONFIRM
-        this.setFailurePopupShown(false)
+        this.failurePopupShown = false
     }
-
-    private fun parsePopupStatus(): Map<String, Any> =
-        try {
-            val json = popupStatus.removeSurrounding("{", "}")
-            json.split(",").associate { pair ->
-                val (key, value) = pair.split(":").map { it.trim().trim('"') }
-                key to (value.toBoolean() as Any)
-            }
-        } catch (e: Exception) {
-            mapOf("levelUpPopupShown" to false, "failurePopupShown" to false)
-        }
-
-    private fun Map<String, Any>.toJsonString(): String = "{" + entries.joinToString(",") { (k, v) -> "\"$k\":$v" } + "}"
 
     companion object {
         fun create(

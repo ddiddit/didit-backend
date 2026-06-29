@@ -40,8 +40,8 @@ data class CurrentMissionResponse(
                 targetCount = mission.targetCount,
                 daysRemaining = daysRemaining,
                 weeklyRetroStatus = weeklyRetroStatus,
-                isLevelUpPopupShown = userMission.isLevelUpPopupShown(),
-                isFailurePopupShown = userMission.isFailurePopupShown(),
+                isLevelUpPopupShown = userMission.levelUpPopupShown,
+                isFailurePopupShown = userMission.failurePopupShown,
             )
     }
 }

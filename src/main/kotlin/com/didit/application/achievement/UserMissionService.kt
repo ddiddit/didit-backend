@@ -21,7 +21,7 @@ class UserMissionService(
             userMissionRepository.findCurrentMissionByUserId(userId)
                 ?: throw CurrentMissionNotFoundException(userId)
 
-        userMission.setLevelUpPopupShown(true)
+        userMission.levelUpPopupShown = true
         userMissionRepository.save(userMission)
     }
 
@@ -49,7 +49,7 @@ class UserMissionService(
             }
         }
 
-        userMission.setFailurePopupShown(true)
+        userMission.failurePopupShown = true
         userMissionRepository.save(userMission)
     }
 }

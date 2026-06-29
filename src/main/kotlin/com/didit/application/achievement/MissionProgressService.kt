@@ -104,7 +104,7 @@ class MissionProgressService(
 
         if (nextMission != null) {
             val nextUserMission = UserMission.create(userId, nextMission.id)
-            nextUserMission.setLevelUpPopupShown(false)
+            nextUserMission.levelUpPopupShown = false
             userMissionRepository.save(nextUserMission)
 
             logger.info(

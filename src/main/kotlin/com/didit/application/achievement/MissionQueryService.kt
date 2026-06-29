@@ -117,16 +117,12 @@ class MissionQueryService(
         )
     }
 
-    private fun getPopupStatus(userMission: UserMission): PopupStatus {
-        val isLevelUpPopupShown = userMission.isLevelUpPopupShown()
-        val isFailurePopupShown = userMission.isFailurePopupShown()
-
-        return when {
-            !isLevelUpPopupShown -> PopupStatus(exists = true, type = "LEVEL_UP")
-            !isFailurePopupShown -> PopupStatus(exists = true, type = "FAILURE")
+    private fun getPopupStatus(userMission: UserMission): PopupStatus =
+        when {
+            !userMission.levelUpPopupShown -> PopupStatus(exists = true, type = "LEVEL_UP")
+            !userMission.failurePopupShown -> PopupStatus(exists = true, type = "FAILURE")
             else -> PopupStatus(exists = false, type = null)
         }
-    }
 
     private fun getMissionCta(mission: Mission): String = "회고 남기기"
 

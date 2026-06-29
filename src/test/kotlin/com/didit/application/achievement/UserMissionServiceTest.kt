@@ -45,7 +45,7 @@ class UserMissionServiceTest {
 
         userMissionService.confirmLevelUp(userId)
 
-        assertThat(userMission.isLevelUpPopupShown()).isTrue()
+        assertThat(userMission.levelUpPopupShown).isTrue()
         verify(userMissionRepository).save(userMission)
     }
 
@@ -81,7 +81,7 @@ class UserMissionServiceTest {
 
         assertThat(userMission.progress).isEqualTo(0)
         assertThat(userMission.startedAt).isNotEqualTo(originalStartedAt)
-        assertThat(userMission.isFailurePopupShown()).isTrue()
+        assertThat(userMission.failurePopupShown).isTrue()
         verify(userMissionRepository).save(userMission)
     }
 
@@ -106,7 +106,7 @@ class UserMissionServiceTest {
         userMissionService.retryMission(userId)
 
         assertThat(userMission.progress).isEqualTo(0)
-        assertThat(userMission.isFailurePopupShown()).isTrue()
+        assertThat(userMission.failurePopupShown).isTrue()
         verify(userMissionRepository).save(userMission)
     }
 }
