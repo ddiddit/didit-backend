@@ -8,6 +8,10 @@ on:
     branches:
       - develop
 
+concurrency:
+  group: deploy-develop
+  cancel-in-progress: false
+
 env:
   IMAGE_NAME: ghcr.io/ddiddit/didit-backend:latest
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
