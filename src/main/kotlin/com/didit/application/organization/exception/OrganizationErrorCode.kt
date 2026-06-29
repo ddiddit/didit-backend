@@ -12,6 +12,7 @@ enum class OrganizationErrorCode(
 
     DUPLICATED_TAG_NAME(HttpStatus.BAD_REQUEST, "이미 존재하는 태그입니다."),
     TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 태그를 찾을 수 없습니다."),
+    INVALID_TAG_NAME(HttpStatus.BAD_REQUEST, "태그명은 비어 있을 수 없으며 10자 이하여야 합니다."),
 
     RETRO_TAG_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 태그를 회고에서 찾을 수 없습니다."),
 }
