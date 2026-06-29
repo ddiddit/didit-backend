@@ -7,6 +7,8 @@ import java.util.UUID
 interface UserFinder {
     fun findByIdOrThrow(userId: UUID): User
 
+    fun findByIdForUpdateOrThrow(userId: UUID): User
+
     fun existsByNickname(nickname: String): Boolean
 
     fun getJobByUserId(userId: UUID): Job?

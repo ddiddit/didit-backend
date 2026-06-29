@@ -6,6 +6,7 @@ import com.didit.application.auth.required.UserRepository
 import com.didit.domain.auth.User
 import com.didit.domain.shared.Job
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
@@ -18,6 +19,10 @@ class UserQueryService(
         userRepository.findById(userId) ?: throw UserNotFoundException(
             userId,
         )
+
+    @Transactional(propagation = Propagation.MANDATORY)
+    override fun findByIdForUpdateOrThrow(userId: UUID): User =
+        userRepository.findByIdForUpdate(userId) ?: throw UserNotFoundException(userId)
 
     override fun existsByNickname(nickname: String): Boolean = userRepository.existsByNicknameAndDeletedAtIsNull(nickname)
 
