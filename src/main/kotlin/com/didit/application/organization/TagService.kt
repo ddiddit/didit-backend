@@ -1,6 +1,7 @@
 package com.didit.application.organization
 
 import com.didit.application.organization.exception.DuplicateTagNameException
+import com.didit.application.organization.exception.InvalidTagNameException
 import com.didit.application.organization.provided.TagRegister
 import com.didit.application.organization.required.TagRepository
 import com.didit.domain.organization.Tag
@@ -22,6 +23,10 @@ class TagService(
         name: String,
     ): Tag {
         val normalized = name.trim()
+
+        if (normalized.isBlank() || normalized.length > 10) {
+            throw InvalidTagNameException()
+        }
 
         if (tagRepository.existsByUserIdAndNameAndDeletedAtIsNull(userId, normalized)) {
             throw DuplicateTagNameException(

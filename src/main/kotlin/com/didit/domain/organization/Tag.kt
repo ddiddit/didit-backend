@@ -16,7 +16,7 @@ class Tag(
     val id: UUID = UUID.randomUUID(),
     @Column(nullable = false, columnDefinition = "BINARY(16)")
     val userId: UUID,
-    @Column(nullable = false)
+    @Column(nullable = false, length = 10)
     var name: String,
     @Column
     var deletedAt: LocalDateTime? = null,
@@ -29,6 +29,7 @@ class Tag(
             val normalized = name.trim()
 
             require(normalized.isNotBlank()) { "태그명은 비어있을 수 없습니다." }
+            require(normalized.length <= 10) { "태그명은 10자를 초과할 수 없습니다." }
 
             return Tag(
                 userId = userId,
