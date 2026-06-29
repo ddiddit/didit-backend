@@ -19,6 +19,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.whenever
 import java.time.LocalDateTime
 import java.util.UUID
@@ -62,14 +63,13 @@ class MissionQueryServiceTest {
                 missionId = mission.id,
                 status = MissionStatus.IN_PROGRESS,
                 progress = 0,
+                levelUpPopupShown = true,
+                failurePopupShown = true,
             )
 
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
         whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
         whenever(missionRepository.findByLevel(1)).thenReturn(mission)
-        whenever(retrospectiveRepository.findCompletedByUserIdAndPeriod(userId, any(), any())).thenReturn(
-            emptyList(),
-        )
 
         val result = missionQueryService.getCurrentMission(userId)
 
@@ -123,7 +123,7 @@ class MissionQueryServiceTest {
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
         whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
         whenever(missionRepository.findByLevel(3)).thenReturn(mission)
-        whenever(retrospectiveRepository.findCompletedByUserIdAndPeriod(userId, any(), any())).thenReturn(
+        whenever(retrospectiveRepository.findCompletedByUserIdAndPeriod(eq(userId), any(), any())).thenReturn(
             emptyList(),
         )
 
@@ -182,9 +182,6 @@ class MissionQueryServiceTest {
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
         whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
         whenever(missionRepository.findByLevel(1)).thenReturn(mission)
-        whenever(retrospectiveRepository.findCompletedByUserIdAndPeriod(userId, any(), any())).thenReturn(
-            emptyList(),
-        )
 
         val result = missionQueryService.getCurrentMission(userId)
 
@@ -208,9 +205,6 @@ class MissionQueryServiceTest {
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
         whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
         whenever(missionRepository.findByLevel(1)).thenReturn(mission)
-        whenever(retrospectiveRepository.findCompletedByUserIdAndPeriod(userId, any(), any())).thenReturn(
-            emptyList(),
-        )
 
         val result = missionQueryService.getCurrentMission(userId)
 
@@ -234,9 +228,6 @@ class MissionQueryServiceTest {
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
         whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
         whenever(missionRepository.findByLevel(1)).thenReturn(mission)
-        whenever(retrospectiveRepository.findCompletedByUserIdAndPeriod(userId, any(), any())).thenReturn(
-            emptyList(),
-        )
 
         val result = missionQueryService.getCurrentMission(userId)
 

@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.time.LocalDateTime
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -69,9 +70,15 @@ class UserMissionServiceTest {
                 description = "테스트",
                 durationDays = 7,
             )
+        val originalStartedAt = LocalDateTime.now().minusDays(8)
         val userMission =
-            UserMission(userId = userId, missionId = missionId, status = MissionStatus.IN_PROGRESS, progress = 2)
-        val originalStartedAt = userMission.startedAt
+            UserMission(
+                userId = userId,
+                missionId = missionId,
+                status = MissionStatus.IN_PROGRESS,
+                progress = 2,
+                startedAt = originalStartedAt,
+            )
 
         whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
         whenever(missionRepository.findAll()).thenReturn(listOf(timeLimitedMission))
