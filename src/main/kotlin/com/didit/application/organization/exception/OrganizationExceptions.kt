@@ -33,10 +33,22 @@ class TagNotFoundException(
         "tagId: $tagId not found",
     )
 
+class InvalidTagNameException :
+    BusinessException(
+        OrganizationErrorCode.INVALID_TAG_NAME,
+    )
+
 class RetroTagNotFoundException(
     retrospectId: UUID,
     tagId: UUID,
 ) : BusinessException(
         OrganizationErrorCode.RETRO_TAG_NOT_FOUND,
         "retrospectId: $retrospectId, tagId: $tagId",
+    )
+
+class ProjectLimitExceededException(
+    userId: UUID,
+) : BusinessException(
+        OrganizationErrorCode.PROJECT_LIMIT_EXCEEDED,
+        "userId: $userId, project limit exceeded",
     )

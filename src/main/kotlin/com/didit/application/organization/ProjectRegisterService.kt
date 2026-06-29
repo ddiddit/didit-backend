@@ -5,6 +5,7 @@ import com.didit.application.audit.AuditAction
 import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.organization.exception.DuplicateProjectNameException
+import com.didit.application.organization.exception.ProjectLimitExceededException
 import com.didit.application.organization.exception.ProjectNotFoundException
 import com.didit.application.organization.provided.ProjectRegister
 import com.didit.application.organization.required.ProjectRepository
@@ -23,6 +24,7 @@ class ProjectRegisterService(
 ) : ProjectRegister {
     companion object {
         private val logger = LoggerFactory.getLogger(ProjectRegisterService::class.java)
+        private const val MAX_PROJECT_COUNT = 10
     }
 
     @Transactional
@@ -30,12 +32,18 @@ class ProjectRegisterService(
         userId: UUID,
         name: String,
     ): Project {
-        userFinder.findByIdOrThrow(userId)
+        userFinder.findByIdForUpdateOrThrow(userId)
 
         val normalizedName = name.trim()
 
         if (projectRepository.existsByUserIdAndNameAndDeletedAtIsNull(userId, normalizedName)) {
             throw DuplicateProjectNameException(userId, normalizedName)
+        }
+
+        val currentProjectCount = projectRepository.countByUserIdAndDeletedAtIsNull(userId)
+
+        if (currentProjectCount >= MAX_PROJECT_COUNT) {
+            throw ProjectLimitExceededException(userId)
         }
 
         val maxOrder = projectRepository.findMaxDisplayOrder(userId)

@@ -21,12 +21,13 @@ class TagTest {
     }
 
     @Test
-    fun `태그 이름 trim 처리`() {
-        val name = "  테스트 태그  "
+    fun `태그 이름 trim 처리 후 10자까지 생성 가능`() {
+        val name = "  1234567890  "
 
         val tag = Tag.create(userId, name)
 
-        assertThat(tag.name).isEqualTo("테스트 태그")
+        assertThat(tag.name).isEqualTo("1234567890")
+        assertThat(tag.name).hasSize(10)
     }
 
     @Test
@@ -39,6 +40,18 @@ class TagTest {
             }
 
         assertThat(exception.message).isEqualTo("태그명은 비어있을 수 없습니다.")
+    }
+
+    @Test
+    fun `태그 이름 10자 초과면 예외 발생`() {
+        val name = "12345678901"
+
+        val exception =
+            assertThrows<IllegalArgumentException> {
+                Tag.create(userId, name)
+            }
+
+        assertThat(exception.message).isEqualTo("태그명은 10자를 초과할 수 없습니다.")
     }
 
     @Test

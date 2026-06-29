@@ -28,7 +28,7 @@ class InquiryFinderTest {
 
     @Test
     fun `findAll()`() {
-        inquiryFinder.findAll()
-        verify(inquiryFinder).findAll()
+        inquiryFinder.findAllForAdmin()
+        verify(inquiryFinder).findAllForAdmin()
     }
 }

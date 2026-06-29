@@ -3,6 +3,7 @@ package com.didit.application.organization
 import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.organization.exception.DuplicateProjectNameException
+import com.didit.application.organization.exception.ProjectLimitExceededException
 import com.didit.application.organization.exception.ProjectNotFoundException
 import com.didit.application.organization.required.ProjectRepository
 import com.didit.domain.organization.Project
@@ -14,6 +15,7 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
@@ -40,7 +42,7 @@ class ProjectRegisterServiceTest {
         val name = "프로젝트 이름"
         val user = UserFixture.createOnboarded()
 
-        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(userFinder.findByIdForUpdateOrThrow(userId)).thenReturn(user)
 
         whenever(
             projectRepository.existsByUserIdAndNameAndDeletedAtIsNull(userId, name),
@@ -65,7 +67,7 @@ class ProjectRegisterServiceTest {
         val name = "프로젝트 이름"
         val user = UserFixture.createOnboarded()
 
-        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(userFinder.findByIdForUpdateOrThrow(userId)).thenReturn(user)
 
         whenever(
             projectRepository.existsByUserIdAndNameAndDeletedAtIsNull(userId, name),
@@ -82,11 +84,55 @@ class ProjectRegisterServiceTest {
     }
 
     @Test
+    fun `프로젝트 생성 성공 - 프로젝트 개수 9개 일때`() {
+        val name = "프로젝트"
+        val user = UserFixture.createOnboarded()
+
+        whenever(userFinder.findByIdForUpdateOrThrow(userId))
+            .thenReturn(user)
+        whenever(
+            projectRepository.existsByUserIdAndNameAndDeletedAtIsNull(userId, name),
+        ).thenReturn(false)
+        whenever(
+            projectRepository.countByUserIdAndDeletedAtIsNull(userId),
+        ).thenReturn(9L)
+        whenever(projectRepository.findMaxDisplayOrder(userId))
+            .thenReturn(9)
+        whenever(projectRepository.save(any()))
+            .thenAnswer { it.arguments[0] }
+
+        val result = projectRegisterService.create(userId, name)
+
+        assertThat(result.displayOrder).isEqualTo(10)
+        verify(projectRepository).save(any())
+    }
+
+    @Test
+    fun `프로젝트 생성 실패 - 프로젝트 개수가 이미 10개 일때`() {
+        val name = "프로젝트"
+        val user = UserFixture.createOnboarded()
+
+        whenever(userFinder.findByIdForUpdateOrThrow(userId))
+            .thenReturn(user)
+        whenever(
+            projectRepository.existsByUserIdAndNameAndDeletedAtIsNull(userId, name),
+        ).thenReturn(false)
+        whenever(
+            projectRepository.countByUserIdAndDeletedAtIsNull(userId),
+        ).thenReturn(10L)
+
+        assertThrows<ProjectLimitExceededException> { projectRegisterService.create(userId, name) }
+
+        verify(projectRepository, never()).findMaxDisplayOrder(any())
+        verify(projectRepository, never()).save(any())
+    }
+
+    @Test
     fun `프로젝트 이름 중복 시 예외 발생`() {
         val name = "프로젝트 이름"
         val user = UserFixture.createOnboarded()
 
-        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(userFinder.findByIdForUpdateOrThrow(userId)).thenReturn(user)
 
         whenever(
             projectRepository.existsByUserIdAndNameAndDeletedAtIsNull(userId, name),
@@ -103,7 +149,7 @@ class ProjectRegisterServiceTest {
         val trimmed = "프로젝트 이름"
         val user = UserFixture.createOnboarded()
 
-        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(userFinder.findByIdForUpdateOrThrow(userId)).thenReturn(user)
 
         whenever(
             projectRepository.existsByUserIdAndNameAndDeletedAtIsNull(userId, trimmed),
