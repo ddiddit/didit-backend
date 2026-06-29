@@ -225,4 +225,19 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     fun countUserAnswersByInputType(
         @Param("inputType") inputType: InputType,
     ): Long
+
+    @Query(
+        """
+        SELECT COUNT(r) FROM Retrospective r
+        WHERE r.userId = :userId
+        AND r.status = 'COMPLETED'
+        AND r.deletedAt IS NULL
+        AND r.completedAt >= :from AND r.completedAt < :to
+    """,
+    )
+    fun countCompletedByUserIdAndPeriod(
+        @Param("userId") userId: UUID,
+        @Param("from") from: LocalDateTime,
+        @Param("to") to: LocalDateTime,
+    ): Int
 }

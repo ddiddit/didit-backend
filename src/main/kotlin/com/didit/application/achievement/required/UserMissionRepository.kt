@@ -46,4 +46,23 @@ interface UserMissionRepository : Repository<UserMission, UUID> {
         startDate: LocalDate,
         endDate: LocalDate,
     ): Int
+
+    @Query(
+        "SELECT um FROM UserMission um " +
+            "JOIN Mission m ON um.missionId = m.id " +
+            "WHERE um.status = 'IN_PROGRESS' " +
+            "AND m.level = 2 " +
+            "AND DATE_ADD(um.startedAt, INTERVAL m.durationDays DAY) < CURDATE() " +
+            "AND um.progress < m.targetCount",
+    )
+    fun findExpiredLv2Missions(): List<UserMission>
+
+    @Query(
+        "SELECT um FROM UserMission um " +
+            "JOIN Mission m ON um.missionId = m.id " +
+            "WHERE um.status = 'IN_PROGRESS' " +
+            "AND m.level IN (3, 5, 7, 9) " +
+            "AND m.missionType = 'CONSECUTIVE_WEEK'",
+    )
+    fun findConsecutiveWeekMissionsInProgress(): List<UserMission>
 }

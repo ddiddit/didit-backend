@@ -72,6 +72,11 @@ class UserMission(
 
     fun isFailurePopupShown(): Boolean = parsePopupStatus()["failurePopupShown"] as? Boolean ?: false
 
+    fun setFailureWaitingConfirm() {
+        this.status = MissionStatus.WAIT_CONFIRM
+        this.setFailurePopupShown(false)
+    }
+
     private fun parsePopupStatus(): Map<String, Any> =
         try {
             val json = popupStatus.removeSurrounding("{", "}")
