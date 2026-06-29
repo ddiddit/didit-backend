@@ -1,7 +1,9 @@
 package com.didit.application.achievement
 
+import com.didit.domain.achievement.BadgeCondition
 import com.didit.domain.achievement.BadgeConditionType
-import com.didit.domain.achievement.Streak
+import com.didit.domain.achievement.DailyAccessStreak
+import com.didit.domain.achievement.WeeklyRetroStreak
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -11,126 +13,126 @@ import java.util.UUID
 class BadgeConditionCheckerTest {
     private lateinit var checker: BadgeConditionChecker
     private val userId = UUID.randomUUID()
+    private val today = LocalDate.now()
 
     @BeforeEach
     fun setUp() {
         checker = BadgeConditionChecker()
     }
 
-    private fun context(
-        totalRetroCount: Int = 1,
-        streak: Streak = Streak.create(userId),
-        deepQuestionCount: Int = 0,
-        retroDate: LocalDate = LocalDate.now(),
-        weeklyGoalAchievedWeeks: Int = 0,
+    private fun ctx(
+        totalRetroCount: Int = 0,
+        currentWeekRetroCount: Int = 0,
+        weeklyRetroStreak: WeeklyRetroStreak = WeeklyRetroStreak.create(userId),
+        weeklyStreakWithMin3: Int = 0,
+        dailyAccessStreak: DailyAccessStreak = DailyAccessStreak.create(userId),
+        projectCount: Int = 0,
+        projectAssignedRetroCount: Int = 0,
+        maxRetroInOneProject: Int = 0,
     ) = BadgeCheckContext(
         userId = userId,
+        retroDate = today,
         totalRetroCount = totalRetroCount,
-        streak = streak,
-        deepQuestionCount = deepQuestionCount,
-        retroDate = retroDate,
-        weeklyGoalAchievedWeeks = weeklyGoalAchievedWeeks,
+        currentWeekRetroCount = currentWeekRetroCount,
+        weeklyRetroStreak = weeklyRetroStreak,
+        weeklyStreakWithMin3 = weeklyStreakWithMin3,
+        dailyAccessStreak = dailyAccessStreak,
+        projectCount = projectCount,
+        projectAssignedRetroCount = projectAssignedRetroCount,
+        maxRetroInOneProject = maxRetroInOneProject,
     )
 
     @Test
-    fun `FIRST_RETRO - 첫 번째 회고이면 true를 반환한다`() {
-        val context = context(totalRetroCount = 1)
+    fun `CUMULATIVE_RETRO - 누적 회고 수가 threshold 이상이면 true`() {
+        val condition = BadgeCondition(BadgeConditionType.CUMULATIVE_RETRO, threshold = 10)
 
-        assertThat(checker.isSatisfied(BadgeConditionType.FIRST_RETRO, context)).isTrue()
+        assertThat(checker.isSatisfied(condition, ctx(totalRetroCount = 10))).isTrue()
+        assertThat(checker.isSatisfied(condition, ctx(totalRetroCount = 9))).isFalse()
     }
 
     @Test
-    fun `FIRST_RETRO - 첫 번째 회고가 아니면 false를 반환한다`() {
-        val context = context(totalRetroCount = 2)
+    fun `WEEKLY_RETRO_COUNT - 이번 주 회고 수가 threshold 이상이면 true`() {
+        val condition = BadgeCondition(BadgeConditionType.WEEKLY_RETRO_COUNT, threshold = 3)
 
-        assertThat(checker.isSatisfied(BadgeConditionType.FIRST_RETRO, context)).isFalse()
+        assertThat(checker.isSatisfied(condition, ctx(currentWeekRetroCount = 3))).isTrue()
+        assertThat(checker.isSatisfied(condition, ctx(currentWeekRetroCount = 2))).isFalse()
     }
 
     @Test
-    fun `STREAK_3_DAYS - 3일 연속이면 true를 반환한다`() {
+    fun `WEEKLY_STREAK - weeklyMin 1 일 때 currentWeeks 가 threshold 이상이면 true`() {
         val streak =
-            Streak.create(userId).apply {
-                val today = LocalDate.now()
-                update(today.minusDays(2))
-                update(today.minusDays(1))
-                update(today)
+            WeeklyRetroStreak.create(userId).apply {
+                recordRetro(LocalDate.of(2026, 6, 1))
+                recordRetro(LocalDate.of(2026, 6, 8))
+                recordRetro(LocalDate.of(2026, 6, 15))
+                recordRetro(LocalDate.of(2026, 6, 22))
             }
-        val context = context(streak = streak)
+        val condition =
+            BadgeCondition(
+                BadgeConditionType.WEEKLY_STREAK,
+                threshold = 4,
+                params = mapOf("weeklyMinCount" to 1),
+            )
 
-        assertThat(checker.isSatisfied(BadgeConditionType.STREAK_3_DAYS, context)).isTrue()
+        assertThat(checker.isSatisfied(condition, ctx(weeklyRetroStreak = streak))).isTrue()
     }
 
     @Test
-    fun `STREAK_3_DAYS - 3일 연속이 아니면 false를 반환한다`() {
+    fun `WEEKLY_STREAK - weeklyMin 3 일 때 weeklyStreakWithMin3 가 threshold 이상이면 true`() {
+        val condition =
+            BadgeCondition(
+                BadgeConditionType.WEEKLY_STREAK,
+                threshold = 3,
+                params = mapOf("weeklyMinCount" to 3),
+            )
+
+        assertThat(checker.isSatisfied(condition, ctx(weeklyStreakWithMin3 = 3))).isTrue()
+        assertThat(checker.isSatisfied(condition, ctx(weeklyStreakWithMin3 = 2))).isFalse()
+    }
+
+    @Test
+    fun `WEEKLY_STREAK - 지원하지 않는 weeklyMin은 false를 반환한다`() {
+        val condition =
+            BadgeCondition(
+                BadgeConditionType.WEEKLY_STREAK,
+                threshold = 2,
+                params = mapOf("weeklyMinCount" to 5),
+            )
+
+        assertThat(checker.isSatisfied(condition, ctx())).isFalse()
+    }
+
+    @Test
+    fun `DAILY_ACCESS_STREAK - currentStreak가 threshold 이상이면 true`() {
         val streak =
-            Streak.create(userId).apply {
-                update(LocalDate.now())
+            DailyAccessStreak.create(userId).apply {
+                for (i in 6 downTo 0) recordAccess(today.minusDays(i.toLong()))
             }
-        val context = context(streak = streak)
+        val condition = BadgeCondition(BadgeConditionType.DAILY_ACCESS_STREAK, threshold = 7)
 
-        assertThat(checker.isSatisfied(BadgeConditionType.STREAK_3_DAYS, context)).isFalse()
+        assertThat(checker.isSatisfied(condition, ctx(dailyAccessStreak = streak))).isTrue()
     }
 
     @Test
-    fun `TOTAL_30 - 누적 30회 이상이면 true를 반환한다`() {
-        val context = context(totalRetroCount = 30)
+    fun `PROJECT_COUNT - 프로젝트 수가 threshold 이상이면 true`() {
+        val condition = BadgeCondition(BadgeConditionType.PROJECT_COUNT, threshold = 3)
 
-        assertThat(checker.isSatisfied(BadgeConditionType.TOTAL_30, context)).isTrue()
+        assertThat(checker.isSatisfied(condition, ctx(projectCount = 3))).isTrue()
+        assertThat(checker.isSatisfied(condition, ctx(projectCount = 2))).isFalse()
     }
 
     @Test
-    fun `TOTAL_30 - 누적 30회 미만이면 false를 반환한다`() {
-        val context = context(totalRetroCount = 29)
+    fun `PROJECT_TAGGED_RETRO - 태그된 회고 수가 threshold 이상이면 true`() {
+        val condition = BadgeCondition(BadgeConditionType.PROJECT_TAGGED_RETRO, threshold = 5)
 
-        assertThat(checker.isSatisfied(BadgeConditionType.TOTAL_30, context)).isFalse()
+        assertThat(checker.isSatisfied(condition, ctx(projectAssignedRetroCount = 5))).isTrue()
     }
 
     @Test
-    fun `DEEP_QUESTION_1 - 심화질문 1회 이상이면 true를 반환한다`() {
-        val context = context(deepQuestionCount = 1)
+    fun `PROJECT_RETRO_IN_ONE - 한 프로젝트 최대 회고 수가 threshold 이상이면 true`() {
+        val condition = BadgeCondition(BadgeConditionType.PROJECT_RETRO_IN_ONE, threshold = 3)
 
-        assertThat(checker.isSatisfied(BadgeConditionType.DEEP_QUESTION_1, context)).isTrue()
-    }
-
-    @Test
-    fun `DEEP_QUESTION_5 - 심화질문 5회 이상이면 true를 반환한다`() {
-        val context = context(deepQuestionCount = 5)
-
-        assertThat(checker.isSatisfied(BadgeConditionType.DEEP_QUESTION_5, context)).isTrue()
-    }
-
-    @Test
-    fun `DEEP_QUESTION_10 - 심화질문 10회 이상이면 true를 반환한다`() {
-        val context = context(deepQuestionCount = 10)
-
-        assertThat(checker.isSatisfied(BadgeConditionType.DEEP_QUESTION_10, context)).isTrue()
-    }
-
-    @Test
-    fun `DEEP_QUESTION_5 - 심화질문 5회 미만이면 false를 반환한다`() {
-        val context = context(deepQuestionCount = 4)
-
-        assertThat(checker.isSatisfied(BadgeConditionType.DEEP_QUESTION_5, context)).isFalse()
-    }
-
-    @Test
-    fun `WEEKLY_3_FIRST - 주 3회 첫 달성이면 true를 반환한다`() {
-        val context = context(weeklyGoalAchievedWeeks = 1)
-
-        assertThat(checker.isSatisfied(BadgeConditionType.WEEKLY_3_FIRST, context)).isTrue()
-    }
-
-    @Test
-    fun `WEEKLY_3_THREE_WEEKS - 3주 이상 주 3회 달성이면 true를 반환한다`() {
-        val context = context(weeklyGoalAchievedWeeks = 3)
-
-        assertThat(checker.isSatisfied(BadgeConditionType.WEEKLY_3_THREE_WEEKS, context)).isTrue()
-    }
-
-    @Test
-    fun `WEEKLY_3_THREE_WEEKS - 3주 미만이면 false를 반환한다`() {
-        val context = context(weeklyGoalAchievedWeeks = 2)
-
-        assertThat(checker.isSatisfied(BadgeConditionType.WEEKLY_3_THREE_WEEKS, context)).isFalse()
+        assertThat(checker.isSatisfied(condition, ctx(maxRetroInOneProject = 3))).isTrue()
+        assertThat(checker.isSatisfied(condition, ctx(maxRetroInOneProject = 2))).isFalse()
     }
 }

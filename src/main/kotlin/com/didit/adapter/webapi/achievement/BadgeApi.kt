@@ -22,6 +22,12 @@ class BadgeApi(
     ): SuccessResponse<List<BadgeResponse>> = SuccessResponse.of(badgeFinder.findAll(userId))
 
     @RequireAuth
+    @GetMapping("/recent")
+    fun findRecent(
+        @CurrentUserId userId: UUID,
+    ): SuccessResponse<List<BadgeResponse>> = SuccessResponse.of(badgeFinder.findRecent(userId))
+
+    @RequireAuth
     @GetMapping("/popup")
     fun findUnnotified(
         @CurrentUserId userId: UUID,

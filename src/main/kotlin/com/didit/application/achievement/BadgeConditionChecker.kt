@@ -1,37 +1,35 @@
 package com.didit.application.achievement
 
+import com.didit.domain.achievement.BadgeCondition
 import com.didit.domain.achievement.BadgeConditionType
 import org.springframework.stereotype.Component
 
 @Component
 class BadgeConditionChecker {
     fun isSatisfied(
-        conditionType: BadgeConditionType,
+        condition: BadgeCondition,
         context: BadgeCheckContext,
     ): Boolean =
-        when (conditionType) {
-            BadgeConditionType.FIRST_RETRO -> checkFirstRetro(context)
-            BadgeConditionType.STREAK_3_DAYS -> checkStreak3Days(context)
-            BadgeConditionType.TOTAL_30 -> checkTotal30(context)
-            BadgeConditionType.DEEP_QUESTION_1 -> checkDeepQuestion(context, 1)
-            BadgeConditionType.DEEP_QUESTION_5 -> checkDeepQuestion(context, 5)
-            BadgeConditionType.DEEP_QUESTION_10 -> checkDeepQuestion(context, 10)
-            BadgeConditionType.WEEKLY_3_FIRST -> checkWeekly3First(context)
-            BadgeConditionType.WEEKLY_3_THREE_WEEKS -> checkWeekly3ThreeWeeks(context)
+        when (condition.conditionType) {
+            BadgeConditionType.CUMULATIVE_RETRO -> context.totalRetroCount >= condition.threshold
+            BadgeConditionType.WEEKLY_RETRO_COUNT -> context.currentWeekRetroCount >= condition.threshold
+            BadgeConditionType.WEEKLY_STREAK -> checkWeeklyStreak(condition, context)
+            BadgeConditionType.DAILY_ACCESS_STREAK -> context.dailyAccessStreak.currentStreak >= condition.threshold
+            BadgeConditionType.PROJECT_COUNT -> context.projectCount >= condition.threshold
+            BadgeConditionType.PROJECT_TAGGED_RETRO -> context.projectAssignedRetroCount >= condition.threshold
+            BadgeConditionType.PROJECT_RETRO_IN_ONE -> context.maxRetroInOneProject >= condition.threshold
         }
 
-    private fun checkFirstRetro(context: BadgeCheckContext): Boolean = context.totalRetroCount == 1
-
-    private fun checkStreak3Days(context: BadgeCheckContext): Boolean = context.streak.isStreak(3)
-
-    private fun checkTotal30(context: BadgeCheckContext): Boolean = context.totalRetroCount >= 30
-
-    private fun checkDeepQuestion(
+    private fun checkWeeklyStreak(
+        condition: BadgeCondition,
         context: BadgeCheckContext,
-        count: Int,
-    ): Boolean = context.deepQuestionCount >= count
-
-    private fun checkWeekly3First(context: BadgeCheckContext): Boolean = context.weeklyGoalAchievedWeeks >= 1
-
-    private fun checkWeekly3ThreeWeeks(context: BadgeCheckContext): Boolean = context.weeklyGoalAchievedWeeks >= 3
+    ): Boolean {
+        val consecutive =
+            when (condition.weeklyMinCount()) {
+                1 -> context.weeklyRetroStreak.currentWeeks
+                3 -> context.weeklyStreakWithMin3
+                else -> return false
+            }
+        return consecutive >= condition.threshold
+    }
 }
