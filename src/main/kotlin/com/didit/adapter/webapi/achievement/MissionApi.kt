@@ -9,7 +9,6 @@ import com.didit.application.achievement.provided.MissionFinder
 import com.didit.application.achievement.provided.UserMissionRegister
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
-import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -30,7 +29,7 @@ class MissionApi(
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PatchMapping("/popup")
+    @PostMapping("/level-up/confirm")
     fun confirmPopup(
         @CurrentUserId userId: UUID,
         @RequestBody request: PopupConfirmRequest,

@@ -15,11 +15,11 @@ import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
 import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
+import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.post
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.time.LocalDate
 
@@ -102,7 +102,7 @@ class MissionApiTest : AuthenticatedRestDocsSupport() {
     fun `팝업 확인을 처리한다`() {
         mockMvc
             .perform(
-                patch("/api/v1/missions/popup")
+                post("/api/v1/missions/level-up/confirm")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""{"type":"LEVEL_UP"}"""),
             ).andExpect(status().isNoContent)
