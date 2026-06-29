@@ -20,3 +20,13 @@ include::{snippets}/mission/level-up-confirm/http-request.adoc[]
 === Response
 
 include::{snippets}/mission/level-up-confirm/http-response.adoc[]
+
+== 실패 팝업 확인 및 재도전
+
+=== Request
+
+include::{snippets}/mission/retry/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/mission/retry/http-response.adoc[]
