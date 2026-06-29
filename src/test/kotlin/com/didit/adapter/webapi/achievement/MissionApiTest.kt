@@ -5,6 +5,7 @@ import com.didit.application.achievement.dto.MissionInfo
 import com.didit.application.achievement.dto.PopupStatus
 import com.didit.application.achievement.dto.WeeklyStatus
 import com.didit.application.achievement.provided.MissionFinder
+import com.didit.application.achievement.provided.UserMissionRegister
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import org.junit.jupiter.api.Test
@@ -20,8 +21,9 @@ import java.time.LocalDate
 
 class MissionApiTest : AuthenticatedRestDocsSupport() {
     private val missionFinder: MissionFinder = mock(MissionFinder::class.java)
+    private val userMissionRegister: UserMissionRegister = mock(UserMissionRegister::class.java)
 
-    override fun initController() = MissionApi(missionFinder)
+    override fun initController() = MissionApi(missionFinder, userMissionRegister)
 
     @Test
     fun `현재 미션을 조회한다`() {
@@ -64,12 +66,27 @@ class MissionApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.mission.description").type(JsonFieldType.STRING).description("미션 설명"),
                         fieldWithPath("data.mission.progress").type(JsonFieldType.NUMBER).description("현재 진행도"),
                         fieldWithPath("data.mission.target").type(JsonFieldType.NUMBER).description("목표값"),
-                        fieldWithPath("data.mission.remainingDays").type(JsonFieldType.NUMBER).description("남은 일수").optional(),
+                        fieldWithPath("data.mission.remainingDays")
+                            .type(JsonFieldType.NUMBER)
+                            .description("남은 일수")
+                            .optional(),
                         fieldWithPath("data.mission.cta").type(JsonFieldType.STRING).description("CTA 텍스트"),
-                        fieldWithPath("data.weeklyStatus").type(JsonFieldType.OBJECT).description("주간 회고 현황").optional(),
-                        fieldWithPath("data.weeklyStatus.show").type(JsonFieldType.BOOLEAN).description("주간 상황 노출 여부").optional(),
-                        fieldWithPath("data.weeklyStatus.weekStart").type(JsonFieldType.STRING).description("주간 시작일").optional(),
-                        fieldWithPath("data.weeklyStatus.days").type(JsonFieldType.ARRAY).description("요일별 완료 현황").optional(),
+                        fieldWithPath("data.weeklyStatus")
+                            .type(JsonFieldType.OBJECT)
+                            .description("주간 회고 현황")
+                            .optional(),
+                        fieldWithPath("data.weeklyStatus.show")
+                            .type(JsonFieldType.BOOLEAN)
+                            .description("주간 상황 노출 여부")
+                            .optional(),
+                        fieldWithPath("data.weeklyStatus.weekStart")
+                            .type(JsonFieldType.STRING)
+                            .description("주간 시작일")
+                            .optional(),
+                        fieldWithPath("data.weeklyStatus.days")
+                            .type(JsonFieldType.ARRAY)
+                            .description("요일별 완료 현황")
+                            .optional(),
                         fieldWithPath("data.popup.exists").type(JsonFieldType.BOOLEAN).description("팝업 노출 여부"),
                         fieldWithPath("data.popup.type").type(JsonFieldType.STRING).description("팝업 타입").optional(),
                     ),
