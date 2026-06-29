@@ -34,4 +34,13 @@ class MissionApi(
     ) {
         userMissionRegister.confirmLevelUp(userId)
     }
+
+    @RequireAuth
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PostMapping("/retry")
+    fun retryMission(
+        @CurrentUserId userId: UUID,
+    ) {
+        userMissionRegister.retryMission(userId)
+    }
 }
