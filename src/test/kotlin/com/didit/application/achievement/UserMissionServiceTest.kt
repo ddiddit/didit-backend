@@ -1,7 +1,6 @@
 package com.didit.application.achievement
 
 import com.didit.application.achievement.exception.CurrentMissionNotFoundException
-import com.didit.application.achievement.exception.InvalidPopupTypeException
 import com.didit.application.achievement.required.UserMissionRepository
 import com.didit.domain.achievement.UserMission
 import org.assertj.core.api.Assertions.assertThat
@@ -37,21 +36,9 @@ class UserMissionServiceTest {
         whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
         whenever(userMissionRepository.save(any())).thenReturn(userMission)
 
-        userMissionService.confirmPopup(userId, "LEVEL_UP")
+        userMissionService.confirmLevelUp(userId)
 
         assertThat(userMission.isLevelUpPopupShown()).isTrue()
-        verify(userMissionRepository).save(userMission)
-    }
-
-    @Test
-    fun `실패 팝업 확인을 처리한다`() {
-        val userMission = UserMission(userId = userId, missionId = missionId)
-        whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
-        whenever(userMissionRepository.save(any())).thenReturn(userMission)
-
-        userMissionService.confirmPopup(userId, "FAILURE")
-
-        assertThat(userMission.isFailurePopupShown()).isTrue()
         verify(userMissionRepository).save(userMission)
     }
 
@@ -59,16 +46,7 @@ class UserMissionServiceTest {
     fun `현재 미션이 없으면 CurrentMissionNotFoundException을 발생시킨다`() {
         whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(null)
 
-        assertThatThrownBy { userMissionService.confirmPopup(userId, "LEVEL_UP") }
+        assertThatThrownBy { userMissionService.confirmLevelUp(userId) }
             .isInstanceOf(CurrentMissionNotFoundException::class.java)
-    }
-
-    @Test
-    fun `유효하지 않은 팝업 타입이면 InvalidPopupTypeException을 발생시킨다`() {
-        val userMission = UserMission(userId = userId, missionId = missionId)
-        whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
-
-        assertThatThrownBy { userMissionService.confirmPopup(userId, "INVALID_TYPE") }
-            .isInstanceOf(InvalidPopupTypeException::class.java)
     }
 }
