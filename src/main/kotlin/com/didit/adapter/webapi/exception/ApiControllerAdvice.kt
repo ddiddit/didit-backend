@@ -42,7 +42,7 @@ class ApiControllerAdvice {
             .apply {
                 title = errorCode.status.reasonPhrase
                 setProperty("timestamp", OffsetDateTime.now().toString())
-                setProperty("code", errorCode.detail)
+                setProperty("code", errorCode.name)
             }
     }
 

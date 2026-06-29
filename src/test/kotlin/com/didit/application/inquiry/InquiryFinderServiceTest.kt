@@ -12,8 +12,12 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import java.time.LocalDateTime
 import java.util.UUID
 import kotlin.test.Test
 
@@ -29,15 +33,30 @@ class InquiryFinderServiceTest {
     private val inquiryId = UUID.randomUUID()
 
     @Test
-    fun `유저 문의 전체 조회 성공`() {
+    fun `최근 1년 기준 유저 문의 전체 조회 성공`() {
         val inquiries = listOf(createInquiry(), createInquiry())
 
-        whenever(inquiryRepository.findAllByUserIdAndDeletedAtIsNull(userId))
-            .thenReturn(inquiries)
+        whenever(
+            inquiryRepository.findAllByUserIdAndDeletedAtIsNullAndCreatedAtAfterOrderByCreatedAtDesc(
+                eq(userId),
+                any(),
+            ),
+        ).thenReturn(inquiries)
+
+        val before = LocalDateTime.now().minusYears(1)
 
         val result = inquiryFinderService.findAll(userId)
 
-        verify(inquiryRepository).findAllByUserIdAndDeletedAtIsNull(userId)
+        val createdAtCaptor = argumentCaptor<LocalDateTime>()
+
+        verify(inquiryRepository).findAllByUserIdAndDeletedAtIsNullAndCreatedAtAfterOrderByCreatedAtDesc(
+            eq(userId),
+            createdAtCaptor.capture(),
+        )
+
+        val after = LocalDateTime.now().minusYears(1)
+
+        assertThat(createdAtCaptor.firstValue).isBetween(before, after)
         assertThat(result).hasSize(2)
         assertThat(result).isEqualTo(inquiries)
     }
@@ -49,7 +68,7 @@ class InquiryFinderServiceTest {
         whenever(inquiryRepository.findAllByDeletedAtIsNullOrderByCreatedAtDesc())
             .thenReturn(inquiries)
 
-        val result = inquiryFinderService.findAll()
+        val result = inquiryFinderService.findAllForAdmin()
 
         verify(inquiryRepository).findAllByDeletedAtIsNullOrderByCreatedAtDesc()
         assertThat(result).hasSize(3)

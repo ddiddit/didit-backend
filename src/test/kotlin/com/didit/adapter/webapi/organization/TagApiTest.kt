@@ -61,7 +61,7 @@ class TagApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentRequest(),
                     ApiDocumentUtils.getDocumentResponse(),
                     requestFields(
-                        fieldWithPath("name").type(JsonFieldType.STRING).description("태그 이름 (최대 15자)"),
+                        fieldWithPath("name").type(JsonFieldType.STRING).description("태그 이름 (최대 10자)"),
                     ),
                     responseFields(
                         fieldWithPath("data.id").type(JsonFieldType.STRING).description("태그 ID"),

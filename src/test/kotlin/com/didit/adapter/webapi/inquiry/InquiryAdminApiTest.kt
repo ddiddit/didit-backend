@@ -213,7 +213,7 @@ class InquiryAdminApiTest : AdminAuthenticatedRestDocsSupport() {
     fun `관리자 문의 목록 조회`() {
         val inquiries = listOf(createInquiry(), createInquiry())
 
-        whenever(inquiryFinder.findAll())
+        whenever(inquiryFinder.findAllForAdmin())
             .thenReturn(inquiries)
 
         mockMvc

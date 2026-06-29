@@ -3,8 +3,10 @@ package com.didit.application.auth.required
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.User
 import com.didit.domain.shared.Job
+import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.Repository
 import org.springframework.data.repository.query.Param
@@ -65,6 +67,12 @@ interface UserRepository : Repository<User, UUID> {
 
     @Query("SELECT u FROM User u ORDER BY u.createdAt DESC")
     fun findRecentUsers(pageable: Pageable): List<User>
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :userId")
+    fun findByIdForUpdate(
+        @Param("userId") userId: UUID,
+    ): User?
 
     @Query(
         """
