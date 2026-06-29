@@ -1,7 +1,7 @@
 package com.didit.application.achievement
 
+import com.didit.application.achievement.exception.CurrentMissionNotFoundException
 import com.didit.application.achievement.exception.InvalidPopupTypeException
-import com.didit.application.achievement.exception.UserMissionNotFoundException
 import com.didit.application.achievement.provided.UserMissionRegister
 import com.didit.application.achievement.required.UserMissionRepository
 import org.springframework.stereotype.Service
@@ -15,12 +15,11 @@ class UserMissionService(
 ) : UserMissionRegister {
     override fun confirmPopup(
         userId: UUID,
-        missionId: UUID,
         type: String,
     ) {
         val userMission =
-            userMissionRepository.findByIdAndUserId(missionId, userId)
-                ?: throw UserMissionNotFoundException(missionId)
+            userMissionRepository.findCurrentMissionByUserId(userId)
+                ?: throw CurrentMissionNotFoundException(userId)
 
         when (type) {
             "LEVEL_UP" -> userMission.setLevelUpPopupShown(true)
