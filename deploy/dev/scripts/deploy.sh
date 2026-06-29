@@ -98,6 +98,12 @@ done
 
 if [ "$HEALTH_OK" = false ]; then
   echo -e "${RED}[ERROR] 헬스체크 실패 - 롤백 시작${NC}"
+  echo "===== /actuator/health 응답 본문 ====="
+  curl -s --max-time 5 "$HEALTH_CHECK_URL" || true
+  echo
+  echo "===== 컨테이너 로그 예외 헤더 (스택프레임 제외) ====="
+  docker logs didit-api 2>&1 | grep -iE "exception|caused by:|application failed|error" | grep -vE "^[[:space:]]*at " | tail -80 || true
+  echo "===== 컨테이너 로그 tail 100 ====="
   docker logs --tail 100 didit-api || true
   "$DEPLOY_DIR/scripts/rollback.sh"
   exit 1
