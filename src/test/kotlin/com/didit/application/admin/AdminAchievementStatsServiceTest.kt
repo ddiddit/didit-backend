@@ -69,7 +69,7 @@ class AdminAchievementStatsServiceTest {
     }
 
     @Test
-    fun `레벨 분포는 1부터 10까지 채우고, UserLevel 행이 없는 유저는 레벨 1로 집계한다`() {
+    fun `레벨 분포는 0부터 10까지 채우고, UserLevel 행이 없는 유저는 레벨 0으로 집계한다`() {
         whenever(userLevelRepository.countGroupByLevel()).thenReturn(
             listOf(levelCount(1, 5), levelCount(3, 2)),
         )
@@ -77,8 +77,9 @@ class AdminAchievementStatsServiceTest {
 
         val result = service().getLevelStats()
 
-        assertThat(result).hasSize(10)
-        assertThat(result.first { it.level == 1 }.userCount).isEqualTo(8)
+        assertThat(result).hasSize(11)
+        assertThat(result.first { it.level == 0 }.userCount).isEqualTo(3)
+        assertThat(result.first { it.level == 1 }.userCount).isEqualTo(5)
         assertThat(result.first { it.level == 2 }.userCount).isEqualTo(0)
         assertThat(result.first { it.level == 3 }.userCount).isEqualTo(2)
     }

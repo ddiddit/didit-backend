@@ -106,9 +106,13 @@ class MissionProgressService(
         userLevel.levelUp()
         userLevelRepository.save(userLevel)
 
-        val nextLevel = userLevel.currentLevel
-        val nextMission = missionRepository.findByLevel(nextLevel)
+        val nextMissionLevel = userLevel.currentLevel + 1
+        if (nextMissionLevel > 10) {
+            logger.info("모든 미션 완료 - userId: $userId, currentLevel: ${userLevel.currentLevel}")
+            return
+        }
 
+        val nextMission = missionRepository.findByLevel(nextMissionLevel)
         if (nextMission != null) {
             val nextUserMission = UserMission.create(userId, nextMission.id)
             nextUserMission.levelUpPopupShown = false
@@ -116,10 +120,10 @@ class MissionProgressService(
 
             logger.info(
                 "레벨업 및 다음 미션 생성 - userId: $userId, " +
-                    "currentLevel: $nextLevel, missionType: ${nextMission.missionType}",
+                    "currentLevel: ${userLevel.currentLevel}, missionType: ${nextMission.missionType}",
             )
         } else {
-            logger.warn("Lv.$nextLevel 미션 정의가 없습니다")
+            logger.warn("Lv.$nextMissionLevel 미션 정의가 없습니다")
         }
     }
 }

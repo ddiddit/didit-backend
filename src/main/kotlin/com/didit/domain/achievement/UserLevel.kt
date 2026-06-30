@@ -14,7 +14,7 @@ class UserLevel(
     @Column(columnDefinition = "BINARY(16)")
     val userId: UUID,
     @Column(nullable = false)
-    var currentLevel: Int = 1,
+    var currentLevel: Int = 0,
     @Column(nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 ) {
