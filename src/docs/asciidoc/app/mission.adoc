@@ -1,0 +1,32 @@
+= 미션 API
+
+== 현재 미션 조회
+
+=== Request
+
+include::{snippets}/mission/current/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/mission/current/http-response.adoc[]
+include::{snippets}/mission/current/response-fields.adoc[]
+
+== 레벨업 팝업 확인
+
+=== Request
+
+include::{snippets}/mission/level-up-confirm/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/mission/level-up-confirm/http-response.adoc[]
+
+== 실패 팝업 확인 및 재도전
+
+=== Request
+
+include::{snippets}/mission/retry/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/mission/retry/http-response.adoc[]
