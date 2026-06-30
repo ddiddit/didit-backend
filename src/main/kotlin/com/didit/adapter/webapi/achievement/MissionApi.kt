@@ -24,7 +24,10 @@ class MissionApi(
     @GetMapping("/current")
     fun getCurrentMission(
         @CurrentUserId userId: UUID,
-    ): SuccessResponse<CurrentMissionResponse> = SuccessResponse.of(missionFinder.getCurrentMission(userId))
+    ): SuccessResponse<CurrentMissionResponse> {
+        userMissionRegister.ensureInitialized(userId)
+        return SuccessResponse.of(missionFinder.getCurrentMission(userId))
+    }
 
     @RequireAuth
     @ResponseStatus(HttpStatus.NO_CONTENT)
