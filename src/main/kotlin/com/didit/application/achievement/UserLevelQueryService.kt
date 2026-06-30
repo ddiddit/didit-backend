@@ -14,6 +14,6 @@ class UserLevelQueryService(
     override fun getCurrentLevel(userId: UUID): Int = userLevelRepository.findByUserId(userId)?.currentLevel ?: DEFAULT_LEVEL
 
     companion object {
-        private const val DEFAULT_LEVEL = 1
+        private const val DEFAULT_LEVEL = 0
     }
 }

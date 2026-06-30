@@ -23,7 +23,7 @@ class AdminAchievementStatsService(
     private val userRepository: UserRepository,
 ) : AdminAchievementStatsFinder {
     companion object {
-        private const val MIN_LEVEL = 1
+        private const val MIN_LEVEL = 0
         private const val MAX_LEVEL = 10
     }
 

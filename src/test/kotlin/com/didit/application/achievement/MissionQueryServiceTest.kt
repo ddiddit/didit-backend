@@ -55,7 +55,7 @@ class MissionQueryServiceTest {
 
     @Test
     fun `Lv1 FIRST_RETRO 미션을 조회한다`() {
-        val userLevel = UserLevel(userId = userId, currentLevel = 1)
+        val userLevel = UserLevel(userId = userId, currentLevel = 0)
         val mission = Mission.firstRetro()
         val userMission =
             UserMission(
@@ -73,7 +73,7 @@ class MissionQueryServiceTest {
 
         val result = missionQueryService.getCurrentMission(userId)
 
-        assertThat(result.currentLevel).isEqualTo(1)
+        assertThat(result.currentLevel).isEqualTo(0)
         assertThat(result.mission.type).isEqualTo("FIRST_RETRO")
         assertThat(result.mission.progress).isEqualTo(0)
         assertThat(result.mission.target).isEqualTo(1)
@@ -84,7 +84,7 @@ class MissionQueryServiceTest {
 
     @Test
     fun `Lv2 TIME_LIMITED 미션의 남은 일수를 포함한다`() {
-        val userLevel = UserLevel(userId = userId, currentLevel = 2)
+        val userLevel = UserLevel(userId = userId, currentLevel = 1)
         val mission = Mission.timeLimited()
         val startedAt = LocalDateTime.now().minusDays(2)
         val userMission =
@@ -102,7 +102,7 @@ class MissionQueryServiceTest {
 
         val result = missionQueryService.getCurrentMission(userId)
 
-        assertThat(result.currentLevel).isEqualTo(2)
+        assertThat(result.currentLevel).isEqualTo(1)
         assertThat(result.mission.type).isEqualTo("TIME_LIMITED")
         assertThat(result.mission.remainingDays).isEqualTo(5)
         assertThat(result.weeklyStatus).isNull()
@@ -110,7 +110,7 @@ class MissionQueryServiceTest {
 
     @Test
     fun `Lv3 CONSECUTIVE_WEEK 미션의 주간 회고 현황을 포함한다`() {
-        val userLevel = UserLevel(userId = userId, currentLevel = 3)
+        val userLevel = UserLevel(userId = userId, currentLevel = 2)
         val mission = Mission.consecutiveWeek(level = 3, weeks = 2)
         val userMission =
             UserMission(
@@ -129,7 +129,7 @@ class MissionQueryServiceTest {
 
         val result = missionQueryService.getCurrentMission(userId)
 
-        assertThat(result.currentLevel).isEqualTo(3)
+        assertThat(result.currentLevel).isEqualTo(2)
         assertThat(result.mission.type).isEqualTo("CONSECUTIVE_WEEK")
         assertThat(result.weeklyStatus).isNotNull()
         assertThat(result.weeklyStatus!!.days).hasSize(7)
@@ -155,7 +155,7 @@ class MissionQueryServiceTest {
 
     @Test
     fun `미션 정의가 없으면 MissionDefinitionNotFoundException을 발생시킨다`() {
-        val userLevel = UserLevel(userId = userId, currentLevel = 1)
+        val userLevel = UserLevel(userId = userId, currentLevel = 0)
         val userMission = UserMission(userId = userId, missionId = UUID.randomUUID())
 
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
@@ -168,7 +168,7 @@ class MissionQueryServiceTest {
 
     @Test
     fun `레벨업 팝업을 반환한다`() {
-        val userLevel = UserLevel(userId = userId, currentLevel = 1)
+        val userLevel = UserLevel(userId = userId, currentLevel = 0)
         val mission = Mission.firstRetro()
         val userMission =
             UserMission(
@@ -191,7 +191,7 @@ class MissionQueryServiceTest {
 
     @Test
     fun `실패 팝업을 반환한다`() {
-        val userLevel = UserLevel(userId = userId, currentLevel = 1)
+        val userLevel = UserLevel(userId = userId, currentLevel = 0)
         val mission = Mission.firstRetro()
         val userMission =
             UserMission(
@@ -214,7 +214,7 @@ class MissionQueryServiceTest {
 
     @Test
     fun `팝업이 없으면 exists가 false이다`() {
-        val userLevel = UserLevel(userId = userId, currentLevel = 1)
+        val userLevel = UserLevel(userId = userId, currentLevel = 0)
         val mission = Mission.firstRetro()
         val userMission =
             UserMission(

@@ -36,10 +36,9 @@ class MissionQueryService(
         val userLevel = userLevelRepository.findByUserId(userId) ?: throw UserLevelNotFoundException(userId)
         val userMission =
             userMissionRepository.findCurrentMissionByUserId(userId) ?: throw CurrentMissionNotFoundException(userId)
+        val missionLevel = userLevel.currentLevel + 1
         val mission =
-            missionRepository.findByLevel(userLevel.currentLevel) ?: throw MissionDefinitionNotFoundException(
-                userLevel.currentLevel,
-            )
+            missionRepository.findByLevel(missionLevel) ?: throw MissionDefinitionNotFoundException(missionLevel)
 
         val missionInfo =
             MissionInfo(
