@@ -43,6 +43,9 @@ jwt:
   access-token-expiry-ms: 3600000
   refresh-token-expiry-days: 14
 
+achievement:
+  feature-launched-at: ${ACHIEVEMENT_FEATURE_LAUNCHED_AT:2026-06-30T00:00:00}
+
 clova:
   api:
     url: https://clovastudio.stream.ntruss.com/v3/chat-completions/HCX-005
