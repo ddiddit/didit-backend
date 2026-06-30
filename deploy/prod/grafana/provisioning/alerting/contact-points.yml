@@ -10,15 +10,59 @@ contactPoints:
         settings:
           url: $DISCORD_MONITOR_WEBHOOK_URL
           use_discord_username: false
-          title: '{{ if eq .Status "firing" }}{{ else }}[복구] {{ end }} {{ .CommonLabels.alertname }}'
+          title: '{{ if eq .CommonLabels.alertname "[CRITICAL] 5xx 에러율 1% 초과" }}{{ if eq .Status "firing" }}{{ .CommonLabels.alertname }}{{ else }}[RESOLVED] 5xx 에러율 정상화{{ end }}{{ else }}{{ if eq .Status "firing" }}{{ else }}[복구] {{ end }}{{ .CommonLabels.alertname }}{{ end }}'
           message: |
+            {{ if eq .CommonLabels.alertname "[CRITICAL] 5xx 에러율 1% 초과" }}
+            {{ $notificationStatus := .Status }}
             {{ range .Alerts }}
+            {{ if eq $notificationStatus "firing" }}
+            Time        : {{ .StartsAt | tz "Asia/Seoul" | date "2006-01-02 15:04:05" }} (KST)
+            5xx Rate    : {{ .Annotations.error_rate }}
+
+            ────────────────────────
+
             {{ .Annotations.summary }}
-            
+
             확인 필요
             {{ .Annotations.description }}
-            
+
+            ────────────────────────
+
+            Explore Logs
+            {{ .Annotations.explore_url }}
+
+            Alert
+            {{ .GeneratorURL }}
+
+            Dashboard
+            {{ .DashboardURL }}
+            {{ else }}
+            Detected    : {{ .StartsAt | tz "Asia/Seoul" | date "2006-01-02 15:04:05" }} (KST)
+            Resolved    : {{ .EndsAt | tz "Asia/Seoul" | date "2006-01-02 15:04:05" }} (KST)
+            Duration    : {{ .EndsAt.Sub .StartsAt }}
+
+            최근 5분 기준 5xx 에러율이 1% 이하로 내려갔습니다.
+
+            ────────────────────────
+
+            Explore Logs
+            {{ .Annotations.explore_url }}
+
+            Alert
+            {{ .GeneratorURL }}
+
+            Dashboard
+            {{ .DashboardURL }}
+            {{ end }}
+            {{ end }}
+            {{ else }}
+            {{ range .Alerts }}
+            {{ .Annotations.summary }}
+
+            확인 필요
+            {{ .Annotations.description }}
+
             관련 모니터링 링크
             - Grafana Alert: {{ .GeneratorURL }}
             {{ end }}
-            
+            {{ end }}

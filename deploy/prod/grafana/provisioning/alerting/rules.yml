@@ -1,5 +1,9 @@
 apiVersion: 1
 
+deleteRules:
+  - orgId: 1
+    uid: didit-http-5xx-detected
+
 groups:
   - orgId: 1
     name: didit-prod-critical
@@ -69,74 +73,6 @@ groups:
             - 최근 트래픽 증가 여부
             - 메모리 누수 및 OOM 로그
 
-      - uid: didit-http-5xx-detected
-        title: '[CRITICAL] 5xx 에러 발생'
-        condition: C
-        data:
-          - refId: A
-            datasourceUid: prometheus
-            relativeTimeRange:
-              from: 120
-              to: 0
-            model:
-              refId: A
-              expr: |
-                sum(
-                  increase(
-                    http_server_requests_seconds_count{
-                      environment="prod",
-                      status=~"5.."
-                    }[1m]
-                  )
-                )
-              instant: true
-              intervalMs: 1000
-              maxDataPoints: 43200
-
-          - refId: B
-            datasourceUid: __expr__
-            model:
-              refId: B
-              type: reduce
-              expression: A
-              reducer: last
-              datasource:
-                type: __expr__
-                uid: __expr__
-
-          - refId: C
-            datasourceUid: __expr__
-            model:
-              refId: C
-              type: threshold
-              expression: B
-              conditions:
-                - evaluator:
-                    type: gt
-                    params: [ 0 ]
-                  operator:
-                    type: and
-                  query:
-                    params: [ C ]
-                  reducer:
-                    type: last
-                  type: query
-              datasource:
-                type: __expr__
-                uid: __expr__
-
-        noDataState: OK
-        execErrState: Alerting
-        for: 0s
-        labels:
-          severity: critical
-        annotations:
-          summary: 5xx 에러가 발생했습니다.
-          description: |
-            - API 서버 ERROR 로그
-            - 발생 API 및 예외 내용
-            - DB 및 외부 연동 서비스 상태
-
       - uid: didit-http-5xx-rate-critical
         title: '[CRITICAL] 5xx 에러율 1% 초과'
         condition: C
@@ -204,14 +140,19 @@ groups:
         noDataState: OK
         execErrState: Alerting
         for: 2m
+        dashboardUid: dfp8jkcluca2oe
+
         labels:
           severity: critical
+
         annotations:
           summary: 5xx 에러율이 1%를 초과했습니다.
+          error_rate: '{{ humanizePercentage $values.B.Value }}'
           description: |
             - API 서버 로그
             - 최근 배포 여부
             - 특정 API 및 외부 서비스 장애 여부
+          explore_url: https://monitoring.didit.ai.kr/explore?schemaVersion=1&panes=%7B%22ttc%22:%7B%22datasource%22:%22loki%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bcontainer%3D~%5C%22didit-api-%28blue%7Cgreen%29%5C%22%7D%20%7C%3D%20%5C%22ERROR%5C%22%22,%22queryType%22:%22range%22,%22datasource%22:%7B%22type%22:%22loki%22,%22uid%22:%22loki%22%7D,%22editorMode%22:%22code%22%7D%5D,%22range%22:%7B%22from%22:%22now-15m%22,%22to%22:%22now%22%7D,%22panelsState%22:%7B%22logs%22:%7B%22columns%22:%7B%220%22:%22Time%22,%221%22:%22Line%22%7D,%22visualisationType%22:%22table%22,%22labelFieldName%22:%22labels%22%7D%7D%7D%7D&orgId=1
 
       - uid: didit-hikaricp-usage-critical
         title: '[CRITICAL] HikariCP 커넥션 풀 사용률 90% 초과'
