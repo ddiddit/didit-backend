@@ -121,7 +121,7 @@ class AdminBadgeQueryService(
                     AdminBadgeParamSpec(
                         key = "weeklyMinCount",
                         label = "주당 최소 회고 수",
-                        type = "INT",
+                        type = "number",
                         defaultValue = 1,
                         required = false,
                     ),
