@@ -3,13 +3,11 @@ package com.didit.adapter.integration.scheduler
 import com.didit.application.achievement.required.MissionRepository
 import com.didit.application.achievement.required.UserMissionRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
+import com.didit.domain.shared.ServiceTime
 import jakarta.transaction.Transactional
 import org.slf4j.LoggerFactory
 import org.springframework.scheduling.annotation.Scheduled
 import org.springframework.stereotype.Component
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.temporal.TemporalAdjusters
 
 @Component
@@ -42,14 +40,13 @@ class MissionScheduler(
 
         consecutiveWeekMissions.forEach { userMission ->
             val lastWeekStart =
-                LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).minusWeeks(1)
-            val lastWeekEnd = lastWeekStart.plusDays(6)
+                ServiceTime.today().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).minusWeeks(1)
 
             val lastWeekRetroCount =
                 retrospectiveRepository.countCompletedByUserIdAndPeriod(
                     userId = userMission.userId,
-                    from = LocalDateTime.of(lastWeekStart, LocalTime.MIDNIGHT),
-                    to = LocalDateTime.of(lastWeekEnd, LocalTime.of(23, 59, 59)),
+                    from = ServiceTime.startOfDayUtc(lastWeekStart),
+                    to = ServiceTime.startOfDayUtc(lastWeekStart.plusWeeks(1)),
                 )
 
             if (lastWeekRetroCount == 0) {

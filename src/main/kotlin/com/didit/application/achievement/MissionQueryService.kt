@@ -16,12 +16,11 @@ import com.didit.domain.achievement.Mission
 import com.didit.domain.achievement.MissionStatus
 import com.didit.domain.achievement.MissionType
 import com.didit.domain.achievement.UserMission
+import com.didit.domain.shared.ServiceTime
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.time.DayOfWeek
 import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.LocalTime
 import java.time.temporal.TemporalAdjusters
 import java.util.UUID
 
@@ -89,15 +88,14 @@ class MissionQueryService(
             return null
         }
 
-        val weekStartDate = getWeekStartDate(LocalDate.now())
-        val weekEndDate = weekStartDate.plusDays(6)
-        val from = LocalDateTime.of(weekStartDate, LocalTime.MIDNIGHT)
-        val to = LocalDateTime.of(weekEndDate, LocalTime.of(23, 59, 59))
+        val weekStartDate = getWeekStartDate(ServiceTime.today())
+        val from = ServiceTime.startOfDayUtc(weekStartDate)
+        val to = ServiceTime.startOfDayUtc(weekStartDate.plusWeeks(1))
 
         val completedRetros = retrospectiveRepository.findCompletedByUserIdAndPeriod(userId, from, to)
-        val completedDates = completedRetros.map { it.completedAt?.toLocalDate() }.toSet()
+        val completedDates = completedRetros.mapNotNull { it.completedAt?.let(ServiceTime::toServiceDate) }.toSet()
 
-        val today = LocalDate.now()
+        val today = ServiceTime.today()
         val days = mutableListOf<Boolean>()
 
         for (i in 0..6) {
