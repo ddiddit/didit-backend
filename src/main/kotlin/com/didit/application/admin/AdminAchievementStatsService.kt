@@ -8,6 +8,7 @@ import com.didit.application.admin.provided.AdminAchievementStatsFinder
 import com.didit.application.admin.provided.AdminBadgeStat
 import com.didit.application.admin.provided.AdminLevelStat
 import com.didit.application.admin.provided.AdminMissionStat
+import com.didit.application.auth.required.UserRepository
 import com.didit.domain.achievement.MissionStatus
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -19,6 +20,7 @@ class AdminAchievementStatsService(
     private val userMissionRepository: UserMissionRepository,
     private val badgeRepository: BadgeRepository,
     private val userBadgeRepository: UserBadgeRepository,
+    private val userRepository: UserRepository,
 ) : AdminAchievementStatsFinder {
     companion object {
         private const val MIN_LEVEL = 1
@@ -27,8 +29,12 @@ class AdminAchievementStatsService(
 
     override fun getLevelStats(): List<AdminLevelStat> {
         val countByLevel = userLevelRepository.countGroupByLevel().associate { it.getLevel() to it.getCount() }
+        val usersWithLevelRow = countByLevel.values.sum()
+        val usersWithoutLevelRow = (userRepository.countByDeletedAtIsNull() - usersWithLevelRow).coerceAtLeast(0)
         return (MIN_LEVEL..MAX_LEVEL).map { level ->
-            AdminLevelStat(level = level, userCount = countByLevel[level] ?: 0L)
+            val base = countByLevel[level] ?: 0L
+            val userCount = if (level == MIN_LEVEL) base + usersWithoutLevelRow else base
+            AdminLevelStat(level = level, userCount = userCount)
         }
     }
 

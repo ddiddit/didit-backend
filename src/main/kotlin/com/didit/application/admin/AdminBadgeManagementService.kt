@@ -22,6 +22,10 @@ class AdminBadgeManagementService(
     private val badgeRepository: BadgeRepository,
     private val userBadgeRepository: UserBadgeRepository,
 ) : AdminBadgeRegister {
+    companion object {
+        private val SUPPORTED_WEEKLY_MIN_COUNTS = setOf(1, 3)
+    }
+
     override fun create(command: AdminBadgeCreateCommand): AdminBadgeResult {
         val badge =
             Badge.create(
@@ -84,11 +88,29 @@ class AdminBadgeManagementService(
         if (threshold < 1) {
             throw BusinessException(ErrorCode.INVALID_REQUEST, "threshold는 1 이상이어야 합니다: $threshold")
         }
+        val parsedType = parseConditionType(conditionType)
+        val normalizedParams = params?.takeIf { it.isNotEmpty() }
+        validateParams(parsedType, normalizedParams)
         return BadgeCondition(
-            conditionType = parseConditionType(conditionType),
+            conditionType = parsedType,
             threshold = threshold,
-            params = params?.takeIf { it.isNotEmpty() },
+            params = normalizedParams,
         )
+    }
+
+    private fun validateParams(
+        conditionType: BadgeConditionType,
+        params: Map<String, Any>?,
+    ) {
+        if (conditionType == BadgeConditionType.WEEKLY_STREAK) {
+            val weeklyMinCount = (params?.get("weeklyMinCount") as? Number)?.toInt() ?: 1
+            if (weeklyMinCount !in SUPPORTED_WEEKLY_MIN_COUNTS) {
+                throw BusinessException(
+                    ErrorCode.INVALID_REQUEST,
+                    "WEEKLY_STREAK의 weeklyMinCount는 1 또는 3만 지원합니다: $weeklyMinCount",
+                )
+            }
+        }
     }
 
     private fun parseCategory(value: String): BadgeCategory =

@@ -83,6 +83,22 @@ class AdminBadgeManagementServiceTest {
     }
 
     @Test
+    fun `WEEKLY_STREAK weeklyMinCount가 1·3이 아니면 예외`() {
+        setUp()
+
+        assertThatThrownBy {
+            service.create(
+                createCommand(
+                    category = "PATTERN",
+                    conditionType = "WEEKLY_STREAK",
+                    threshold = 3,
+                    params = mapOf("weeklyMinCount" to 5),
+                ),
+            )
+        }.isInstanceOf(BusinessException::class.java)
+    }
+
+    @Test
     fun `유효하지 않은 category면 예외`() {
         setUp()
 

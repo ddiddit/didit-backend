@@ -6,6 +6,7 @@ import com.didit.application.achievement.required.MissionLevelStatusCount
 import com.didit.application.achievement.required.UserBadgeRepository
 import com.didit.application.achievement.required.UserLevelRepository
 import com.didit.application.achievement.required.UserMissionRepository
+import com.didit.application.auth.required.UserRepository
 import com.didit.domain.achievement.Badge
 import com.didit.domain.achievement.BadgeCategory
 import com.didit.domain.achievement.BadgeCondition
@@ -34,7 +35,17 @@ class AdminAchievementStatsServiceTest {
     @Mock
     lateinit var userBadgeRepository: UserBadgeRepository
 
-    private fun service() = AdminAchievementStatsService(userLevelRepository, userMissionRepository, badgeRepository, userBadgeRepository)
+    @Mock
+    lateinit var userRepository: UserRepository
+
+    private fun service() =
+        AdminAchievementStatsService(
+            userLevelRepository,
+            userMissionRepository,
+            badgeRepository,
+            userBadgeRepository,
+            userRepository,
+        )
 
     private fun levelCount(
         level: Int,
@@ -58,15 +69,16 @@ class AdminAchievementStatsServiceTest {
     }
 
     @Test
-    fun `레벨 분포는 1부터 10까지 빠짐없이 채운다`() {
+    fun `레벨 분포는 1부터 10까지 채우고, UserLevel 행이 없는 유저는 레벨 1로 집계한다`() {
         whenever(userLevelRepository.countGroupByLevel()).thenReturn(
             listOf(levelCount(1, 5), levelCount(3, 2)),
         )
+        whenever(userRepository.countByDeletedAtIsNull()).thenReturn(10)
 
         val result = service().getLevelStats()
 
         assertThat(result).hasSize(10)
-        assertThat(result.first { it.level == 1 }.userCount).isEqualTo(5)
+        assertThat(result.first { it.level == 1 }.userCount).isEqualTo(8)
         assertThat(result.first { it.level == 2 }.userCount).isEqualTo(0)
         assertThat(result.first { it.level == 3 }.userCount).isEqualTo(2)
     }
