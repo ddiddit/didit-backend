@@ -7,6 +7,7 @@ import com.didit.adapter.webapi.home.dto.HomeV2Response
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemV2Response
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.notification.provided.NotificationHistoryFinder
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.domain.shared.ServiceTime
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,6 +18,7 @@ import java.util.UUID
 class HomeApi(
     private val userFinder: UserFinder,
     private val retrospectiveFinder: RetrospectiveFinder,
+    private val notificationHistoryFinder: NotificationHistoryFinder,
 ) {
     @Deprecated("Use v2 endpoint", replaceWith = ReplaceWith("getHomeV2"))
     @RequireAuth
@@ -53,6 +55,7 @@ class HomeApi(
             HomeV2Response(
                 nickname = user.nickname ?: "",
                 todayRetrospectiveCount = todayCount,
+                hasUnreadNotification = notificationHistoryFinder.hasUnread(userId),
                 recentRetrospectives =
                     recentRetros.map {
                         RetrospectiveListItemV2Response.from(it)

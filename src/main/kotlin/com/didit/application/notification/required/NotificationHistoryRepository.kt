@@ -16,6 +16,11 @@ interface NotificationHistoryRepository : Repository<NotificationHistory, UUID> 
         createdAt: LocalDateTime,
     ): List<NotificationHistory>
 
+    fun existsByUserIdAndIsReadFalseAndCreatedAtAfter(
+        userId: UUID,
+        createdAt: LocalDateTime,
+    ): Boolean
+
     fun findByIdAndUserId(
         id: UUID,
         userId: UUID,

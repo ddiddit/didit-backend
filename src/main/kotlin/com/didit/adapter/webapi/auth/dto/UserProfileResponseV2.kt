@@ -14,11 +14,13 @@ data class UserProfileResponseV2(
     val age: UserAge?,
     val experience: UserExperience?,
     val provider: Provider,
+    val currentLevel: Int,
     val recentBadges: List<BadgeResponse> = emptyList(),
 ) {
     companion object {
         fun from(
             user: User,
+            currentLevel: Int,
             recentBadges: List<BadgeResponse> = emptyList(),
         ) = UserProfileResponseV2(
             nickname = user.nickname,
@@ -27,6 +29,7 @@ data class UserProfileResponseV2(
             age = user.age,
             experience = user.experience,
             provider = user.provider,
+            currentLevel = currentLevel,
             recentBadges = recentBadges,
         )
     }
