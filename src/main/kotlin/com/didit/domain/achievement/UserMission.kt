@@ -54,6 +54,14 @@ class UserMission(
         this.failureCount += 1
     }
 
+    fun retry() {
+        this.status = MissionStatus.IN_PROGRESS
+        this.progress = 0
+        this.failureCount += 1
+        this.completedAt = null
+        this.lastRetroDate = null
+    }
+
     fun incrementProgress() {
         this.progress += 1
     }

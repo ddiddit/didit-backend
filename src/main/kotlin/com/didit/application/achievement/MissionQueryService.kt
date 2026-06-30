@@ -13,6 +13,7 @@ import com.didit.application.achievement.required.UserLevelRepository
 import com.didit.application.achievement.required.UserMissionRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.achievement.Mission
+import com.didit.domain.achievement.MissionStatus
 import com.didit.domain.achievement.MissionType
 import com.didit.domain.achievement.UserMission
 import org.springframework.stereotype.Service
@@ -120,7 +121,8 @@ class MissionQueryService(
     private fun getPopupStatus(userMission: UserMission): PopupStatus =
         when {
             !userMission.levelUpPopupShown -> PopupStatus(exists = true, type = "LEVEL_UP")
-            !userMission.failurePopupShown -> PopupStatus(exists = true, type = "FAILURE")
+            userMission.status == MissionStatus.WAIT_CONFIRM && !userMission.failurePopupShown ->
+                PopupStatus(exists = true, type = "FAILURE")
             else -> PopupStatus(exists = false, type = null)
         }
 

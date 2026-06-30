@@ -41,7 +41,8 @@ class MissionScheduler(
         val consecutiveWeekMissions = userMissionRepository.findConsecutiveWeekMissionsInProgress()
 
         consecutiveWeekMissions.forEach { userMission ->
-            val lastWeekStart = LocalDate.now().with(TemporalAdjusters.previous(java.time.DayOfWeek.MONDAY)).minusWeeks(1)
+            val lastWeekStart =
+                LocalDate.now().with(TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY)).minusWeeks(1)
             val lastWeekEnd = lastWeekStart.plusDays(6)
 
             val lastWeekRetroCount =

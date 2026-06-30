@@ -34,19 +34,10 @@ class UserMissionService(
             missionRepository.findAll().find { it.id == userMission.missionId }
                 ?: throw CurrentMissionNotFoundException(userId)
 
-        when (mission.missionType) {
-            MissionType.TIME_LIMITED -> {
-                userMission.resetProgress()
-                userMission.startedAt = LocalDateTime.now()
-            }
+        userMission.retry()
 
-            MissionType.CONSECUTIVE_WEEK -> {
-                userMission.resetProgress()
-            }
-
-            else -> {
-                userMission.resetProgress()
-            }
+        if (mission.missionType == MissionType.TIME_LIMITED) {
+            userMission.startedAt = LocalDateTime.now()
         }
 
         userMission.failurePopupShown = true

@@ -3,6 +3,7 @@ package com.didit.application.achievement
 import com.didit.application.achievement.required.MissionRepository
 import com.didit.application.achievement.required.UserLevelRepository
 import com.didit.application.achievement.required.UserMissionRepository
+import com.didit.domain.achievement.MissionStatus
 import com.didit.domain.achievement.UserLevel
 import com.didit.domain.achievement.UserMission
 import org.slf4j.LoggerFactory
@@ -42,8 +43,14 @@ class MissionProgressService(
                     return
                 }
             val userMission = UserMission.create(userId, lv1Mission.id)
+            userMission.levelUpPopupShown = true
             userMissionRepository.save(userMission)
             updateProgressOnRetroComplete(userId, retrospectiveId, retroDate)
+            return
+        }
+
+        if (currentUserMission.status != MissionStatus.IN_PROGRESS) {
+            logger.debug("미확인 실패 미션 - 진행률 갱신 보류, userId: $userId, status: ${currentUserMission.status}")
             return
         }
 

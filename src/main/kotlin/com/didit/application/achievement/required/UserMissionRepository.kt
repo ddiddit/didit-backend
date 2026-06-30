@@ -27,7 +27,7 @@ interface UserMissionRepository : Repository<UserMission, UUID> {
 
     @Query(
         "SELECT um FROM UserMission um " +
-            "WHERE um.userId = :userId AND um.status = 'IN_PROGRESS' " +
+            "WHERE um.userId = :userId AND um.status IN ('IN_PROGRESS', 'WAIT_CONFIRM') " +
             "ORDER BY um.createdAt DESC LIMIT 1",
     )
     fun findCurrentMissionByUserId(userId: UUID): UserMission?
@@ -53,8 +53,8 @@ interface UserMissionRepository : Repository<UserMission, UUID> {
 
     @Query(
         """
-        SELECT um.* FROM user_mission um
-        JOIN mission m ON um.mission_id = m.id
+        SELECT um.* FROM user_missions um
+        JOIN missions m ON um.mission_id = m.id
         WHERE um.status = :status
         AND m.level = 2
         AND DATE_ADD(um.started_at, INTERVAL m.duration_days DAY) < CURDATE()

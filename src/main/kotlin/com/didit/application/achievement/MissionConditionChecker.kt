@@ -27,7 +27,7 @@ class MissionConditionChecker(
         when (mission.missionType) {
             MissionType.FIRST_RETRO -> checkFirstRetro(userMission, mission)
             MissionType.TIME_LIMITED -> checkTimeLimited(userMission, userId, mission)
-            MissionType.CONSECUTIVE_WEEK -> checkConsecutiveWeek(userMission, userId, retroDate, mission)
+            MissionType.CONSECUTIVE_WEEK -> checkConsecutiveWeek(userMission, retroDate, mission)
             MissionType.CUMULATIVE_RETRO -> checkCumulativeRetro(userMission, userId, mission)
         }
 
@@ -46,7 +46,7 @@ class MissionConditionChecker(
     ): Boolean {
         checkAndHandleLv2Expiry(userMission, mission)
 
-        if (userMission.status == MissionStatus.FAILED) {
+        if (userMission.status != MissionStatus.IN_PROGRESS) {
             return false
         }
 
@@ -70,7 +70,7 @@ class MissionConditionChecker(
         val expiryDate = userMission.startedAt.toLocalDate().plusDays(durationDays.toLong())
 
         if (LocalDate.now() > expiryDate && userMission.progress < mission.targetCount) {
-            userMission.fail()
+            userMission.setFailureWaitingConfirm()
             logger.info(
                 "Lv.2 미션 만료로 실패 - userId: ${userMission.userId}, " +
                     "progress: ${userMission.progress}, expired: $expiryDate",
@@ -80,49 +80,28 @@ class MissionConditionChecker(
 
     private fun checkConsecutiveWeek(
         userMission: UserMission,
-        userId: UUID,
         retroDate: LocalDate,
         mission: Mission,
     ): Boolean {
-        val weekStart = getWeekStartDate(retroDate)
-        val weekEnd = weekStart.plusDays(6)
+        val thisWeekStart = getWeekStartDate(retroDate)
+        val lastRetroDate = userMission.lastRetroDate
 
-        val hasRetroThisWeek =
-            userMissionRepository.countRetrosBetweenDates(
-                userId = userId,
-                startDate = weekStart,
-                endDate = weekEnd,
-            ) > 0
+        if (lastRetroDate == null) {
+            userMission.progress = 1
+        } else {
+            val lastWeekStart = getWeekStartDate(lastRetroDate)
+            when {
+                thisWeekStart == lastWeekStart -> Unit
+                thisWeekStart == lastWeekStart.plusWeeks(1) -> userMission.incrementProgress()
+                else -> userMission.progress = 1
+            }
+        }
 
-        if (hasRetroThisWeek) {
-            userMission.incrementProgress()
+        if (lastRetroDate == null || retroDate.isAfter(lastRetroDate)) {
             userMission.lastRetroDate = retroDate
         }
 
         return userMission.progress >= mission.targetCount
-    }
-
-    fun checkAndHandleWeeklyReset(
-        userMission: UserMission,
-        userId: UUID,
-    ) {
-        val lastWeekStart = getWeekStartDate(LocalDate.now().minusWeeks(1))
-        val lastWeekEnd = lastWeekStart.plusDays(6)
-
-        val hasRetroLastWeek =
-            userMissionRepository.countRetrosBetweenDates(
-                userId = userId,
-                startDate = lastWeekStart,
-                endDate = lastWeekEnd,
-            ) > 0
-
-        if (!hasRetroLastWeek && userMission.lastRetroDate != null) {
-            userMission.resetProgress()
-            logger.info(
-                "연속 주차 미션 리셋 - userId: ${userMission.userId}, " +
-                    "lastWeekStart: $lastWeekStart, lastWeekEnd: $lastWeekEnd",
-            )
-        }
     }
 
     private fun getWeekStartDate(date: LocalDate): LocalDate {

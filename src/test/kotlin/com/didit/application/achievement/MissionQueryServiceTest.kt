@@ -197,7 +197,7 @@ class MissionQueryServiceTest {
             UserMission(
                 userId = userId,
                 missionId = mission.id,
-                status = MissionStatus.IN_PROGRESS,
+                status = MissionStatus.WAIT_CONFIRM,
                 levelUpPopupShown = true,
                 failurePopupShown = false,
             )
