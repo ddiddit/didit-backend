@@ -8,9 +8,9 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
-@Table(name = "streaks")
+@Table(name = "daily_access_streaks")
 @Entity
-class Streak(
+class DailyAccessStreak(
     @Id
     @Column(columnDefinition = "BINARY(16)")
     val userId: UUID,
@@ -19,37 +19,37 @@ class Streak(
     @Column(nullable = false)
     var longestStreak: Int = 0,
     @Column
-    var lastRetroDate: LocalDate? = null,
+    var lastAccessDate: LocalDate? = null,
     @Column(nullable = false)
     var updatedAt: LocalDateTime = LocalDateTime.now(),
 ) {
-    fun update(retroDate: LocalDate) {
-        if (isSameDay(retroDate)) return
-        if (isConsecutive(retroDate)) return increaseStreak(retroDate)
-        resetStreak(retroDate)
+    fun recordAccess(accessDateKst: LocalDate) {
+        if (isSameDay(accessDateKst)) return
+        if (isConsecutive(accessDateKst)) return increaseStreak(accessDateKst)
+        resetStreak(accessDateKst)
     }
 
     fun isStreak(days: Int): Boolean = currentStreak >= days
 
-    private fun isSameDay(retroDate: LocalDate): Boolean = lastRetroDate == retroDate
+    private fun isSameDay(accessDate: LocalDate): Boolean = lastAccessDate == accessDate
 
-    private fun isConsecutive(retroDate: LocalDate): Boolean = lastRetroDate?.plusDays(1) == retroDate
+    private fun isConsecutive(accessDate: LocalDate): Boolean = lastAccessDate?.plusDays(1) == accessDate
 
-    private fun increaseStreak(retroDate: LocalDate) {
+    private fun increaseStreak(accessDate: LocalDate) {
         currentStreak += 1
         longestStreak = maxOf(longestStreak, currentStreak)
-        lastRetroDate = retroDate
+        lastAccessDate = accessDate
         updatedAt = LocalDateTime.now()
     }
 
-    private fun resetStreak(retroDate: LocalDate) {
+    private fun resetStreak(accessDate: LocalDate) {
         currentStreak = 1
         longestStreak = maxOf(longestStreak, 1)
-        lastRetroDate = retroDate
+        lastAccessDate = accessDate
         updatedAt = LocalDateTime.now()
     }
 
     companion object {
-        fun create(userId: UUID): Streak = Streak(userId = userId)
+        fun create(userId: UUID): DailyAccessStreak = DailyAccessStreak(userId = userId)
     }
 }
