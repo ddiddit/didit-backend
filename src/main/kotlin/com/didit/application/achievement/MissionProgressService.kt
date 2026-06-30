@@ -22,6 +22,7 @@ class MissionProgressService(
 ) {
     companion object {
         private val logger = LoggerFactory.getLogger(MissionProgressService::class.java)
+        private const val LEVEL_UP_POPUP_MIN_LEVEL = 2
     }
 
     fun updateProgressOnRetroComplete(
@@ -115,7 +116,7 @@ class MissionProgressService(
         val nextMission = missionRepository.findByLevel(nextMissionLevel)
         if (nextMission != null) {
             val nextUserMission = UserMission.create(userId, nextMission.id)
-            nextUserMission.levelUpPopupShown = false
+            nextUserMission.levelUpPopupShown = userLevel.currentLevel < LEVEL_UP_POPUP_MIN_LEVEL
             userMissionRepository.save(nextUserMission)
 
             logger.info(
