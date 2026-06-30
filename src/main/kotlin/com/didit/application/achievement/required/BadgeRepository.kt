@@ -9,5 +9,7 @@ interface BadgeRepository : Repository<Badge, UUID> {
     @Query("SELECT b FROM Badge b ORDER BY b.createdAt ASC")
     fun findAll(): List<Badge>
 
+    fun findById(id: UUID): Badge?
+
     fun save(badge: Badge): Badge
 }

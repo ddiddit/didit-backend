@@ -17,20 +17,20 @@ class Badge(
     @Column(columnDefinition = "BINARY(16)")
     val id: UUID = UUID.randomUUID(),
     @Column(nullable = false, length = 50)
-    val name: String,
+    var name: String,
     @Column(nullable = false, length = 255)
-    val description: String,
+    var description: String,
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
-    val category: BadgeCategory,
+    var category: BadgeCategory,
     @Embedded
-    val condition: BadgeCondition,
+    var condition: BadgeCondition,
     @Column(name = "icon_url", length = 500)
-    val iconUrl: String? = null,
+    var iconUrl: String? = null,
     @Column(name = "congrats_title", length = 100)
-    val congratsTitle: String? = null,
+    var congratsTitle: String? = null,
     @Column(name = "congrats_message", length = 255)
-    val congratsMessage: String? = null,
+    var congratsMessage: String? = null,
     @Column(nullable = false)
     var active: Boolean = true,
     @Column(nullable = false)
@@ -40,6 +40,28 @@ class Badge(
         get() = condition.conditionType
 
     fun isSameCondition(conditionType: BadgeConditionType): Boolean = this.condition.conditionType == conditionType
+
+    fun update(
+        name: String,
+        description: String,
+        category: BadgeCategory,
+        condition: BadgeCondition,
+        iconUrl: String?,
+        congratsTitle: String?,
+        congratsMessage: String?,
+    ) {
+        this.name = name
+        this.description = description
+        this.category = category
+        this.condition = condition
+        this.iconUrl = iconUrl
+        this.congratsTitle = congratsTitle
+        this.congratsMessage = congratsMessage
+    }
+
+    fun changeActive(active: Boolean) {
+        this.active = active
+    }
 
     companion object {
         fun create(
