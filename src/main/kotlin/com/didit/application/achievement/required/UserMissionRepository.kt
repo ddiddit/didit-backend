@@ -81,4 +81,20 @@ interface UserMissionRepository : Repository<UserMission, UUID> {
         @Param("status") status: MissionStatus = MissionStatus.IN_PROGRESS,
         @Param("missionType") missionType: MissionType = MissionType.CONSECUTIVE_WEEK,
     ): List<UserMission>
+
+    @Query(
+        "SELECT m.level AS level, um.status AS status, COUNT(um) AS count " +
+            "FROM UserMission um, Mission m " +
+            "WHERE um.missionId = m.id " +
+            "GROUP BY m.level, um.status ORDER BY m.level",
+    )
+    fun countGroupByLevelAndStatus(): List<MissionLevelStatusCount>
+}
+
+interface MissionLevelStatusCount {
+    fun getLevel(): Int
+
+    fun getStatus(): MissionStatus
+
+    fun getCount(): Long
 }

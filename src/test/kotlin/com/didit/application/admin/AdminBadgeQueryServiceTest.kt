@@ -5,6 +5,7 @@ import com.didit.application.achievement.required.UserBadgeRepository
 import com.didit.application.auth.required.UserRepository
 import com.didit.support.UserFixture
 import org.assertj.core.api.Assertions.assertThat
+import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
@@ -57,5 +58,24 @@ class AdminBadgeQueryServiceTest {
         assertThat(result).hasSize(1)
         assertThat(result[0].userId).isEqualTo(user.id)
         assertThat(result[0].email).isEqualTo(user.email)
+    }
+
+    @Test
+    fun `조건 타입 메타는 7종 조건 타입과 4종 카테고리를 반환한다`() {
+        val meta = adminBadgeQueryService.findMeta()
+
+        assertThat(meta.conditionTypes).hasSize(7)
+        assertThat(meta.categories).hasSize(4)
+        val weeklyStreak = meta.conditionTypes.first { it.conditionType == "WEEKLY_STREAK" }
+        assertThat(weeklyStreak.params).anyMatch { it.key == "weeklyMinCount" }
+    }
+
+    @Test
+    fun `존재하지 않는 배지 상세 조회 시 예외`() {
+        val badgeId = UUID.randomUUID()
+        whenever(badgeRepository.findById(badgeId)).thenReturn(null)
+
+        assertThatThrownBy { adminBadgeQueryService.findById(badgeId) }
+            .isInstanceOf(com.didit.application.common.exception.BusinessException::class.java)
     }
 }

@@ -36,6 +36,10 @@ enum class AuditAction(
 
     BADGE_ACQUIRED("배지 획득", ActorType.SYSTEM),
 
+    ADMIN_BADGE_CREATED("배지 생성", ActorType.ADMIN),
+    ADMIN_BADGE_UPDATED("배지 수정", ActorType.ADMIN),
+    ADMIN_BADGE_ACTIVE_CHANGED("배지 활성 상태 변경", ActorType.ADMIN),
+
     PROJECT_CREATED("프로젝트 생성", ActorType.USER),
     PROJECT_UPDATED("프로젝트 수정", ActorType.USER),
     PROJECT_DELETED("프로젝트 삭제", ActorType.USER),
