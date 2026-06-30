@@ -5,4 +5,6 @@ import java.util.UUID
 
 interface NotificationHistoryFinder {
     fun findAllByUserId(userId: UUID): List<NotificationHistory>
+
+    fun hasUnread(userId: UUID): Boolean
 }

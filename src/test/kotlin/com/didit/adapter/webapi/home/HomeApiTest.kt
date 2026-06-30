@@ -1,6 +1,7 @@
 package com.didit.adapter.webapi.home
 
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.notification.provided.NotificationHistoryFinder
 import com.didit.application.retrospect.dto.RetrospectiveDetailResult
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.docs.ApiDocumentUtils
@@ -24,8 +25,9 @@ import java.util.UUID
 class HomeApiTest : AuthenticatedRestDocsSupport() {
     private val userFinder: UserFinder = mock(UserFinder::class.java)
     private val retrospectiveFinder: RetrospectiveFinder = mock(RetrospectiveFinder::class.java)
+    private val notificationHistoryFinder: NotificationHistoryFinder = mock(NotificationHistoryFinder::class.java)
 
-    override fun initController() = HomeApi(userFinder, retrospectiveFinder)
+    override fun initController() = HomeApi(userFinder, retrospectiveFinder, notificationHistoryFinder)
 
     @Test
     fun `홈 조회`() {
@@ -71,6 +73,7 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
         whenever(retrospectiveFinder.findRecentWithProjectAndTagsByUserId(userId, 5)).thenReturn(listOf(result))
         whenever(retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())).thenReturn(1)
+        whenever(notificationHistoryFinder.hasUnread(userId)).thenReturn(true)
 
         mockMvc
             .perform(get("/api/v2/home"))
@@ -83,6 +86,7 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data.nickname").type(JsonFieldType.STRING).description("닉네임"),
                         fieldWithPath("data.todayRetrospectiveCount").type(JsonFieldType.NUMBER).description("오늘 회고 횟수"),
+                        fieldWithPath("data.hasUnreadNotification").type(JsonFieldType.BOOLEAN).description("안 읽은 알림 존재 여부"),
                         fieldWithPath("data.recentRetrospectives").type(JsonFieldType.ARRAY).description("최근 회고 목록"),
                         fieldWithPath("data.recentRetrospectives[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.recentRetrospectives[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),

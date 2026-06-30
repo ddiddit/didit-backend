@@ -18,4 +18,10 @@ class NotificationHistoryQueryService(
             userId = userId,
             createdAt = LocalDateTime.now().minusDays(NotificationHistory.RETENTION_DAYS),
         )
+
+    override fun hasUnread(userId: UUID): Boolean =
+        notificationHistoryRepository.existsByUserIdAndIsReadFalseAndCreatedAtAfter(
+            userId = userId,
+            createdAt = LocalDateTime.now().minusDays(NotificationHistory.RETENTION_DAYS),
+        )
 }

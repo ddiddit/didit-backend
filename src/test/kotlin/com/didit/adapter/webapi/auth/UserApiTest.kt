@@ -1,6 +1,7 @@
 package com.didit.adapter.webapi.auth
 
 import com.didit.application.achievement.provided.BadgeFinder
+import com.didit.application.achievement.provided.UserLevelFinder
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.provided.UserRegister
 import com.didit.docs.ApiDocumentUtils
@@ -29,8 +30,9 @@ class UserApiTest : AuthenticatedRestDocsSupport() {
     private val userFinder: UserFinder = mock(UserFinder::class.java)
     private val userRegister: UserRegister = mock(UserRegister::class.java)
     private val badgeFinder: BadgeFinder = mock(BadgeFinder::class.java)
+    private val userLevelFinder: UserLevelFinder = mock(UserLevelFinder::class.java)
 
-    override fun initController() = UserApi(userFinder, userRegister, badgeFinder)
+    override fun initController() = UserApi(userFinder, userRegister, badgeFinder, userLevelFinder)
 
     @Test
     fun `닉네임 중복 확인`() {
@@ -190,6 +192,7 @@ class UserApiTest : AuthenticatedRestDocsSupport() {
         val user = UserFixture.createOnboarded()
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
         whenever(badgeFinder.findRecent(userId)).thenReturn(emptyList())
+        whenever(userLevelFinder.getCurrentLevel(userId)).thenReturn(5)
 
         mockMvc
             .perform(get("/api/v2/users/profile"))
@@ -201,6 +204,7 @@ class UserApiTest : AuthenticatedRestDocsSupport() {
                     ApiDocumentUtils.getDocumentResponse(),
                     responseFields(
                         fieldWithPath("data.nickname").type(JsonFieldType.STRING).description("닉네임"),
+                        fieldWithPath("data.currentLevel").type(JsonFieldType.NUMBER).description("현재 레벨 (1~10)"),
                         fieldWithPath("data.job")
                             .type(JsonFieldType.STRING)
                             .description("직무 (DEVELOPER, PLANNER, DESIGNER)"),

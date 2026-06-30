@@ -11,6 +11,7 @@ import com.didit.adapter.webapi.auth.dto.UserProfileResponse
 import com.didit.adapter.webapi.auth.dto.UserProfileResponseV2
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.application.achievement.provided.BadgeFinder
+import com.didit.application.achievement.provided.UserLevelFinder
 import com.didit.application.audit.Audit
 import com.didit.application.audit.AuditAction
 import com.didit.application.auth.provided.UserFinder
@@ -31,6 +32,7 @@ class UserApi(
     private val userFinder: UserFinder,
     private val userRegister: UserRegister,
     private val badgeFinder: BadgeFinder,
+    private val userLevelFinder: UserLevelFinder,
 ) {
     @GetMapping("/api/v1/users/nickname/check")
     fun checkNickname(
@@ -96,8 +98,9 @@ class UserApi(
     ): SuccessResponse<UserProfileResponseV2> {
         val user = userFinder.findByIdOrThrow(userId)
         val recentBadges = badgeFinder.findRecent(userId)
+        val currentLevel = userLevelFinder.getCurrentLevel(userId)
 
-        return SuccessResponse.of(UserProfileResponseV2.from(user, recentBadges))
+        return SuccessResponse.of(UserProfileResponseV2.from(user, currentLevel, recentBadges))
     }
 
     @Deprecated("Use v2 endpoint", replaceWith = ReplaceWith("updateProfileV2"))
