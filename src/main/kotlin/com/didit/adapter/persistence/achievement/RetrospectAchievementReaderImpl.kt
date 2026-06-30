@@ -4,21 +4,23 @@ import com.didit.application.achievement.required.RetrospectAchievementReader
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.shared.ServiceTime
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
 import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 @Component
 class RetrospectAchievementReaderImpl(
     private val retrospectiveRepository: RetrospectiveRepository,
+    @Value("\${achievement.feature-launched-at:2026-06-30T00:00:00}") private val featureLaunchedAt: LocalDateTime,
 ) : RetrospectAchievementReader {
     companion object {
         private const val MAX_CONSECUTIVE_WEEKS_SCAN = 60
     }
 
-    override fun countCompletedRetros(userId: UUID): Int =
-        retrospectiveRepository.countByUserIdAndStatusAndDeletedAtIsNull(userId, RetroStatus.COMPLETED)
+    override fun countCompletedRetros(userId: UUID): Int = completedAtsSinceLaunch(userId).size
 
     override fun countRetrosInWeek(
         userId: UUID,
@@ -42,9 +44,13 @@ class RetrospectAchievementReaderImpl(
     }
 
     private fun weekCountsByMondayKst(userId: UUID): Map<LocalDate, Int> =
-        retrospectiveRepository
-            .findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(userId, RetroStatus.COMPLETED)
+        completedAtsSinceLaunch(userId)
             .map { ServiceTime.toServiceDate(it) }
             .groupingBy { it.with(DayOfWeek.MONDAY) }
             .eachCount()
+
+    private fun completedAtsSinceLaunch(userId: UUID): List<LocalDateTime> =
+        retrospectiveRepository
+            .findCompletedAtByUserIdAndStatusAndDeletedAtIsNull(userId, RetroStatus.COMPLETED)
+            .filter { !it.isBefore(featureLaunchedAt) }
 }
