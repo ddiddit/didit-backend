@@ -2,6 +2,7 @@ package com.didit.application.achievement
 
 import com.didit.application.achievement.exception.CurrentMissionNotFoundException
 import com.didit.application.achievement.required.MissionRepository
+import com.didit.application.achievement.required.UserLevelRepository
 import com.didit.application.achievement.required.UserMissionRepository
 import com.didit.domain.achievement.Mission
 import com.didit.domain.achievement.MissionStatus
@@ -15,6 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.time.LocalDateTime
@@ -28,6 +30,9 @@ class UserMissionServiceTest {
     @Mock
     lateinit var missionRepository: MissionRepository
 
+    @Mock
+    lateinit var userLevelRepository: UserLevelRepository
+
     private lateinit var userMissionService: UserMissionService
 
     private val userId = UUID.randomUUID()
@@ -35,7 +40,28 @@ class UserMissionServiceTest {
 
     @BeforeEach
     fun setUp() {
-        userMissionService = UserMissionService(userMissionRepository, missionRepository)
+        userMissionService = UserMissionService(userMissionRepository, missionRepository, userLevelRepository)
+    }
+
+    @Test
+    fun `레벨 정보가 없으면 UserLevel과 Lv1 미션을 생성한다`() {
+        whenever(userLevelRepository.existsByUserId(userId)).thenReturn(false)
+        whenever(missionRepository.findByLevel(1)).thenReturn(Mission.firstRetro())
+
+        userMissionService.ensureInitialized(userId)
+
+        verify(userLevelRepository).save(any())
+        verify(userMissionRepository).save(any())
+    }
+
+    @Test
+    fun `이미 레벨 정보가 있으면 아무것도 생성하지 않는다`() {
+        whenever(userLevelRepository.existsByUserId(userId)).thenReturn(true)
+
+        userMissionService.ensureInitialized(userId)
+
+        verify(userLevelRepository, never()).save(any())
+        verify(userMissionRepository, never()).save(any())
     }
 
     @Test
