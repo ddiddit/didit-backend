@@ -99,8 +99,10 @@ interface UserMissionRepository : Repository<UserMission, UUID> {
 
     @Query(
         "SELECT m.level AS level, um.status AS status, COUNT(um) AS count " +
-            "FROM UserMission um, Mission m " +
+            "FROM UserMission um, Mission m, User u " +
             "WHERE um.missionId = m.id " +
+            "AND um.userId = u.id " +
+            "AND u.deletedAt IS NULL " +
             "GROUP BY m.level, um.status ORDER BY m.level",
     )
     fun countGroupByLevelAndStatus(): List<MissionLevelStatusCount>
