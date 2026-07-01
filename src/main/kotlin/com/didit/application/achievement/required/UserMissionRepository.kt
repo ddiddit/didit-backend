@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.Repository
 import org.springframework.data.repository.query.Param
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.util.UUID
 
 interface UserMissionRepository : Repository<UserMission, UUID> {
@@ -49,6 +50,20 @@ interface UserMissionRepository : Repository<UserMission, UUID> {
         @Param("userId") userId: UUID,
         @Param("startDate") startDate: LocalDate,
         @Param("endDate") endDate: LocalDate,
+    ): Int
+
+    // 미션 시작 시각(레벨업 시점) 이후 완료된 회고 수 — 같은 날 레벨업시킨 회고는 제외하기 위해 타임스탬프로 비교
+    @Query(
+        """
+        SELECT COUNT(r) FROM Retrospective r
+        WHERE r.userId = :userId
+        AND r.deletedAt IS NULL
+        AND r.completedAt > :startedAt
+        """,
+    )
+    fun countRetrosAfter(
+        @Param("userId") userId: UUID,
+        @Param("startedAt") startedAt: LocalDateTime,
     ): Int
 
     @Query(
