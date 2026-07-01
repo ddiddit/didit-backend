@@ -2,7 +2,6 @@ package com.didit.application.achievement
 
 import com.didit.application.achievement.required.BadgeRepository
 import com.didit.application.achievement.required.UserBadgeRepository
-import com.didit.domain.achievement.Badge
 import com.didit.domain.achievement.BadgeConditionType
 import com.didit.domain.achievement.UserBadge
 import org.assertj.core.api.Assertions.assertThat
@@ -38,18 +37,27 @@ class BadgeQueryServiceTest {
     }
 
     private fun badge(conditionType: BadgeConditionType) =
-        Badge.create(
-            name = conditionType.name,
-            description = "설명",
-            conditionType = conditionType,
-        )
+        when (conditionType) {
+            BadgeConditionType.CUMULATIVE_RETRO ->
+                com.didit.support.BadgeFixture
+                    .cumulativeRetro(1)
+            BadgeConditionType.DAILY_ACCESS_STREAK ->
+                com.didit.support.BadgeFixture
+                    .dailyAccessStreak(7)
+            BadgeConditionType.PROJECT_COUNT ->
+                com.didit.support.BadgeFixture
+                    .projectCount(3)
+            else ->
+                com.didit.support.BadgeFixture
+                    .cumulativeRetro(1)
+        }
 
     @Test
     fun `findAll - 전체 배지 목록을 반환한다`() {
         val badges =
             listOf(
-                badge(BadgeConditionType.FIRST_RETRO),
-                badge(BadgeConditionType.TOTAL_30),
+                badge(BadgeConditionType.CUMULATIVE_RETRO),
+                badge(BadgeConditionType.PROJECT_COUNT),
             )
         whenever(badgeRepository.findAll()).thenReturn(badges)
         whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
@@ -62,7 +70,7 @@ class BadgeQueryServiceTest {
 
     @Test
     fun `findAll - 획득한 배지는 acquired가 true이다`() {
-        val badge = badge(BadgeConditionType.FIRST_RETRO)
+        val badge = badge(BadgeConditionType.CUMULATIVE_RETRO)
         whenever(badgeRepository.findAll()).thenReturn(listOf(badge))
         whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(
             listOf(UserBadge.create(userId, badge.id)),
@@ -77,7 +85,7 @@ class BadgeQueryServiceTest {
 
     @Test
     fun `findAll - 미획득 배지는 acquired가 false이다`() {
-        val badge = badge(BadgeConditionType.FIRST_RETRO)
+        val badge = badge(BadgeConditionType.CUMULATIVE_RETRO)
         whenever(badgeRepository.findAll()).thenReturn(listOf(badge))
         whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
 
@@ -90,9 +98,9 @@ class BadgeQueryServiceTest {
 
     @Test
     fun `findRecent - 최근 획득 배지 3개를 반환한다`() {
-        val badge1 = badge(BadgeConditionType.FIRST_RETRO)
-        val badge2 = badge(BadgeConditionType.STREAK_3_DAYS)
-        val badge3 = badge(BadgeConditionType.TOTAL_30)
+        val badge1 = badge(BadgeConditionType.CUMULATIVE_RETRO)
+        val badge2 = badge(BadgeConditionType.DAILY_ACCESS_STREAK)
+        val badge3 = badge(BadgeConditionType.PROJECT_COUNT)
 
         whenever(userBadgeRepository.findTop3ByUserIdOrderByAcquiredAtDesc(userId)).thenReturn(
             listOf(
@@ -121,8 +129,8 @@ class BadgeQueryServiceTest {
 
     @Test
     fun `findUnnotified - 미알림 배지를 반환하고 알림 처리한다`() {
-        val badge1 = badge(BadgeConditionType.FIRST_RETRO)
-        val badge2 = badge(BadgeConditionType.STREAK_3_DAYS)
+        val badge1 = badge(BadgeConditionType.CUMULATIVE_RETRO)
+        val badge2 = badge(BadgeConditionType.DAILY_ACCESS_STREAK)
         val userBadge1 = UserBadge.create(userId, badge1.id)
         val userBadge2 = UserBadge.create(userId, badge2.id)
 

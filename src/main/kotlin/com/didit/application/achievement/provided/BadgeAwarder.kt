@@ -9,4 +9,9 @@ interface BadgeAwarder {
         userId: UUID,
         retroDate: LocalDate,
     ): List<Badge>
+
+    fun awardAccessBadges(
+        userId: UUID,
+        accessDateKst: LocalDate,
+    ): List<Badge>
 }

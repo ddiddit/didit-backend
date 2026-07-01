@@ -18,10 +18,13 @@ import com.didit.application.notification.required.DeviceTokenRepository
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.RefreshToken
 import com.didit.domain.auth.User
+import com.didit.domain.auth.UserLoggedInEvent
 import com.didit.domain.auth.UserRegisterRequest
 import com.didit.domain.auth.WithdrawalReason
 import com.didit.domain.auth.WithdrawalRecord
+import com.didit.domain.shared.ServiceTime
 import org.slf4j.LoggerFactory
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -37,6 +40,7 @@ class AuthService(
     private val withdrawalRecordRepository: WithdrawalRecordRepository,
     private val auditLogger: AuditLogger,
     private val deviceTokenRepository: DeviceTokenRepository,
+    private val eventPublisher: ApplicationEventPublisher,
 ) : Auth {
     companion object {
         private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -60,6 +64,13 @@ class AuthService(
             actorType = ActorType.USER,
             action = AuditAction.USER_LOGGED_IN,
             payload = mapOf("provider" to provider.name),
+        )
+
+        eventPublisher.publishEvent(
+            UserLoggedInEvent(
+                userId = user.id,
+                accessDateKst = ServiceTime.today(),
+            ),
         )
 
         return issueTokens(user, isNewUser)

@@ -1,6 +1,7 @@
 package com.didit.application.achievement.provided
 
 import com.didit.application.achievement.dto.BadgeResponse
+import com.didit.domain.achievement.BadgeCategory
 import com.didit.domain.achievement.BadgeConditionType
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -20,12 +21,19 @@ class BadgeFinderTest {
 
     private fun badgeResponse(
         acquired: Boolean = false,
-        conditionType: BadgeConditionType = BadgeConditionType.FIRST_RETRO,
+        conditionType: BadgeConditionType = BadgeConditionType.CUMULATIVE_RETRO,
+        category: BadgeCategory = BadgeCategory.CONSISTENCY,
+        threshold: Int = 1,
     ) = BadgeResponse(
         id = UUID.randomUUID(),
         name = conditionType.name,
         description = "설명",
+        category = category.name,
         conditionType = conditionType.name,
+        threshold = threshold,
+        iconUrl = null,
+        congratsTitle = null,
+        congratsMessage = null,
         acquired = acquired,
         acquiredAt = null,
     )
@@ -66,8 +74,13 @@ class BadgeFinderTest {
     fun `findUnnotified - 미알림 배지 목록을 반환한다`() {
         val badges =
             listOf(
-                badgeResponse(acquired = true, conditionType = BadgeConditionType.FIRST_RETRO),
-                badgeResponse(acquired = true, conditionType = BadgeConditionType.STREAK_3_DAYS),
+                badgeResponse(acquired = true, conditionType = BadgeConditionType.CUMULATIVE_RETRO),
+                badgeResponse(
+                    acquired = true,
+                    conditionType = BadgeConditionType.DAILY_ACCESS_STREAK,
+                    category = BadgeCategory.ACCESS,
+                    threshold = 7,
+                ),
             )
         whenever(badgeFinder.findUnnotified(userId)).thenReturn(badges)
 

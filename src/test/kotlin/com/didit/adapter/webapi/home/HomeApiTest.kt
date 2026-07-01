@@ -1,6 +1,12 @@
 package com.didit.adapter.webapi.home
 
+import com.didit.application.achievement.dto.CurrentMissionResponse
+import com.didit.application.achievement.dto.MissionInfo
+import com.didit.application.achievement.dto.PopupStatus
+import com.didit.application.achievement.provided.MissionFinder
+import com.didit.application.achievement.provided.UserMissionRegister
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.notification.provided.NotificationHistoryFinder
 import com.didit.application.retrospect.dto.RetrospectiveDetailResult
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.docs.ApiDocumentUtils
@@ -18,14 +24,35 @@ import org.springframework.restdocs.mockmvc.RestDocumentationRequestBuilders.get
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
+import org.springframework.restdocs.payload.PayloadDocumentation.subsectionWithPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
 
 class HomeApiTest : AuthenticatedRestDocsSupport() {
     private val userFinder: UserFinder = mock(UserFinder::class.java)
     private val retrospectiveFinder: RetrospectiveFinder = mock(RetrospectiveFinder::class.java)
+    private val notificationHistoryFinder: NotificationHistoryFinder = mock(NotificationHistoryFinder::class.java)
+    private val missionFinder: MissionFinder = mock(MissionFinder::class.java)
+    private val userMissionRegister: UserMissionRegister = mock(UserMissionRegister::class.java)
 
-    override fun initController() = HomeApi(userFinder, retrospectiveFinder)
+    override fun initController() = HomeApi(userFinder, retrospectiveFinder, notificationHistoryFinder, missionFinder, userMissionRegister)
+
+    private fun currentMission() =
+        CurrentMissionResponse(
+            currentLevel = 0,
+            mission =
+                MissionInfo(
+                    type = "FIRST_RETRO",
+                    title = "첫 회고 작성하기",
+                    description = "첫 회고를 작성해보세요",
+                    progress = 0,
+                    target = 1,
+                    remainingDays = null,
+                    cta = "회고 시작하기",
+                ),
+            weeklyStatus = null,
+            popup = PopupStatus(exists = false, type = null),
+        )
 
     @Test
     fun `홈 조회`() {
@@ -71,6 +98,8 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
         whenever(retrospectiveFinder.findRecentWithProjectAndTagsByUserId(userId, 5)).thenReturn(listOf(result))
         whenever(retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())).thenReturn(1)
+        whenever(notificationHistoryFinder.hasUnread(userId)).thenReturn(true)
+        whenever(missionFinder.getCurrentMission(userId)).thenReturn(currentMission())
 
         mockMvc
             .perform(get("/api/v2/home"))
@@ -83,6 +112,8 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
                     responseFields(
                         fieldWithPath("data.nickname").type(JsonFieldType.STRING).description("닉네임"),
                         fieldWithPath("data.todayRetrospectiveCount").type(JsonFieldType.NUMBER).description("오늘 회고 횟수"),
+                        fieldWithPath("data.hasUnreadNotification").type(JsonFieldType.BOOLEAN).description("안 읽은 알림 존재 여부"),
+                        subsectionWithPath("data.mission").description("현재 미션/레벨 정보 (GET /api/v1/missions/current와 동일 구조)"),
                         fieldWithPath("data.recentRetrospectives").type(JsonFieldType.ARRAY).description("최근 회고 목록"),
                         fieldWithPath("data.recentRetrospectives[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.recentRetrospectives[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),

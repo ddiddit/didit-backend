@@ -1,7 +1,7 @@
 package com.didit.application.achievement.required
 
-import com.didit.domain.achievement.Badge
 import com.didit.domain.achievement.BadgeConditionType
+import com.didit.support.BadgeFixture
 import com.didit.support.RepositoryTestSupport
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -11,27 +11,18 @@ class BadgeRepositoryTest : RepositoryTestSupport() {
     @Autowired
     lateinit var badgeRepository: BadgeRepository
 
-    private fun badge(conditionType: BadgeConditionType) =
-        Badge.create(
-            name = conditionType.name,
-            description = "설명",
-            conditionType = conditionType,
-        )
-
     @Test
     fun `save - 배지를 저장한다`() {
-        val saved = badgeRepository.save(badge(BadgeConditionType.FIRST_RETRO))
+        val saved = badgeRepository.save(BadgeFixture.cumulativeRetro(1))
 
-        assertThat(saved.conditionType).isEqualTo(BadgeConditionType.FIRST_RETRO)
+        assertThat(saved.conditionType).isEqualTo(BadgeConditionType.CUMULATIVE_RETRO)
+        assertThat(saved.condition.threshold).isEqualTo(1)
     }
 
     @Test
-    fun `findAll - 전체 배지를 반환한다`() {
-        badgeRepository.save(badge(BadgeConditionType.FIRST_RETRO))
-        badgeRepository.save(badge(BadgeConditionType.STREAK_3_DAYS))
+    fun `save - WEEKLY_STREAK 배지는 params JSON을 보존한다`() {
+        val saved = badgeRepository.save(BadgeFixture.weeklyStreak(threshold = 3, weeklyMin = 3))
 
-        val result = badgeRepository.findAll()
-
-        assertThat(result).hasSize(2)
+        assertThat(saved.condition.weeklyMinCount()).isEqualTo(3)
     }
 }

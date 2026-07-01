@@ -1,14 +1,18 @@
 package com.didit.application.achievement
 
+import com.didit.application.achievement.provided.DailyAccessTracker
 import com.didit.application.achievement.required.BadgeRepository
+import com.didit.application.achievement.required.DailyAccessStreakRepository
+import com.didit.application.achievement.required.OrganizationAchievementReader
 import com.didit.application.achievement.required.RetrospectAchievementReader
-import com.didit.application.achievement.required.StreakRepository
 import com.didit.application.achievement.required.UserBadgeRepository
+import com.didit.application.achievement.required.WeeklyRetroStreakRepository
 import com.didit.application.audit.AuditLogger
 import com.didit.domain.achievement.Badge
 import com.didit.domain.achievement.BadgeConditionType
-import com.didit.domain.achievement.Streak
+import com.didit.domain.achievement.DailyAccessStreak
 import com.didit.domain.achievement.UserBadge
+import com.didit.support.BadgeFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -28,69 +32,75 @@ class BadgeAwarderServiceTest {
 
     @Mock lateinit var userBadgeRepository: UserBadgeRepository
 
-    @Mock lateinit var streakRepository: StreakRepository
+    @Mock lateinit var weeklyRetroStreakRepository: WeeklyRetroStreakRepository
+
+    @Mock lateinit var dailyAccessStreakRepository: DailyAccessStreakRepository
+
+    @Mock lateinit var dailyAccessTracker: DailyAccessTracker
 
     @Mock lateinit var retrospectAchievementReader: RetrospectAchievementReader
+
+    @Mock lateinit var organizationAchievementReader: OrganizationAchievementReader
 
     @Mock lateinit var auditLogger: AuditLogger
 
     private lateinit var badgeService: BadgeAwarderService
-    private lateinit var badgeConditionChecker: BadgeConditionChecker
 
     private val userId = UUID.randomUUID()
-    private val today = LocalDate.now()
+    private val today = LocalDate.of(2026, 6, 24) // 수요일
 
     @BeforeEach
     fun setUp() {
-        badgeConditionChecker = BadgeConditionChecker()
         badgeService =
             BadgeAwarderService(
                 badgeRepository = badgeRepository,
                 userBadgeRepository = userBadgeRepository,
-                streakRepository = streakRepository,
+                weeklyRetroStreakRepository = weeklyRetroStreakRepository,
+                dailyAccessStreakRepository = dailyAccessStreakRepository,
+                dailyAccessTracker = dailyAccessTracker,
                 retrospectAchievementReader = retrospectAchievementReader,
-                badgeConditionChecker = badgeConditionChecker,
+                organizationAchievementReader = organizationAchievementReader,
+                badgeConditionChecker = BadgeConditionChecker(),
                 auditLogger = auditLogger,
             )
     }
 
-    private fun badge(conditionType: BadgeConditionType) =
-        Badge.create(
-            name = conditionType.name,
-            description = "설명",
-            conditionType = conditionType,
-        )
-
     private fun defaultMocks(
         totalRetroCount: Int = 1,
-        deepQuestionCount: Int = 0,
-        weeklyGoalAchievedWeeks: Int = 0,
-        existingStreak: Streak? = null,
+        currentWeekRetroCount: Int = 1,
+        weeklyStreakWithMin3: Int = 0,
+        projectCount: Int = 0,
+        projectAssignedRetroCount: Int = 0,
+        maxRetroInOneProject: Int = 0,
     ) {
-        whenever(streakRepository.findByUserId(userId)).thenReturn(existingStreak)
-        whenever(streakRepository.save(any())).thenAnswer { it.arguments[0] }
+        whenever(weeklyRetroStreakRepository.findByUserId(userId)).thenReturn(null)
+        whenever(weeklyRetroStreakRepository.save(any())).thenAnswer { it.arguments[0] }
+        whenever(dailyAccessStreakRepository.findByUserId(userId)).thenReturn(null)
         whenever(retrospectAchievementReader.countCompletedRetros(userId)).thenReturn(totalRetroCount)
-        whenever(retrospectAchievementReader.countDeepQuestionAnswers(userId)).thenReturn(deepQuestionCount)
-        whenever(retrospectAchievementReader.countWeeklyGoalAchievedWeeks(userId)).thenReturn(weeklyGoalAchievedWeeks)
+        whenever(retrospectAchievementReader.countRetrosInWeek(eq(userId), any())).thenReturn(currentWeekRetroCount)
+        whenever(retrospectAchievementReader.countConsecutiveWeeksWithMinRetros(userId, 3)).thenReturn(weeklyStreakWithMin3)
+        whenever(organizationAchievementReader.countProjects(userId)).thenReturn(projectCount)
+        whenever(organizationAchievementReader.countProjectAssignedRetros(userId)).thenReturn(projectAssignedRetroCount)
+        whenever(organizationAchievementReader.maxRetroCountInOneProject(userId)).thenReturn(maxRetroInOneProject)
         whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
     }
 
     @Test
-    fun `awardBadges - 첫 회고 시 FIRST_RETRO 배지를 부여한다`() {
+    fun `awardBadges - 첫 회고 시 CUMULATIVE_RETRO 1 배지를 부여한다`() {
         defaultMocks(totalRetroCount = 1)
-        whenever(badgeRepository.findAll()).thenReturn(listOf(badge(BadgeConditionType.FIRST_RETRO)))
+        whenever(badgeRepository.findAll()).thenReturn(listOf(BadgeFixture.cumulativeRetro(1)))
         whenever(userBadgeRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = badgeService.awardBadges(userId, today)
 
         assertThat(result).hasSize(1)
-        assertThat(result[0].conditionType).isEqualTo(BadgeConditionType.FIRST_RETRO)
+        assertThat(result[0].conditionType).isEqualTo(BadgeConditionType.CUMULATIVE_RETRO)
         verify(userBadgeRepository).save(any())
     }
 
     @Test
     fun `awardBadges - 이미 획득한 배지는 다시 부여하지 않는다`() {
-        val existingBadge = badge(BadgeConditionType.FIRST_RETRO)
+        val existingBadge = BadgeFixture.cumulativeRetro(1)
         defaultMocks(totalRetroCount = 1)
         whenever(badgeRepository.findAll()).thenReturn(listOf(existingBadge))
         whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(
@@ -104,26 +114,33 @@ class BadgeAwarderServiceTest {
     }
 
     @Test
-    fun `awardBadges - 3일 연속 회고 시 STREAK_3_DAYS 배지를 부여한다`() {
-        val streak =
-            Streak.create(userId).apply {
-                update(today.minusDays(2))
-                update(today.minusDays(1))
-            }
-        defaultMocks(existingStreak = streak)
-        whenever(badgeRepository.findAll()).thenReturn(listOf(badge(BadgeConditionType.STREAK_3_DAYS)))
+    fun `awardBadges - 비활성 배지는 후보에서 제외한다`() {
+        val activeBadge = BadgeFixture.cumulativeRetro(1)
+        val inactiveBadge: Badge = BadgeFixture.cumulativeRetro(1).apply { active = false }
+        defaultMocks(totalRetroCount = 1)
+        whenever(badgeRepository.findAll()).thenReturn(listOf(activeBadge, inactiveBadge))
         whenever(userBadgeRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = badgeService.awardBadges(userId, today)
 
         assertThat(result).hasSize(1)
-        assertThat(result[0].conditionType).isEqualTo(BadgeConditionType.STREAK_3_DAYS)
+        assertThat(result.first().id).isEqualTo(activeBadge.id)
     }
 
     @Test
-    fun `awardBadges - 조건 미충족 시 배지를 부여하지 않는다`() {
+    fun `awardBadges - 주간 회고 스트릭을 갱신한다`() {
         defaultMocks(totalRetroCount = 1)
-        whenever(badgeRepository.findAll()).thenReturn(listOf(badge(BadgeConditionType.TOTAL_30)))
+        whenever(badgeRepository.findAll()).thenReturn(emptyList())
+
+        badgeService.awardBadges(userId, today)
+
+        verify(weeklyRetroStreakRepository).save(any())
+    }
+
+    @Test
+    fun `awardBadges - PROJECT_COUNT 조건 미충족 시 부여하지 않는다`() {
+        defaultMocks(projectCount = 2)
+        whenever(badgeRepository.findAll()).thenReturn(listOf(BadgeFixture.projectCount(3)))
 
         val result = badgeService.awardBadges(userId, today)
 
@@ -132,17 +149,71 @@ class BadgeAwarderServiceTest {
     }
 
     @Test
-    fun `awardBadges - 스트릭이 없으면 새로 생성한다`() {
-        whenever(streakRepository.findByUserId(userId)).thenReturn(null)
-        whenever(streakRepository.save(any())).thenAnswer { it.arguments[0] }
-        whenever(retrospectAchievementReader.countCompletedRetros(userId)).thenReturn(1)
-        whenever(retrospectAchievementReader.countDeepQuestionAnswers(userId)).thenReturn(0)
-        whenever(retrospectAchievementReader.countWeeklyGoalAchievedWeeks(userId)).thenReturn(0)
-        whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
-        whenever(badgeRepository.findAll()).thenReturn(emptyList())
+    fun `awardBadges - WEEKLY_STREAK weeklyMin 3 조건은 weeklyStreakWithMin3 값으로 판정된다`() {
+        defaultMocks(weeklyStreakWithMin3 = 3)
+        whenever(badgeRepository.findAll()).thenReturn(listOf(BadgeFixture.weeklyStreak(threshold = 3, weeklyMin = 3)))
+        whenever(userBadgeRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        badgeService.awardBadges(userId, today)
+        val result = badgeService.awardBadges(userId, today)
 
-        verify(streakRepository).save(any())
+        assertThat(result).hasSize(1)
     }
+
+    @Test
+    fun `awardAccessBadges - 7일 연속 접속 시 디딧 러버 배지를 부여한다`() {
+        val streak =
+            DailyAccessStreak.create(userId).apply {
+                repeat(7) { i -> recordAccess(today.minusDays((6 - i).toLong())) }
+            }
+        whenever(dailyAccessTracker.recordAccess(userId, today)).thenReturn(streak)
+        whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
+        whenever(badgeRepository.findAll()).thenReturn(listOf(BadgeFixture.dailyAccessStreak(7)))
+        whenever(userBadgeRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        val result = badgeService.awardAccessBadges(userId, today)
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].conditionType).isEqualTo(BadgeConditionType.DAILY_ACCESS_STREAK)
+        verify(userBadgeRepository).save(any())
+    }
+
+    @Test
+    fun `awardAccessBadges - 스트릭이 부족하면 부여하지 않는다`() {
+        val streak =
+            DailyAccessStreak.create(userId).apply {
+                recordAccess(today)
+            }
+        whenever(dailyAccessTracker.recordAccess(userId, today)).thenReturn(streak)
+        whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
+        whenever(badgeRepository.findAll()).thenReturn(listOf(BadgeFixture.dailyAccessStreak(7)))
+
+        val result = badgeService.awardAccessBadges(userId, today)
+
+        assertThat(result).isEmpty()
+        verify(userBadgeRepository, never()).save(any())
+    }
+
+    @Test
+    fun `awardAccessBadges - 접속 외 조건 배지는 평가하지 않는다`() {
+        val streak =
+            DailyAccessStreak.create(userId).apply {
+                repeat(7) { i -> recordAccess(today.minusDays((6 - i).toLong())) }
+            }
+        whenever(dailyAccessTracker.recordAccess(userId, today)).thenReturn(streak)
+        whenever(userBadgeRepository.findAllByUserId(userId)).thenReturn(emptyList())
+        whenever(badgeRepository.findAll()).thenReturn(
+            listOf(
+                BadgeFixture.dailyAccessStreak(7),
+                BadgeFixture.cumulativeRetro(1),
+            ),
+        )
+        whenever(userBadgeRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        val result = badgeService.awardAccessBadges(userId, today)
+
+        assertThat(result).hasSize(1)
+        assertThat(result[0].conditionType).isEqualTo(BadgeConditionType.DAILY_ACCESS_STREAK)
+    }
+
+    private fun eq(value: UUID) = org.mockito.kotlin.eq(value)
 }

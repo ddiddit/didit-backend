@@ -6,7 +6,10 @@ import com.didit.adapter.webapi.home.dto.HomeResponse
 import com.didit.adapter.webapi.home.dto.HomeV2Response
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemV2Response
+import com.didit.application.achievement.provided.MissionFinder
+import com.didit.application.achievement.provided.UserMissionRegister
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.notification.provided.NotificationHistoryFinder
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.domain.shared.ServiceTime
 import org.springframework.web.bind.annotation.GetMapping
@@ -17,6 +20,9 @@ import java.util.UUID
 class HomeApi(
     private val userFinder: UserFinder,
     private val retrospectiveFinder: RetrospectiveFinder,
+    private val notificationHistoryFinder: NotificationHistoryFinder,
+    private val missionFinder: MissionFinder,
+    private val userMissionRegister: UserMissionRegister,
 ) {
     @Deprecated("Use v2 endpoint", replaceWith = ReplaceWith("getHomeV2"))
     @RequireAuth
@@ -45,6 +51,8 @@ class HomeApi(
     fun getHomeV2(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<HomeV2Response> {
+        userMissionRegister.ensureInitialized(userId)
+
         val user = userFinder.findByIdOrThrow(userId)
         val recentRetros = retrospectiveFinder.findRecentWithProjectAndTagsByUserId(userId, limit = 5)
         val todayCount = retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())
@@ -53,6 +61,8 @@ class HomeApi(
             HomeV2Response(
                 nickname = user.nickname ?: "",
                 todayRetrospectiveCount = todayCount,
+                hasUnreadNotification = notificationHistoryFinder.hasUnread(userId),
+                mission = missionFinder.getCurrentMission(userId),
                 recentRetrospectives =
                     recentRetros.map {
                         RetrospectiveListItemV2Response.from(it)
