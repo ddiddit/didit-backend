@@ -16,4 +16,6 @@ interface UserBadgeRepository : Repository<UserBadge, UUID> {
     fun countByBadgeId(badgeId: UUID): Long
 
     fun findAllByBadgeId(badgeId: UUID): List<UserBadge>
+
+    fun deleteAllByUserId(userId: UUID)
 }

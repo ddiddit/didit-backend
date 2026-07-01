@@ -35,6 +35,8 @@ interface UserMissionRepository : Repository<UserMission, UUID> {
 
     fun save(userMission: UserMission): UserMission
 
+    fun deleteAllByUserId(userId: UUID)
+
     @Query("SELECT um FROM UserMission um WHERE um.userId = :userId ORDER BY um.createdAt DESC")
     fun findByUserId(userId: UUID): List<UserMission>
 

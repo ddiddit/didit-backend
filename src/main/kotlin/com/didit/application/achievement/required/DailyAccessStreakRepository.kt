@@ -8,4 +8,6 @@ interface DailyAccessStreakRepository : Repository<DailyAccessStreak, UUID> {
     fun findByUserId(userId: UUID): DailyAccessStreak?
 
     fun save(streak: DailyAccessStreak): DailyAccessStreak
+
+    fun deleteAllByUserId(userId: UUID)
 }

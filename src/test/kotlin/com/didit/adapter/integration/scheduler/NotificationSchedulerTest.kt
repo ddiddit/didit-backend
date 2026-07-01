@@ -1,8 +1,6 @@
 package com.didit.adapter.integration.scheduler
 
-import com.didit.application.notification.provided.NotificationHistoryRegister
 import com.didit.application.notification.provided.NotificationSettingFinder
-import com.didit.application.notification.provided.UserPushSender
 import com.didit.domain.notification.NotificationSetting
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
@@ -10,6 +8,7 @@ import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
@@ -20,9 +19,7 @@ import java.util.UUID
 class NotificationSchedulerTest {
     @Mock lateinit var notificationSettingFinder: NotificationSettingFinder
 
-    @Mock lateinit var notificationHistoryRegister: NotificationHistoryRegister
-
-    @Mock lateinit var userPushSender: UserPushSender
+    @Mock lateinit var reminderNotificationSender: ReminderNotificationSender
 
     @InjectMocks
     lateinit var notificationScheduler: NotificationScheduler
@@ -35,13 +32,7 @@ class NotificationSchedulerTest {
 
         notificationScheduler.sendReminderNotifications()
 
-        verify(notificationHistoryRegister).save(any())
-        verify(userPushSender).sendToUser(
-            eq(userId),
-            eq(NotificationScheduler.DAILY_REMINDER_TITLE),
-            eq(NotificationScheduler.DAILY_REMINDER_BODY),
-            eq(NotificationScheduler.DAILY_REMINDER_LINK),
-        )
+        verify(reminderNotificationSender).send(eq(userId))
     }
 
     @Test
@@ -50,7 +41,20 @@ class NotificationSchedulerTest {
 
         notificationScheduler.sendReminderNotifications()
 
-        verify(userPushSender, never()).sendToUser(any(), any(), any(), any())
-        verify(notificationHistoryRegister, never()).save(any())
+        verify(reminderNotificationSender, never()).send(any())
+    }
+
+    @Test
+    fun `한 유저 전송이 실패해도 나머지 유저에게는 전송된다`() {
+        val failing = UUID.randomUUID()
+        val succeeding = UUID.randomUUID()
+        whenever(notificationSettingFinder.findAllByReminderTime(any()))
+            .thenReturn(listOf(NotificationSetting.create(failing), NotificationSetting.create(succeeding)))
+        doThrow(RuntimeException("전송 실패")).whenever(reminderNotificationSender).send(failing)
+
+        notificationScheduler.sendReminderNotifications()
+
+        verify(reminderNotificationSender).send(failing)
+        verify(reminderNotificationSender).send(succeeding)
     }
 }

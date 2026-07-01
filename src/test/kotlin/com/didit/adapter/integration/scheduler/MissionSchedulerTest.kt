@@ -1,18 +1,16 @@
 package com.didit.adapter.integration.scheduler
 
-import com.didit.application.achievement.required.MissionRepository
 import com.didit.application.achievement.required.UserMissionRepository
-import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.achievement.MissionStatus
 import com.didit.domain.achievement.UserMission
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
+import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.any
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
-import java.time.LocalDateTime
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
@@ -21,42 +19,33 @@ class MissionSchedulerTest {
     lateinit var userMissionRepository: UserMissionRepository
 
     @Mock
-    lateinit var missionRepository: MissionRepository
+    lateinit var missionFailureProcessor: MissionFailureProcessor
 
-    @Mock
-    lateinit var retrospectiveRepository: RetrospectiveRepository
-
-    private lateinit var missionScheduler: MissionScheduler
+    @InjectMocks
+    lateinit var missionScheduler: MissionScheduler
 
     private val userId = UUID.randomUUID()
     private val missionId = UUID.randomUUID()
 
+    private fun mission() =
+        UserMission(
+            userId = userId,
+            missionId = missionId,
+            status = MissionStatus.IN_PROGRESS,
+        )
+
     @Test
-    fun `만료된 Lv2 미션을 WAIT_CONFIRM 상태로 변경한다`() {
-        val expiredMission =
-            UserMission(
-                userId = userId,
-                missionId = missionId,
-                status = MissionStatus.IN_PROGRESS,
-                progress = 1,
-                startedAt = LocalDateTime.now().minusDays(8),
-            )
-
-        missionScheduler = MissionScheduler(userMissionRepository, missionRepository, retrospectiveRepository)
-
+    fun `만료된 Lv2 미션을 프로세서에 위임한다`() {
+        val expiredMission = mission()
         whenever(userMissionRepository.findExpiredLv2Missions()).thenReturn(listOf(expiredMission))
-        whenever(userMissionRepository.save(any())).thenReturn(expiredMission)
 
         missionScheduler.checkExpiredLv2Missions()
 
-        verify(userMissionRepository).findExpiredLv2Missions()
-        verify(userMissionRepository).save(expiredMission)
+        verify(missionFailureProcessor).failExpiredLv2(expiredMission)
     }
 
     @Test
-    fun `만료된 Lv2 미션이 없으면 아무것도 변경하지 않는다`() {
-        missionScheduler = MissionScheduler(userMissionRepository, missionRepository, retrospectiveRepository)
-
+    fun `만료된 Lv2 미션이 없으면 프로세서를 호출하지 않는다`() {
         whenever(userMissionRepository.findExpiredLv2Missions()).thenReturn(emptyList())
 
         missionScheduler.checkExpiredLv2Missions()
@@ -65,57 +54,31 @@ class MissionSchedulerTest {
     }
 
     @Test
-    fun `지난주 회고가 없는 연속주차 미션을 WAIT_CONFIRM 상태로 변경한다`() {
-        val consecutiveWeekMission =
-            UserMission(
-                userId = userId,
-                missionId = missionId,
-                status = MissionStatus.IN_PROGRESS,
-                progress = 0,
-            )
+    fun `한 Lv2 미션 처리가 실패해도 나머지 미션은 처리된다`() {
+        val failing = mission()
+        val succeeding = mission()
+        whenever(userMissionRepository.findExpiredLv2Missions()).thenReturn(listOf(failing, succeeding))
+        doThrow(RuntimeException("처리 실패")).whenever(missionFailureProcessor).failExpiredLv2(failing)
 
-        missionScheduler = MissionScheduler(userMissionRepository, missionRepository, retrospectiveRepository)
+        missionScheduler.checkExpiredLv2Missions()
 
-        whenever(userMissionRepository.findConsecutiveWeekMissionsInProgress()).thenReturn(
-            listOf(consecutiveWeekMission),
-        )
-        whenever(retrospectiveRepository.countCompletedByUserIdAndPeriod(any(), any(), any())).thenReturn(0)
-        whenever(userMissionRepository.save(any())).thenReturn(consecutiveWeekMission)
-
-        missionScheduler.checkConsecutiveWeekFailure()
-
-        verify(userMissionRepository).findConsecutiveWeekMissionsInProgress()
-        verify(retrospectiveRepository).countCompletedByUserIdAndPeriod(any(), any(), any())
-        verify(userMissionRepository).save(consecutiveWeekMission)
+        verify(missionFailureProcessor).failExpiredLv2(failing)
+        verify(missionFailureProcessor).failExpiredLv2(succeeding)
     }
 
     @Test
-    fun `지난주 회고가 있는 연속주차 미션은 변경하지 않는다`() {
-        val consecutiveWeekMission =
-            UserMission(
-                userId = userId,
-                missionId = missionId,
-                status = MissionStatus.IN_PROGRESS,
-                progress = 0,
-            )
-
-        missionScheduler = MissionScheduler(userMissionRepository, missionRepository, retrospectiveRepository)
-
-        whenever(userMissionRepository.findConsecutiveWeekMissionsInProgress()).thenReturn(
-            listOf(consecutiveWeekMission),
-        )
-        whenever(retrospectiveRepository.countCompletedByUserIdAndPeriod(any(), any(), any())).thenReturn(1)
+    fun `연속주차 미션을 프로세서에 위임한다`() {
+        val consecutiveWeekMission = mission()
+        whenever(userMissionRepository.findConsecutiveWeekMissionsInProgress())
+            .thenReturn(listOf(consecutiveWeekMission))
 
         missionScheduler.checkConsecutiveWeekFailure()
 
-        verify(userMissionRepository).findConsecutiveWeekMissionsInProgress()
-        verify(retrospectiveRepository).countCompletedByUserIdAndPeriod(any(), any(), any())
+        verify(missionFailureProcessor).failIfNoRetroLastWeek(consecutiveWeekMission)
     }
 
     @Test
-    fun `연속주차 진행 미션이 없으면 아무것도 변경하지 않는다`() {
-        missionScheduler = MissionScheduler(userMissionRepository, missionRepository, retrospectiveRepository)
-
+    fun `연속주차 진행 미션이 없으면 프로세서를 호출하지 않는다`() {
         whenever(userMissionRepository.findConsecutiveWeekMissionsInProgress()).thenReturn(emptyList())
 
         missionScheduler.checkConsecutiveWeekFailure()
