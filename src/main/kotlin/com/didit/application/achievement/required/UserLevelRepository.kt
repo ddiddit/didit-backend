@@ -12,6 +12,8 @@ interface UserLevelRepository : Repository<UserLevel, UUID> {
 
     fun existsByUserId(userId: UUID): Boolean
 
+    fun deleteAllByUserId(userId: UUID)
+
     @Query(
         "SELECT ul.currentLevel AS level, COUNT(ul) AS count FROM UserLevel ul " +
             "GROUP BY ul.currentLevel ORDER BY ul.currentLevel",

@@ -1,19 +1,10 @@
 package com.didit.adapter.integration.scheduler
 
-import com.didit.application.auth.required.RefreshTokenRepository
-import com.didit.application.auth.required.UserRepository
-import com.didit.application.notification.provided.NotificationDeletionPort
-import com.didit.application.organization.provided.OrganizationDeletionPort
-import com.didit.application.retrospect.provided.RetrospectDeletionPort
-import com.didit.application.retrospect.required.RetrospectiveRepository
-import com.didit.domain.retrospect.Retrospective
-import com.didit.support.UserFixture
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.InjectMocks
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
-import org.mockito.kotlin.any
-import org.mockito.kotlin.inOrder
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import java.util.UUID
@@ -22,93 +13,51 @@ import kotlin.test.Test
 @ExtendWith(MockitoExtension::class)
 class CleanupSchedulerTest {
     @Mock
-    lateinit var retrospectiveRepository: RetrospectiveRepository
-
-    @Mock
-    lateinit var refreshTokenRepository: RefreshTokenRepository
-
-    @Mock
-    lateinit var userRepository: UserRepository
-
-    @Mock
-    lateinit var projectDeletionPort: OrganizationDeletionPort
-
-    @Mock
-    lateinit var notificationDeletionPort: NotificationDeletionPort
-
-    @Mock
-    lateinit var retrospectDeletionPort: RetrospectDeletionPort
+    lateinit var cleanupExecutor: CleanupExecutor
 
     @InjectMocks
     lateinit var cleanupScheduler: CleanupScheduler
 
     @Test
-    fun `PENDING 회고가 있으면 삭제된다`() {
-        val retro1 = Retrospective.create(UUID.randomUUID())
-        val retro2 = Retrospective.create(UUID.randomUUID())
-        whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(listOf(retro1, retro2))
-        whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(0)
-        whenever(userRepository.findAllWithdrawnAndNotAnonymizedBefore(any())).thenReturn(emptyList())
-        whenever(userRepository.findAllWithdrawnAndAnonymizedBefore(any())).thenReturn(emptyList())
+    fun `cleanup - 각 정리 작업을 실행한다`() {
+        whenever(cleanupExecutor.findWithdrawnToAnonymize()).thenReturn(emptyList())
+        whenever(cleanupExecutor.findWithdrawnToDelete()).thenReturn(emptyList())
 
         cleanupScheduler.cleanup()
 
-        verify(retrospectiveRepository).delete(retro1)
-        verify(retrospectiveRepository).delete(retro2)
+        verify(cleanupExecutor).cleanPendingRetrospects()
+        verify(cleanupExecutor).cleanExpiredRefreshTokens()
+        verify(cleanupExecutor).findWithdrawnToAnonymize()
+        verify(cleanupExecutor).findWithdrawnToDelete()
     }
 
     @Test
-    fun `만료된 리프레시 토큰이 삭제된다`() {
-        whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(emptyList())
-        whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(3)
-        whenever(userRepository.findAllWithdrawnAndNotAnonymizedBefore(any())).thenReturn(emptyList())
-        whenever(userRepository.findAllWithdrawnAndAnonymizedBefore(any())).thenReturn(emptyList())
+    fun `deleteWithdrawnUsers - 한 유저 삭제가 실패해도 나머지 유저는 삭제된다`() {
+        val failing = UUID.randomUUID()
+        val succeeding = UUID.randomUUID()
+
+        whenever(cleanupExecutor.findWithdrawnToAnonymize()).thenReturn(emptyList())
+        whenever(cleanupExecutor.findWithdrawnToDelete()).thenReturn(listOf(failing, succeeding))
+        doThrow(RuntimeException("삭제 실패")).whenever(cleanupExecutor).deleteUser(failing)
 
         cleanupScheduler.cleanup()
 
-        verify(refreshTokenRepository).deleteAllExpiredBefore(any())
+        verify(cleanupExecutor).deleteUser(failing)
+        verify(cleanupExecutor).deleteUser(succeeding)
     }
 
     @Test
-    fun `30일 지난 탈퇴 유저는 익명화된다`() {
-        val user = UserFixture.create().apply { withdraw() }
+    fun `anonymizeWithdrawnUsers - 한 유저 익명화가 실패해도 나머지 유저는 익명화된다`() {
+        val failing = UUID.randomUUID()
+        val succeeding = UUID.randomUUID()
 
-        whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(emptyList())
-        whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(0)
-        whenever(userRepository.findAllWithdrawnAndNotAnonymizedBefore(any())).thenReturn(listOf(user))
-        whenever(userRepository.findAllWithdrawnAndAnonymizedBefore(any())).thenReturn(emptyList())
-
-        cleanupScheduler.cleanup()
-
-        verify(userRepository).save(user)
-    }
-
-    @Test
-    fun `90일 지난 탈퇴 유저의 관련 데이터가 순서대로 삭제된다`() {
-        val user =
-            UserFixture.create().apply {
-                withdraw()
-                anonymize()
-            }
-
-        whenever(retrospectiveRepository.findAllPendingBefore(any())).thenReturn(emptyList())
-        whenever(refreshTokenRepository.deleteAllExpiredBefore(any())).thenReturn(0)
-        whenever(userRepository.findAllWithdrawnAndNotAnonymizedBefore(any())).thenReturn(emptyList())
-        whenever(userRepository.findAllWithdrawnAndAnonymizedBefore(any())).thenReturn(listOf(user))
+        whenever(cleanupExecutor.findWithdrawnToAnonymize()).thenReturn(listOf(failing, succeeding))
+        whenever(cleanupExecutor.findWithdrawnToDelete()).thenReturn(emptyList())
+        doThrow(RuntimeException("익명화 실패")).whenever(cleanupExecutor).anonymize(failing)
 
         cleanupScheduler.cleanup()
 
-        val inOrder =
-            inOrder(
-                projectDeletionPort,
-                notificationDeletionPort,
-                retrospectDeletionPort,
-                userRepository,
-            )
-
-        inOrder.verify(projectDeletionPort).deleteByUserId(user.id)
-        inOrder.verify(notificationDeletionPort).deleteByUserId(user.id)
-        inOrder.verify(retrospectDeletionPort).deleteByUserId(user.id)
-        inOrder.verify(userRepository).delete(user)
+        verify(cleanupExecutor).anonymize(failing)
+        verify(cleanupExecutor).anonymize(succeeding)
     }
 }

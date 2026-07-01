@@ -8,4 +8,6 @@ interface WeeklyRetroStreakRepository : Repository<WeeklyRetroStreak, UUID> {
     fun findByUserId(userId: UUID): WeeklyRetroStreak?
 
     fun save(streak: WeeklyRetroStreak): WeeklyRetroStreak
+
+    fun deleteAllByUserId(userId: UUID)
 }
