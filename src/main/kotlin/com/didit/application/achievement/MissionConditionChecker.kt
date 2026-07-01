@@ -51,10 +51,9 @@ class MissionConditionChecker(
         }
 
         val retroCount =
-            userMissionRepository.countRetrosBetweenDates(
+            userMissionRepository.countRetrosAfter(
                 userId = userId,
-                startDate = userMission.startedAt.toLocalDate(),
-                endDate = LocalDate.now(),
+                startedAt = userMission.startedAt,
             )
 
         userMission.progress = retroCount
@@ -115,10 +114,9 @@ class MissionConditionChecker(
         mission: Mission,
     ): Boolean {
         val retroCount =
-            userMissionRepository.countRetrosBetweenDates(
+            userMissionRepository.countRetrosAfter(
                 userId = userId,
-                startDate = userMission.startedAt.toLocalDate(),
-                endDate = LocalDate.now(),
+                startedAt = userMission.startedAt,
             )
 
         userMission.progress = retroCount
