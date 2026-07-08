@@ -184,8 +184,9 @@ class AuthService(
         user: User,
         isNewUser: Boolean,
     ): TokenResponse {
-        refreshTokenRepository.deleteByUserId(user.id)
-
+        // 로그인마다 새 리프레시 토큰을 추가 발급 — 기기별 다중 세션 허용
+        // (기존 deleteByUserId는 다른 기기에서 로그인할 때마다 앱 세션을 무효화시켜
+        //  자동 로그인이 풀리는 원인이었음. 만료 토큰은 CleanupScheduler가 매일 정리)
         val newRefreshToken = tokenProvider.generateRefreshToken()
 
         refreshTokenRepository.save(
