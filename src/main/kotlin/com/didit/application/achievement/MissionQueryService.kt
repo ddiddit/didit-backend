@@ -5,7 +5,6 @@ import com.didit.application.achievement.dto.MissionInfo
 import com.didit.application.achievement.dto.PopupStatus
 import com.didit.application.achievement.dto.WeeklyStatus
 import com.didit.application.achievement.exception.CurrentMissionNotFoundException
-import com.didit.application.achievement.exception.MissionDefinitionNotFoundException
 import com.didit.application.achievement.exception.UserLevelNotFoundException
 import com.didit.application.achievement.provided.MissionFinder
 import com.didit.application.achievement.required.MissionRepository
@@ -34,11 +33,21 @@ class MissionQueryService(
 ) : MissionFinder {
     override fun getCurrentMission(userId: UUID): CurrentMissionResponse {
         val userLevel = userLevelRepository.findByUserId(userId) ?: throw UserLevelNotFoundException(userId)
+        val missionLevel = userLevel.currentLevel + 1
+        val mission = missionRepository.findByLevel(missionLevel)
+
+        if (mission == null) {
+            val lastMission = userMissionRepository.findByUserId(userId).firstOrNull()
+            return CurrentMissionResponse(
+                currentLevel = userLevel.currentLevel,
+                mission = null,
+                weeklyStatus = buildWeeklyStatusForUser(userId),
+                popup = lastMission?.let { getPopupStatus(it) } ?: PopupStatus(exists = false, type = null),
+            )
+        }
+
         val userMission =
             userMissionRepository.findCurrentMissionByUserId(userId) ?: throw CurrentMissionNotFoundException(userId)
-        val missionLevel = userLevel.currentLevel + 1
-        val mission =
-            missionRepository.findByLevel(missionLevel) ?: throw MissionDefinitionNotFoundException(missionLevel)
 
         val missionInfo =
             MissionInfo(
@@ -86,7 +95,10 @@ class MissionQueryService(
         if (mission.missionType != MissionType.CONSECUTIVE_WEEK) {
             return null
         }
+        return buildWeeklyStatusForUser(userId)
+    }
 
+    private fun buildWeeklyStatusForUser(userId: UUID): WeeklyStatus {
         val weekStartDate = getWeekStartDate(ServiceTime.today())
         val from = ServiceTime.startOfDayUtc(weekStartDate)
         val to = ServiceTime.startOfDayUtc(weekStartDate.plusWeeks(1))

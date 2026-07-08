@@ -35,6 +35,7 @@ class UserMissionService(
     override fun confirmLevelUp(userId: UUID) {
         val userMission =
             userMissionRepository.findCurrentMissionByUserId(userId)
+                ?: userMissionRepository.findByUserId(userId).firstOrNull()
                 ?: throw CurrentMissionNotFoundException(userId)
 
         userMission.levelUpPopupShown = true
