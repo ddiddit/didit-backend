@@ -1,7 +1,6 @@
 package com.didit.application.achievement
 
 import com.didit.application.achievement.exception.CurrentMissionNotFoundException
-import com.didit.application.achievement.exception.MissionDefinitionNotFoundException
 import com.didit.application.achievement.exception.UserLevelNotFoundException
 import com.didit.application.achievement.required.MissionRepository
 import com.didit.application.achievement.required.UserLevelRepository
@@ -74,10 +73,10 @@ class MissionQueryServiceTest {
         val result = missionQueryService.getCurrentMission(userId)
 
         assertThat(result.currentLevel).isEqualTo(0)
-        assertThat(result.mission.type).isEqualTo("FIRST_RETRO")
-        assertThat(result.mission.progress).isEqualTo(0)
-        assertThat(result.mission.target).isEqualTo(1)
-        assertThat(result.mission.remainingDays).isNull()
+        assertThat(result.mission!!.type).isEqualTo("FIRST_RETRO")
+        assertThat(result.mission!!.progress).isEqualTo(0)
+        assertThat(result.mission!!.target).isEqualTo(1)
+        assertThat(result.mission!!.remainingDays).isNull()
         assertThat(result.weeklyStatus).isNull()
         assertThat(result.popup.exists).isFalse()
     }
@@ -103,8 +102,8 @@ class MissionQueryServiceTest {
         val result = missionQueryService.getCurrentMission(userId)
 
         assertThat(result.currentLevel).isEqualTo(1)
-        assertThat(result.mission.type).isEqualTo("TIME_LIMITED")
-        assertThat(result.mission.remainingDays).isEqualTo(5)
+        assertThat(result.mission!!.type).isEqualTo("TIME_LIMITED")
+        assertThat(result.mission!!.remainingDays).isEqualTo(5)
         assertThat(result.weeklyStatus).isNull()
     }
 
@@ -130,7 +129,7 @@ class MissionQueryServiceTest {
         val result = missionQueryService.getCurrentMission(userId)
 
         assertThat(result.currentLevel).isEqualTo(2)
-        assertThat(result.mission.type).isEqualTo("CONSECUTIVE_WEEK")
+        assertThat(result.mission!!.type).isEqualTo("CONSECUTIVE_WEEK")
         assertThat(result.weeklyStatus).isNotNull()
         assertThat(result.weeklyStatus!!.days).hasSize(7)
     }
@@ -147,6 +146,7 @@ class MissionQueryServiceTest {
     fun `현재 미션이 없으면 CurrentMissionNotFoundException을 발생시킨다`() {
         val userLevel = UserLevel(userId = userId, currentLevel = 1)
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
+        whenever(missionRepository.findByLevel(2)).thenReturn(Mission.timeLimited())
         whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(null)
 
         assertThatThrownBy { missionQueryService.getCurrentMission(userId) }
@@ -154,16 +154,23 @@ class MissionQueryServiceTest {
     }
 
     @Test
-    fun `미션 정의가 없으면 MissionDefinitionNotFoundException을 발생시킨다`() {
-        val userLevel = UserLevel(userId = userId, currentLevel = 0)
-        val userMission = UserMission(userId = userId, missionId = UUID.randomUUID())
+    fun `최고 레벨(미션 정의 없음)이면 mission이 null이고 주간 현황을 반환한다`() {
+        val userLevel = UserLevel(userId = userId, currentLevel = 10)
 
         whenever(userLevelRepository.findByUserId(userId)).thenReturn(userLevel)
-        whenever(userMissionRepository.findCurrentMissionByUserId(userId)).thenReturn(userMission)
-        whenever(missionRepository.findByLevel(1)).thenReturn(null)
+        whenever(missionRepository.findByLevel(11)).thenReturn(null)
+        whenever(userMissionRepository.findByUserId(userId)).thenReturn(emptyList())
+        whenever(retrospectiveRepository.findCompletedByUserIdAndPeriod(eq(userId), any(), any())).thenReturn(
+            emptyList(),
+        )
 
-        assertThatThrownBy { missionQueryService.getCurrentMission(userId) }
-            .isInstanceOf(MissionDefinitionNotFoundException::class.java)
+        val result = missionQueryService.getCurrentMission(userId)
+
+        assertThat(result.currentLevel).isEqualTo(10)
+        assertThat(result.mission).isNull()
+        assertThat(result.weeklyStatus).isNotNull()
+        assertThat(result.weeklyStatus!!.days).hasSize(7)
+        assertThat(result.popup.exists).isFalse()
     }
 
     @Test
