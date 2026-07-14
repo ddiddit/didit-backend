@@ -117,7 +117,9 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.recentRetrospectives").type(JsonFieldType.ARRAY).description("최근 회고 목록"),
                         fieldWithPath("data.recentRetrospectives[].id").type(JsonFieldType.STRING).description("회고 ID"),
                         fieldWithPath("data.recentRetrospectives[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
-                        fieldWithPath("data.recentRetrospectives[].summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
+                        fieldWithPath(
+                            "data.recentRetrospectives[].nextAction",
+                        ).type(JsonFieldType.STRING).description("다음 행동 제안 요약구").optional(),
                         fieldWithPath("data.recentRetrospectives[].completedAt")
                             .type(JsonFieldType.STRING)
                             .description("완료 시간")
