@@ -5,8 +5,6 @@ import com.didit.application.retrospect.dto.RetrospectiveDetailResult
 import java.time.LocalDateTime
 import java.util.UUID
 
-// 홈 "최근 제안 받은 행동" 카드 전용 — 회고 요약이 아니라 다음 행동 제안 요약구(nextActionTitle)를 노출한다.
-// 회고 목록/프로젝트별/태그별 목록은 회고 요약을 그대로 보여줘야 하므로 공유 DTO와 분리한다.
 data class RecentRetrospectiveV2Response(
     val id: UUID,
     val title: String?,
