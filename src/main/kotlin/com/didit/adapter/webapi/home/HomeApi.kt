@@ -4,8 +4,8 @@ import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.home.dto.HomeResponse
 import com.didit.adapter.webapi.home.dto.HomeV2Response
+import com.didit.adapter.webapi.home.dto.RecentRetrospectiveV2Response
 import com.didit.adapter.webapi.response.SuccessResponse
-import com.didit.adapter.webapi.retrospect.dto.RetrospectiveListItemV2Response
 import com.didit.application.achievement.provided.MissionFinder
 import com.didit.application.achievement.provided.UserMissionRegister
 import com.didit.application.auth.provided.UserFinder
@@ -65,7 +65,7 @@ class HomeApi(
                 mission = missionFinder.getCurrentMission(userId),
                 recentRetrospectives =
                     recentRetros.map {
-                        RetrospectiveListItemV2Response.from(it)
+                        RecentRetrospectiveV2Response.from(it)
                     },
             ),
         )
