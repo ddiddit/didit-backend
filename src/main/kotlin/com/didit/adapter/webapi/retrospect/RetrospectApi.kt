@@ -205,7 +205,7 @@ class RetrospectApi(
     fun findAll(
         @CurrentUserId userId: UUID,
     ): SuccessResponse<List<RetrospectiveListItemResponse>> {
-        val retrospectives = retrospectiveFinder.findAllByUserId(userId)
+        val retrospectives = retrospectiveFinder.findListItemsByUserId(userId)
 
         return SuccessResponse.of(retrospectives.map { RetrospectiveListItemResponse.from(it) })
     }

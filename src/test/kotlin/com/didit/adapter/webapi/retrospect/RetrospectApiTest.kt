@@ -443,8 +443,17 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `회고 목록 조회`() {
-        val retros = listOf(completedRetrospective())
-        whenever(retrospectiveFinder.findAllByUserId(userId)).thenReturn(retros)
+        val retro = completedRetrospective()
+        val retros =
+            listOf(
+                com.didit.application.retrospect.dto.RetrospectiveListItemResult(
+                    id = retro.id,
+                    title = retro.title,
+                    summary = retro.summary?.summary,
+                    completedAt = retro.completedAt,
+                ),
+            )
+        whenever(retrospectiveFinder.findListItemsByUserId(userId)).thenReturn(retros)
 
         mockMvc
             .perform(get("/api/v1/retrospectives"))

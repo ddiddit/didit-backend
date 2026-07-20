@@ -17,6 +17,20 @@ class SummaryNotGeneratedException(
         "retrospectiveId: $retrospectiveId",
     )
 
+class SummaryGenerationInProgressException(
+    retrospectiveId: UUID,
+) : BusinessException(
+        RetrospectErrorCode.SUMMARY_GENERATION_IN_PROGRESS,
+        "retrospectiveId: $retrospectiveId",
+    )
+
+class SummaryAlreadyGeneratedException(
+    retrospectiveId: UUID,
+) : BusinessException(
+        RetrospectErrorCode.SUMMARY_ALREADY_GENERATED,
+        "retrospectiveId: $retrospectiveId",
+    )
+
 class RetrospectiveAlreadyCompletedException(
     retrospectiveId: UUID,
 ) : BusinessException(

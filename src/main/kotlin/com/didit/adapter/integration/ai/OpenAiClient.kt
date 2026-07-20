@@ -20,6 +20,7 @@ class OpenAiClient(
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
     private val feedbackPrompts: FeedbackPrompts,
+    private val metrics: OpenAiMetrics,
     @param:Value("\${openai.api-key}") private val apiKey: String,
     @param:Value("\${openai.chat.model}") private val model: String,
 ) : AIClient {
@@ -37,7 +38,7 @@ class OpenAiClient(
 
         logger.debug("심화 질문 프롬프트 - job: $job, prompt:\n$prompt")
 
-        val result = callWithResult(prompt, "deep_question", deepQuestionSchema())
+        val result = callWithResult(prompt, "deep_question", "deep_question", deepQuestionSchema())
 
         return parseDeepQuestion(result)
     }
@@ -51,43 +52,49 @@ class OpenAiClient(
 
         logger.debug("요약 프롬프트 - job: $job, prompt:\n$prompt")
 
-        val result = callWithResult(prompt, "retrospective_summary", summarySchema())
+        val result = callWithResult(prompt, "summary", "retrospective_summary", summarySchema())
 
         return parseSummary(result)
     }
 
     private fun callWithResult(
         prompt: String,
+        operation: String,
         schemaName: String,
         schema: Map<String, Any>,
     ): OpenAiResponse {
+        metrics.recordPromptCharacters(operation, prompt.length)
         val rawResponse =
-            restClient
-                .post()
-                .uri(URL)
-                .header("Authorization", "Bearer $apiKey")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    OpenAiRequest(
-                        model = model,
-                        instructions = SYSTEM_PROMPT,
-                        input = prompt,
-                        maxOutputTokens = 3000,
-                        text =
-                            OpenAiTextFormat(
-                                format =
-                                    OpenAiJsonSchemaFormat(
-                                        name = schemaName,
-                                        schema = schema,
-                                    ),
-                            ),
-                    ),
-                ).retrieve()
-                .body<String>() ?: throw RuntimeException("OpenAI 응답을 받지 못했습니다.")
+            metrics.record(operation) {
+                restClient
+                    .post()
+                    .uri(URL)
+                    .header("Authorization", "Bearer $apiKey")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(
+                        OpenAiRequest(
+                            model = model,
+                            instructions = SYSTEM_PROMPT,
+                            input = prompt,
+                            maxOutputTokens = 3000,
+                            text =
+                                OpenAiTextFormat(
+                                    format =
+                                        OpenAiJsonSchemaFormat(
+                                            name = schemaName,
+                                            schema = schema,
+                                        ),
+                                ),
+                        ),
+                    ).retrieve()
+                    .body<String>() ?: throw RuntimeException("OpenAI 응답을 받지 못했습니다.")
+            }
 
         logger.debug("OpenAI 전체 응답: $rawResponse")
 
-        return objectMapper.readValue<OpenAiResponse>(rawResponse)
+        return objectMapper.readValue<OpenAiResponse>(rawResponse).also {
+            metrics.recordTokens(operation, it.usage?.inputTokens ?: 0, it.usage?.outputTokens ?: 0)
+        }
     }
 
     private fun parseDeepQuestion(response: OpenAiResponse): GeneratedDeepQuestion =

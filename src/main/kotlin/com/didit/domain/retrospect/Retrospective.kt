@@ -41,6 +41,9 @@ class Retrospective(
     val chatMessages: MutableList<ChatMessage> = mutableListOf(),
     @Column
     var completedAt: LocalDateTime? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var summaryGenerationStatus: SummaryGenerationStatus = SummaryGenerationStatus.NOT_STARTED,
 ) : BaseEntity() {
     fun isCompleted(): Boolean = status == RetroStatus.COMPLETED
 
@@ -84,6 +87,18 @@ class Retrospective(
 
     fun saveSummary(summary: RetrospectiveSummary) {
         this.summary = summary
+        this.summaryGenerationStatus = SummaryGenerationStatus.GENERATED
+    }
+
+    fun startSummaryGeneration() {
+        check(summaryGenerationStatus == SummaryGenerationStatus.NOT_STARTED) { "이미 AI 요약을 생성 중이거나 생성했습니다." }
+        summaryGenerationStatus = SummaryGenerationStatus.GENERATING
+    }
+
+    fun resetSummaryGeneration() {
+        if (summaryGenerationStatus == SummaryGenerationStatus.GENERATING) {
+            summaryGenerationStatus = SummaryGenerationStatus.NOT_STARTED
+        }
     }
 
     fun addTokens(

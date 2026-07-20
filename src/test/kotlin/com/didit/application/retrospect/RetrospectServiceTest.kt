@@ -15,8 +15,6 @@ import com.didit.application.retrospect.exception.SpeechEmptyResultException
 import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
-import com.didit.application.retrospect.required.AIClient
-import com.didit.application.retrospect.required.GeneratedDeepQuestion
 import com.didit.application.retrospect.required.RetrospectivePolicy
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.SpeechClient
@@ -27,7 +25,6 @@ import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveCompletedEvent
 import com.didit.domain.retrospect.RetrospectiveSummary
-import com.didit.domain.shared.Job
 import com.didit.support.RetrospectiveFixture
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -37,7 +34,6 @@ import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.doReturn
 import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
@@ -58,7 +54,7 @@ class RetrospectServiceTest {
     lateinit var speechClient: SpeechClient
 
     @Mock
-    lateinit var aiClient: AIClient
+    lateinit var completionCoordinator: RetrospectiveCompletionCoordinator
 
     @Mock
     lateinit var userFinder: UserFinder
@@ -87,7 +83,7 @@ class RetrospectServiceTest {
                 retrospectiveRepository = retrospectiveRepository,
                 retrospectiveFinder = retrospectiveFinder,
                 speechClient = speechClient,
-                aiClient = aiClient,
+                completionCoordinator = completionCoordinator,
                 userFinder = userFinder,
                 eventPublisher = eventPublisher,
                 auditLogger = auditLogger,
@@ -223,16 +219,13 @@ class RetrospectServiceTest {
             }
 
         whenever(retrospectiveFinder.findById(any(), any())).thenReturn(retro)
-        whenever(userFinder.getJobByUserId(any())).thenReturn(Job.DEVELOPER)
-        whenever(aiClient.generateDeepQuestion(any(), any())).thenReturn(
-            GeneratedDeepQuestion(content = "심화 질문입니다.", inputTokens = 50, outputTokens = 20),
-        )
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
 
         val result = retrospectService.submitAnswer(retrospectiveId, userId, "Q3 답변")
 
         assertThat(result.nextQuestionType).isEqualTo(QuestionType.Q4_DEEP)
         assertThat(result.isReadyToComplete).isFalse()
+        verify(eventPublisher).publishEvent(DeepQuestionGenerationEvent(retro.id, userId))
     }
 
     @Test
@@ -390,26 +383,6 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `generateDeepQuestionAsync - 이미 심화 질문이 있으면 생성하지 않는다`() {
-        val retro =
-            inProgressRetrospective().apply {
-                addMessage(ChatMessage.userAnswer(this, "Q1 답변", QuestionType.Q1, InputType.TEXT))
-                addMessage(ChatMessage.question(this, "Q2", QuestionType.Q2))
-                addMessage(ChatMessage.userAnswer(this, "Q2 답변", QuestionType.Q2, InputType.TEXT))
-                addMessage(ChatMessage.question(this, "Q3", QuestionType.Q3))
-                addMessage(ChatMessage.userAnswer(this, "Q3 답변", QuestionType.Q3, InputType.TEXT))
-                addMessage(ChatMessage.question(this, "심화 질문입니다.", QuestionType.Q4_DEEP))
-            }
-
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
-
-        retrospectService.generateDeepQuestionAsync(retrospectiveId, userId)
-
-        verify(aiClient, never()).generateDeepQuestion(any(), any())
-        verify(retrospectiveRepository, never()).save(any())
-    }
-
-    @Test
     fun `skipDeepQuestion - 심화 질문을 스킵한다`() {
         val retro = inProgressRetrospective()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
@@ -432,26 +405,18 @@ class RetrospectServiceTest {
 
     @Test
     fun `complete - AI 요약을 생성하고 토큰을 포함해 저장한다`() {
-        val retro = inProgressRetrospective()
         val summary = aiSummaryResponse()
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
-        whenever(userFinder.getJobByUserId(userId)).thenReturn(Job.DEVELOPER)
-        whenever(aiClient.generateSummaryWithTitle(any(), any(), anyOrNull())).thenReturn(summary)
-        whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
+        whenever(completionCoordinator.complete(retrospectiveId, userId)).thenReturn(summary)
 
         val result = retrospectService.complete(retrospectiveId, userId)
 
         assertThat(result.title).isEqualTo(summary.title)
-        assertThat(retro.summary).isNotNull()
-        assertThat(retro.inputTokens).isEqualTo(100)
-        assertThat(retro.outputTokens).isEqualTo(50)
-        verify(retrospectiveRepository).save(retro)
+        verify(completionCoordinator).complete(retrospectiveId, userId)
     }
 
     @Test
     fun `complete - 이미 완료된 회고면 예외가 발생한다`() {
-        val retro = RetrospectiveFixture.createCompleted(userId)
-        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(completionCoordinator.complete(retrospectiveId, userId)).thenThrow(RetrospectiveAlreadyCompletedException(retrospectiveId))
 
         assertThrows<RetrospectiveAlreadyCompletedException> {
             retrospectService.complete(retrospectiveId, userId)
