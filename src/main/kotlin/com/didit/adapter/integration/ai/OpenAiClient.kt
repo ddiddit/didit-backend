@@ -6,20 +6,28 @@ import com.didit.application.retrospect.required.GeneratedDeepQuestion
 import com.didit.domain.shared.Job
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
+import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
+import io.micrometer.core.instrument.MeterRegistry
+import io.micrometer.core.instrument.Timer
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
+import org.springframework.transaction.support.TransactionSynchronizationManager
+import org.springframework.web.client.ResourceAccessException
 import org.springframework.web.client.RestClient
+import org.springframework.web.client.RestClientResponseException
 import org.springframework.web.client.body
+import java.net.SocketTimeoutException
 
 @Component
 class OpenAiClient(
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
     private val feedbackPrompts: FeedbackPrompts,
+    private val meterRegistry: MeterRegistry,
     @param:Value("\${openai.api-key}") private val apiKey: String,
     @param:Value("\${openai.chat.model}") private val model: String,
 ) : AIClient {
@@ -61,34 +69,86 @@ class OpenAiClient(
         schemaName: String,
         schema: Map<String, Any>,
     ): OpenAiResponse {
-        val rawResponse =
-            restClient
-                .post()
-                .uri(URL)
-                .header("Authorization", "Bearer $apiKey")
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(
-                    OpenAiRequest(
-                        model = model,
-                        instructions = SYSTEM_PROMPT,
-                        input = prompt,
-                        maxOutputTokens = 3000,
-                        text =
-                            OpenAiTextFormat(
-                                format =
-                                    OpenAiJsonSchemaFormat(
-                                        name = schemaName,
-                                        schema = schema,
-                                    ),
-                            ),
-                    ),
-                ).retrieve()
-                .body<String>() ?: throw RuntimeException("OpenAI 응답을 받지 못했습니다.")
+        val operation = if (schemaName == "deep_question") "deep_question" else "summary"
+        val sample = Timer.start(meterRegistry)
+        var outcome = "success"
 
-        logger.debug("OpenAI 전체 응답: $rawResponse")
+        logger.info(
+            "OpenAI request started - operation: {}, transactionActive: {}",
+            operation,
+            TransactionSynchronizationManager.isActualTransactionActive(),
+        )
 
-        return objectMapper.readValue<OpenAiResponse>(rawResponse)
+        try {
+            val rawResponse =
+                restClient
+                    .post()
+                    .uri(URL)
+                    .header("Authorization", "Bearer $apiKey")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(
+                        OpenAiRequest(
+                            model = model,
+                            instructions = SYSTEM_PROMPT,
+                            input = prompt,
+                            maxOutputTokens = 3000,
+                            text =
+                                OpenAiTextFormat(
+                                    format =
+                                        OpenAiJsonSchemaFormat(
+                                            name = schemaName,
+                                            schema = schema,
+                                        ),
+                                ),
+                        ),
+                    ).retrieve()
+                    .body<String>() ?: throw RuntimeException("OpenAI 응답을 받지 못했습니다.")
+
+            logger.debug("OpenAI 전체 응답: $rawResponse")
+
+            return objectMapper.readValue<OpenAiResponse>(rawResponse)
+        } catch (exception: Exception) {
+            outcome = "error"
+            meterRegistry
+                .counter(
+                    "didit.openai.request.errors",
+                    "operation",
+                    operation,
+                    "type",
+                    classifyException(exception),
+                ).increment()
+            throw exception
+        } finally {
+            sample.stop(
+                Timer
+                    .builder("didit.openai.request.duration")
+                    .description("OpenAI API request duration")
+                    .tag("operation", operation)
+                    .tag("outcome", outcome)
+                    .publishPercentileHistogram()
+                    .register(meterRegistry),
+            )
+        }
     }
+
+    private fun classifyException(exception: Exception): String =
+        when (exception) {
+            is RestClientResponseException ->
+                when {
+                    exception.statusCode.value() == 429 -> "rate_limit"
+                    exception.statusCode.is4xxClientError -> "client_error"
+                    exception.statusCode.is5xxServerError -> "server_error"
+                    else -> "http_error"
+                }
+
+            is ResourceAccessException ->
+                if (exception.causeSequence().any { it is SocketTimeoutException }) "timeout" else "connection_error"
+
+            is JsonProcessingException -> "parse_error"
+            else -> "unknown"
+        }
+
+    private fun Throwable.causeSequence(): Sequence<Throwable> = generateSequence(this) { it.cause }
 
     private fun parseDeepQuestion(response: OpenAiResponse): GeneratedDeepQuestion =
         runCatching {
