@@ -7,6 +7,7 @@ import com.didit.application.organization.required.RetrospectTagRepository
 import com.didit.application.organization.required.TagRepository
 import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.RetrospectiveDetailResult
+import com.didit.application.retrospect.dto.RetrospectiveListItemResult
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.SearchHistoryRegister
@@ -41,6 +42,9 @@ class RetrospectQueryService(
             ?: throw RetrospectiveNotFoundException(retrospectiveId)
 
     override fun findAllByUserId(userId: UUID): List<Retrospective> = retrospectiveRepository.findAllCompletedByUserId(userId)
+
+    override fun findListItemsByUserId(userId: UUID): List<RetrospectiveListItemResult> =
+        retrospectiveRepository.findListItemsByUserId(userId)
 
     override fun findRecentByUserId(
         userId: UUID,

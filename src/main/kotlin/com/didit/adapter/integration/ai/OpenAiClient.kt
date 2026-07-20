@@ -6,28 +6,22 @@ import com.didit.application.retrospect.required.GeneratedDeepQuestion
 import com.didit.domain.shared.Job
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
-import com.fasterxml.jackson.core.JsonProcessingException
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.readValue
-import io.micrometer.core.instrument.MeterRegistry
-import io.micrometer.core.instrument.Timer
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
 import org.springframework.transaction.support.TransactionSynchronizationManager
-import org.springframework.web.client.ResourceAccessException
 import org.springframework.web.client.RestClient
-import org.springframework.web.client.RestClientResponseException
 import org.springframework.web.client.body
-import java.net.SocketTimeoutException
 
 @Component
 class OpenAiClient(
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
     private val feedbackPrompts: FeedbackPrompts,
-    private val meterRegistry: MeterRegistry,
+    private val metrics: OpenAiMetrics,
     @param:Value("\${openai.api-key}") private val apiKey: String,
     @param:Value("\${openai.chat.model}") private val model: String,
 ) : AIClient {
@@ -45,7 +39,7 @@ class OpenAiClient(
 
         logger.debug("심화 질문 프롬프트 - job: $job, prompt:\n$prompt")
 
-        val result = callWithResult(prompt, "deep_question", deepQuestionSchema())
+        val result = callWithResult(prompt, "deep_question", "deep_question", deepQuestionSchema())
 
         return parseDeepQuestion(result)
     }
@@ -59,27 +53,25 @@ class OpenAiClient(
 
         logger.debug("요약 프롬프트 - job: $job, prompt:\n$prompt")
 
-        val result = callWithResult(prompt, "retrospective_summary", summarySchema())
+        val result = callWithResult(prompt, "summary", "retrospective_summary", summarySchema())
 
         return parseSummary(result)
     }
 
     private fun callWithResult(
         prompt: String,
+        operation: String,
         schemaName: String,
         schema: Map<String, Any>,
     ): OpenAiResponse {
-        val operation = if (schemaName == "deep_question") "deep_question" else "summary"
-        val sample = Timer.start(meterRegistry)
-        var outcome = "success"
-
+        metrics.recordPromptCharacters(operation, prompt.length)
         logger.info(
             "OpenAI request started - operation: {}, transactionActive: {}",
             operation,
             TransactionSynchronizationManager.isActualTransactionActive(),
         )
 
-        try {
+        return metrics.record(operation) {
             val rawResponse =
                 restClient
                     .post()
@@ -106,49 +98,11 @@ class OpenAiClient(
 
             logger.debug("OpenAI 전체 응답: $rawResponse")
 
-            return objectMapper.readValue<OpenAiResponse>(rawResponse)
-        } catch (exception: Exception) {
-            outcome = "error"
-            meterRegistry
-                .counter(
-                    "didit.openai.request.errors",
-                    "operation",
-                    operation,
-                    "type",
-                    classifyException(exception),
-                ).increment()
-            throw exception
-        } finally {
-            sample.stop(
-                Timer
-                    .builder("didit.openai.request.duration")
-                    .description("OpenAI API request duration")
-                    .tag("operation", operation)
-                    .tag("outcome", outcome)
-                    .publishPercentileHistogram()
-                    .register(meterRegistry),
-            )
+            objectMapper.readValue<OpenAiResponse>(rawResponse).also {
+                metrics.recordTokens(operation, it.usage?.inputTokens ?: 0, it.usage?.outputTokens ?: 0)
+            }
         }
     }
-
-    private fun classifyException(exception: Exception): String =
-        when (exception) {
-            is RestClientResponseException ->
-                when {
-                    exception.statusCode.value() == 429 -> "rate_limit"
-                    exception.statusCode.is4xxClientError -> "client_error"
-                    exception.statusCode.is5xxServerError -> "server_error"
-                    else -> "http_error"
-                }
-
-            is ResourceAccessException ->
-                if (exception.causeSequence().any { it is SocketTimeoutException }) "timeout" else "connection_error"
-
-            is JsonProcessingException -> "parse_error"
-            else -> "unknown"
-        }
-
-    private fun Throwable.causeSequence(): Sequence<Throwable> = generateSequence(this) { it.cause }
 
     private fun parseDeepQuestion(response: OpenAiResponse): GeneratedDeepQuestion =
         runCatching {
