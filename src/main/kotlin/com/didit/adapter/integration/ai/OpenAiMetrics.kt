@@ -1,9 +1,13 @@
 package com.didit.adapter.integration.ai
 
+import com.fasterxml.jackson.core.JsonProcessingException
 import io.micrometer.core.instrument.DistributionSummary
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
 import org.springframework.stereotype.Component
+import org.springframework.web.client.ResourceAccessException
+import org.springframework.web.client.RestClientResponseException
+import java.net.SocketTimeoutException
 import java.time.Duration
 
 @Component
@@ -18,7 +22,11 @@ class OpenAiMetrics(
         try {
             return block().also { stop(sample, operation, "success") }
         } catch (exception: Exception) {
-            stop(sample, operation, classify(exception))
+            val errorType = classify(exception)
+            stop(sample, operation, if (errorType == "timeout") "timeout" else "error")
+            meterRegistry
+                .counter("didit.openai.request.errors", "operation", operation, "type", errorType)
+                .increment()
             throw exception
         }
     }
@@ -67,8 +75,22 @@ class OpenAiMetrics(
         )
     }
 
-    private fun classify(exception: Exception): String {
-        val text = generateSequence<Throwable>(exception) { it.cause }.joinToString(" ") { it.javaClass.simpleName.lowercase() }
-        return if ("timeout" in text) "timeout" else "error"
-    }
+    private fun classify(exception: Exception): String =
+        when (exception) {
+            is RestClientResponseException ->
+                when {
+                    exception.statusCode.value() == 429 -> "rate_limit"
+                    exception.statusCode.is4xxClientError -> "client_error"
+                    exception.statusCode.is5xxServerError -> "server_error"
+                    else -> "http_error"
+                }
+
+            is ResourceAccessException ->
+                if (exception.causeSequence().any { it is SocketTimeoutException }) "timeout" else "connection_error"
+
+            is JsonProcessingException -> "parse_error"
+            else -> "unknown"
+        }
+
+    private fun Throwable.causeSequence(): Sequence<Throwable> = generateSequence(this) { it.cause }
 }

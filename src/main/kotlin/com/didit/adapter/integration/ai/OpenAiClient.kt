@@ -12,6 +12,7 @@ import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.http.MediaType
 import org.springframework.stereotype.Component
+import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.web.client.RestClient
 import org.springframework.web.client.body
 
@@ -64,8 +65,14 @@ class OpenAiClient(
         schema: Map<String, Any>,
     ): OpenAiResponse {
         metrics.recordPromptCharacters(operation, prompt.length)
-        val rawResponse =
-            metrics.record(operation) {
+        logger.info(
+            "OpenAI request started - operation: {}, transactionActive: {}",
+            operation,
+            TransactionSynchronizationManager.isActualTransactionActive(),
+        )
+
+        return metrics.record(operation) {
+            val rawResponse =
                 restClient
                     .post()
                     .uri(URL)
@@ -88,12 +95,12 @@ class OpenAiClient(
                         ),
                     ).retrieve()
                     .body<String>() ?: throw RuntimeException("OpenAI 응답을 받지 못했습니다.")
+
+            logger.debug("OpenAI 전체 응답: $rawResponse")
+
+            objectMapper.readValue<OpenAiResponse>(rawResponse).also {
+                metrics.recordTokens(operation, it.usage?.inputTokens ?: 0, it.usage?.outputTokens ?: 0)
             }
-
-        logger.debug("OpenAI 전체 응답: $rawResponse")
-
-        return objectMapper.readValue<OpenAiResponse>(rawResponse).also {
-            metrics.recordTokens(operation, it.usage?.inputTokens ?: 0, it.usage?.outputTokens ?: 0)
         }
     }
 
