@@ -1,0 +1,94 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "graphTooltip": 1,
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "AI Workflow p95 by Stage",
+      "id": 1,
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(didit_ai_workflow_duration_seconds_bucket{job=\"didit-api\"}[5m])) by (le, operation, stage))",
+          "legendFormat": "{{operation}} / {{stage}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "OpenAI Average and Maximum Duration",
+      "id": 2,
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(didit_openai_request_duration_seconds_sum{job=\"didit-api\",status=\"success\"}[5m])) by (operation) / sum(rate(didit_openai_request_duration_seconds_count{job=\"didit-api\",status=\"success\"}[5m])) by (operation)",
+          "legendFormat": "{{operation}} avg",
+          "refId": "A"
+        },
+        {
+          "expr": "max(didit_openai_request_duration_seconds_max{job=\"didit-api\"}) by (operation)",
+          "legendFormat": "{{operation}} max",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "type": "timeseries",
+      "title": "AI Executor",
+      "id": 3,
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "targets": [
+        { "expr": "didit_ai_executor_active{job=\"didit-api\"}", "legendFormat": "active", "refId": "A" },
+        { "expr": "didit_ai_executor_queue_size{job=\"didit-api\"}", "legendFormat": "queue", "refId": "B" },
+        { "expr": "increase(didit_ai_executor_rejected_total{job=\"didit-api\"}[5m])", "legendFormat": "rejected", "refId": "C" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Tomcat Threads",
+      "id": 4,
+      "gridPos": { "h": 8, "w": 8, "x": 8, "y": 8 },
+      "targets": [
+        { "expr": "tomcat_threads_busy_threads{job=\"didit-api\"}", "legendFormat": "busy", "refId": "A" },
+        { "expr": "tomcat_threads_current_threads{job=\"didit-api\"}", "legendFormat": "current", "refId": "B" },
+        { "expr": "tomcat_threads_config_max_threads{job=\"didit-api\"}", "legendFormat": "max", "refId": "C" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Hikari Connections",
+      "id": 5,
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        { "expr": "hikaricp_connections_active{job=\"didit-api\"}", "legendFormat": "active", "refId": "A" },
+        { "expr": "hikaricp_connections_pending{job=\"didit-api\"}", "legendFormat": "pending", "refId": "B" }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "OpenAI Tokens",
+      "id": 6,
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "sum(increase(didit_openai_tokens_total{job=\"didit-api\"}[1h])) by (operation, type)",
+          "legendFormat": "{{operation}} / {{type}}",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 39,
+  "tags": ["didit", "ai", "performance"],
+  "templating": { "list": [] },
+  "time": { "from": "now-1h", "to": "now" },
+  "timezone": "browser",
+  "title": "DIDIT AI Performance",
+  "uid": "didit-ai-performance",
+  "version": 1
+}

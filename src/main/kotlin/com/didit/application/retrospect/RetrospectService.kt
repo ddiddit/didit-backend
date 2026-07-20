@@ -18,7 +18,6 @@ import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
-import com.didit.application.retrospect.required.AIClient
 import com.didit.application.retrospect.required.RetrospectivePolicy
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.SpeechClient
@@ -27,13 +26,12 @@ import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveCompletedEvent
-import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.shared.ServiceTime
 import org.slf4j.LoggerFactory
 import org.springframework.context.ApplicationEventPublisher
-import org.springframework.scheduling.annotation.Async
 import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
 
@@ -43,7 +41,7 @@ class RetrospectService(
     private val retrospectiveRepository: RetrospectiveRepository,
     private val retrospectiveFinder: RetrospectiveFinder,
     private val speechClient: SpeechClient,
-    private val aiClient: AIClient,
+    private val completionCoordinator: RetrospectiveCompletionCoordinator,
     private val userFinder: UserFinder,
     private val eventPublisher: ApplicationEventPublisher,
     private val auditLogger: AuditLogger,
@@ -54,7 +52,6 @@ class RetrospectService(
         private val logger = LoggerFactory.getLogger(RetrospectService::class.java)
         private const val DAILY_LIMIT = 3
         private const val DEEP_QUESTION_GENERATING_MESSAGE = "심화 질문을 생성 중입니다."
-        private const val DEFAULT_FALLBACK_QUESTION = "오늘 회고를 통해 어떤 성찰을 얻으셨나요?"
 
         private val QUESTION_CONTENTS =
             mapOf(
@@ -135,41 +132,6 @@ class RetrospectService(
         return transcribe(audioBytes, filename)
     }
 
-    @Async
-    @Transactional
-    fun generateDeepQuestionAsync(
-        retrospectiveId: UUID,
-        userId: UUID,
-    ) {
-        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-        if (!retrospective.canAddDeepQuestion()) return
-
-        val job = userFinder.getJobByUserId(retrospective.userId)
-        val answers = retrospective.getAnswersUpToQ3()
-
-        val deepQuestion =
-            try {
-                aiClient.generateDeepQuestion(job, answers)
-            } catch (e: Exception) {
-                logger.error("심화 질문 생성 실패 - userId: $userId, retrospectiveId: $retrospectiveId", e)
-                null
-            }
-
-        retrospective.addMessage(
-            ChatMessage.question(
-                retrospective = retrospective,
-                content = deepQuestion?.content ?: DEFAULT_FALLBACK_QUESTION,
-                questionType = QuestionType.Q4_DEEP,
-            ),
-        )
-
-        if (deepQuestion != null) {
-            retrospective.addTokens(deepQuestion.inputTokens, deepQuestion.outputTokens)
-        }
-
-        retrospectiveRepository.save(retrospective)
-    }
-
     @Transactional
     override fun skipDeepQuestion(
         retrospectiveId: UUID,
@@ -189,49 +151,11 @@ class RetrospectService(
         logger.info("심화 질문 스킵 - userId: $userId, retrospectiveId: $retrospectiveId")
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     override fun complete(
         retrospectiveId: UUID,
         userId: UUID,
-    ): AISummaryResponse {
-        val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
-        validateRetrospectiveInProgress(retrospective, retrospectiveId)
-
-        val job = userFinder.getJobByUserId(userId)
-
-        val deepQuestion =
-            retrospective.chatMessages
-                .find { it.questionType == QuestionType.Q4_DEEP && it.sender == Sender.AI }
-                ?.content
-
-        val summary =
-            try {
-                aiClient.generateSummaryWithTitle(job, retrospective.getAllAnswers(), deepQuestion)
-            } catch (e: Exception) {
-                logger.error("회고 요약 생성 실패 - userId: $userId, retrospectiveId: $retrospectiveId", e)
-                throw e
-            }
-
-        retrospective.saveSummary(
-            RetrospectiveSummary(
-                summary = summary.summary,
-                blockedPoint = summary.blockedPoint,
-                solutionProcess = summary.solutionProcess,
-                lessonLearned = summary.lessonLearned,
-                insightTitle = summary.insight.title,
-                insightDescription = summary.insight.description,
-                nextActionTitle = summary.nextAction.title,
-                nextActionDescription = summary.nextAction.description,
-            ),
-        )
-        retrospective.addTokens(summary.inputTokens, summary.outputTokens)
-
-        retrospectiveRepository.save(retrospective)
-
-        logger.info("회고 완료 - userId: $userId, retrospectiveId: $retrospectiveId")
-
-        return summary
-    }
+    ): AISummaryResponse = completionCoordinator.complete(retrospectiveId, userId)
 
     @Transactional
     override fun save(
@@ -439,7 +363,7 @@ class RetrospectService(
     }
 
     private fun handleQ3Answer(retrospective: Retrospective): SubmitAnswerResponse {
-        generateDeepQuestionAsync(retrospective.id, retrospective.userId)
+        eventPublisher.publishEvent(DeepQuestionGenerationEvent(retrospective.id, retrospective.userId))
         return SubmitAnswerResponse(
             nextQuestionType = QuestionType.Q4_DEEP,
             nextQuestionContent = DEEP_QUESTION_GENERATING_MESSAGE,

@@ -1,9 +1,12 @@
 package com.didit.application.retrospect.required
 
+import com.didit.application.retrospect.dto.RetrospectiveListItemResult
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
+import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Pageable
+import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.Repository
 import org.springframework.data.repository.query.Param
@@ -16,6 +19,13 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     fun findByIdAndUserId(
         id: UUID,
         userId: UUID,
+    ): Retrospective?
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Retrospective r WHERE r.id = :id AND r.userId = :userId")
+    fun findByIdAndUserIdForUpdate(
+        @Param("id") id: UUID,
+        @Param("userId") userId: UUID,
     ): Retrospective?
 
     fun findByIdAndDeletedAtIsNull(retrospectiveId: UUID): Retrospective?
@@ -53,6 +63,22 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     fun findAllCompletedByUserId(
         @Param("userId") userId: UUID,
     ): List<Retrospective>
+
+    @Query(
+        """
+        SELECT new com.didit.application.retrospect.dto.RetrospectiveListItemResult(
+            r.id, r.title, r.summary.summary, r.completedAt
+        )
+        FROM Retrospective r
+        WHERE r.userId = :userId
+        AND r.status = 'COMPLETED'
+        AND r.deletedAt IS NULL
+        ORDER BY r.createdAt DESC
+        """,
+    )
+    fun findListItemsByUserId(
+        @Param("userId") userId: UUID,
+    ): List<RetrospectiveListItemResult>
 
     @Query(
         """

@@ -90,6 +90,22 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
+    fun `findListItemsByUserId - 응답 필드만 조회하고 완료된 회고만 반환한다`() {
+        retrospectiveRepository.save(Retrospective.create(userId))
+        retrospectiveRepository.save(completedRetrospective(userId, "삭제된 회고").apply { softDelete() })
+        val completed = retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
+        retrospectiveRepository.save(completedRetrospective(UUID.randomUUID(), "다른 사용자 회고"))
+
+        val found = retrospectiveRepository.findListItemsByUserId(userId)
+
+        assertThat(found).hasSize(1)
+        assertThat(found.single().id).isEqualTo(completed.id)
+        assertThat(found.single().title).isEqualTo("완료된 회고")
+        assertThat(found.single().summary).isEqualTo("...")
+        assertThat(found.single().completedAt).isNotNull()
+    }
+
+    @Test
     fun `findRecentCompletedByUserId - limit만큼만 반환한다`() {
         repeat(5) { retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고 $it")) }
 
