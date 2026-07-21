@@ -54,6 +54,7 @@ class RetrospectiveCompletionCoordinatorTest {
                 aiClient,
                 TransactionTemplate(transactionManager),
                 metrics,
+                SummarySaveConcurrencyLimiter(4),
             )
     }
 
