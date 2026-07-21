@@ -26,6 +26,7 @@ class RetrospectiveCompletionCoordinator(
     private val aiClient: AIClient,
     private val transactionTemplate: TransactionTemplate,
     private val metrics: RetrospectiveAiMetrics,
+    private val summarySaveConcurrencyLimiter: SummarySaveConcurrencyLimiter,
 ) {
     companion object {
         private val logger = LoggerFactory.getLogger(RetrospectiveCompletionCoordinator::class.java)
@@ -43,7 +44,11 @@ class RetrospectiveCompletionCoordinator(
                     metrics.recordStage("summary", "openai") {
                         aiClient.generateSummaryWithTitle(snapshot.job, snapshot.answers, snapshot.deepQuestion)
                     }
-                metrics.recordStage("summary", "save") { save(retrospectiveId, userId, summary) }
+                metrics.recordStage("summary", "save") {
+                    summarySaveConcurrencyLimiter.execute {
+                        save(retrospectiveId, userId, summary)
+                    }
+                }
                 summary
             } catch (exception: Exception) {
                 reset(retrospectiveId, userId)
