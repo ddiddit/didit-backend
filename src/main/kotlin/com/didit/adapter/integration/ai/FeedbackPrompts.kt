@@ -7,6 +7,7 @@ import com.didit.domain.shared.Job
 import org.slf4j.LoggerFactory
 import org.springframework.core.io.ClassPathResource
 import org.springframework.stereotype.Component
+import org.springframework.transaction.annotation.Transactional
 
 @Component
 class FeedbackPrompts(
@@ -14,6 +15,7 @@ class FeedbackPrompts(
 ) {
     private val logger = LoggerFactory.getLogger(FeedbackPrompts::class.java)
 
+    @Transactional(readOnly = true)
     fun buildDeepQuestionPrompt(
         job: Job?,
         answers: List<String>,
@@ -25,6 +27,7 @@ class FeedbackPrompts(
             .replace("{{q3}}", answers.getOrElse(2) { "" })
     }
 
+    @Transactional(readOnly = true)
     fun buildSummaryPrompt(
         job: Job?,
         allAnswers: List<String>,
