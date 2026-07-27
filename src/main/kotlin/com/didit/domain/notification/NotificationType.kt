@@ -4,4 +4,5 @@ enum class NotificationType {
     DAILY_REMINDER,
     INQUIRY_ANSWERED,
     RETROSPECTIVE_RESULT_CREATED,
+    ADMIN_MARKETING,
 }
