@@ -37,9 +37,53 @@ interface UserRepository : Repository<User, UUID> {
         providerId: String,
     ): User?
 
-    fun findAllByDeletedAtIsNullAndEmailIsNotNull(): List<User>
+    @Query(
+        """
+        SELECT u FROM User u
+        JOIN u.consent c
+        WHERE u.deletedAt IS NULL
+        AND u.email IS NOT NULL
+        AND c.marketingAgreed = true
+        """,
+    )
+    fun findAllMarketingAgreedWithEmail(): List<User>
 
-    fun findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(ids: List<UUID>): List<User>
+    @Query(
+        """
+        SELECT u FROM User u
+        JOIN u.consent c
+        WHERE u.id IN :ids
+        AND u.deletedAt IS NULL
+        AND u.email IS NOT NULL
+        AND c.marketingAgreed = true
+        """,
+    )
+    fun findAllMarketingAgreedWithEmailByIdIn(
+        @Param("ids") ids: List<UUID>,
+    ): List<User>
+
+    @Query(
+        """
+        SELECT u FROM User u
+        JOIN u.consent c
+        WHERE u.deletedAt IS NULL
+        AND c.marketingAgreed = true
+        """,
+    )
+    fun findAllMarketingAgreed(): List<User>
+
+    @Query(
+        """
+        SELECT u FROM User u
+        JOIN u.consent c
+        WHERE u.id IN :ids
+        AND u.deletedAt IS NULL
+        AND c.marketingAgreed = true
+        """,
+    )
+    fun findAllMarketingAgreedByIdIn(
+        @Param("ids") ids: List<UUID>,
+    ): List<User>
 
     @Query("SELECT u FROM User u WHERE u.deletedAt < :cutoff")
     fun findAllWithdrawnBefore(

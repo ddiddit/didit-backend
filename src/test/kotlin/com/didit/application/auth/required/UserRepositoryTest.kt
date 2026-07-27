@@ -178,27 +178,165 @@ class UserRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
-    fun `findAllByDeletedAtIsNullAndEmailIsNotNull - no withdraw and exist email`() {
-        val activeWithEmail = userRepository.save(UserFixture.create(providerId = "kakao-1", email = "a@test.com"))
-        userRepository.save(UserFixture.create(providerId = "kakao-2", email = null))
-        userRepository.save(UserFixture.create(providerId = "kakao-3", email = "deleted@test.com").apply { withdraw() })
+    fun `findAllMarketingAgreedWithEmail - returns only active marketing agreed users with email`() {
+        val marketingAgreed =
+            userRepository.save(
+                UserFixture.createOnboardedWithConsent(
+                    providerId = "kakao-1",
+                    email = "agreed@test.com",
+                    marketingAgreed = true,
+                ),
+            )
+        userRepository.save(
+            UserFixture.createOnboardedWithConsent(
+                providerId = "kakao-2",
+                email = "disagreed@test.com",
+                marketingAgreed = false,
+            ),
+        )
+        userRepository.save(
+            UserFixture.createOnboardedWithConsent(
+                providerId = "kakao-3",
+                email = null,
+                marketingAgreed = true,
+            ),
+        )
+        userRepository.save(
+            UserFixture
+                .createOnboardedWithConsent(
+                    providerId = "kakao-4",
+                    email = "deleted@test.com",
+                    marketingAgreed = true,
+                ).apply { withdraw() },
+        )
+        userRepository.save(UserFixture.create(providerId = "kakao-5", email = "no-consent@test.com"))
 
-        val result = userRepository.findAllByDeletedAtIsNullAndEmailIsNotNull()
+        val result = userRepository.findAllMarketingAgreedWithEmail()
 
-        assertThat(result).extracting("id").containsExactly(activeWithEmail.id)
+        assertThat(result).extracting("id").containsExactly(marketingAgreed.id)
     }
 
     @Test
-    fun `findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull - select only active email users`() {
-        val selected = userRepository.save(UserFixture.create(providerId = "kakao-1", email = "a@test.com"))
-        val noEmail = userRepository.save(UserFixture.create(providerId = "kakao-2", email = null))
-        val deleted = userRepository.save(UserFixture.create(providerId = "kakao-3", email = "deleted@test.com").apply { withdraw() })
+    fun `findAllMarketingAgreedWithEmailByIdIn - returns only selected active marketing agreed users with email`() {
+        val selected =
+            userRepository.save(
+                UserFixture.createOnboardedWithConsent(
+                    providerId = "kakao-1",
+                    email = "agreed@test.com",
+                    marketingAgreed = true,
+                ),
+            )
+        val disagreed =
+            userRepository.save(
+                UserFixture.createOnboardedWithConsent(
+                    providerId = "kakao-2",
+                    email = "disagreed@test.com",
+                    marketingAgreed = false,
+                ),
+            )
+        val noEmail =
+            userRepository.save(
+                UserFixture.createOnboardedWithConsent(
+                    providerId = "kakao-3",
+                    email = null,
+                    marketingAgreed = true,
+                ),
+            )
+        val deleted =
+            userRepository.save(
+                UserFixture
+                    .createOnboardedWithConsent(
+                        providerId = "kakao-4",
+                        email = "deleted@test.com",
+                        marketingAgreed = true,
+                    ).apply { withdraw() },
+            )
+        val noConsent = userRepository.save(UserFixture.create(providerId = "kakao-5", email = "no-consent@test.com"))
 
         val result =
-            userRepository.findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(
-                listOf(selected.id, noEmail.id, deleted.id),
+            userRepository.findAllMarketingAgreedWithEmailByIdIn(
+                listOf(selected.id, disagreed.id, noEmail.id, deleted.id, noConsent.id),
             )
 
         assertThat(result).extracting("id").containsExactly(selected.id)
+    }
+
+    @Test
+    fun `findAllMarketingAgreed - returns active marketing agreed users regardless of email`() {
+        val withEmail =
+            userRepository.save(
+                UserFixture.createOnboardedWithConsent(
+                    providerId = "kakao-push-1",
+                    email = "agreed@test.com",
+                    marketingAgreed = true,
+                ),
+            )
+        val withoutEmail =
+            userRepository.save(
+                UserFixture.createOnboardedWithConsent(
+                    providerId = "kakao-push-2",
+                    email = null,
+                    marketingAgreed = true,
+                ),
+            )
+        userRepository.save(
+            UserFixture.createOnboardedWithConsent(
+                providerId = "kakao-push-3",
+                marketingAgreed = false,
+            ),
+        )
+        userRepository.save(
+            UserFixture
+                .createOnboardedWithConsent(
+                    providerId = "kakao-push-4",
+                    marketingAgreed = true,
+                ).apply { withdraw() },
+        )
+        userRepository.save(UserFixture.create(providerId = "kakao-push-5"))
+
+        val result = userRepository.findAllMarketingAgreed()
+
+        assertThat(result).extracting("id").containsExactlyInAnyOrder(withEmail.id, withoutEmail.id)
+    }
+
+    @Test
+    fun `findAllMarketingAgreedByIdIn - returns only selected active marketing agreed users`() {
+        val selected =
+            userRepository.save(
+                UserFixture.createOnboardedWithConsent(
+                    providerId = "kakao-push-1",
+                    marketingAgreed = true,
+                ),
+            )
+        val notSelected =
+            userRepository.save(
+                UserFixture.createOnboardedWithConsent(
+                    providerId = "kakao-push-2",
+                    marketingAgreed = true,
+                ),
+            )
+        val disagreed =
+            userRepository.save(
+                UserFixture.createOnboardedWithConsent(
+                    providerId = "kakao-push-3",
+                    marketingAgreed = false,
+                ),
+            )
+        val deleted =
+            userRepository.save(
+                UserFixture
+                    .createOnboardedWithConsent(
+                        providerId = "kakao-push-4",
+                        marketingAgreed = true,
+                    ).apply { withdraw() },
+            )
+
+        val result =
+            userRepository.findAllMarketingAgreedByIdIn(
+                listOf(selected.id, disagreed.id, deleted.id),
+            )
+
+        assertThat(result).extracting("id").containsExactly(selected.id)
+        assertThat(result).extracting("id").doesNotContain(notSelected.id)
     }
 }

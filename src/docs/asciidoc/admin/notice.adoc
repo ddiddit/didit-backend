@@ -69,3 +69,14 @@ include::{snippets}/admin-notice-email/send/request-fields.adoc[]
 === Response
 
 include::{snippets}/admin-notice-email/send/http-response.adoc[]
+
+== 푸시 알림 발송
+
+=== Request
+
+include::{snippets}/admin-notice-push/send/http-request.adoc[]
+include::{snippets}/admin-notice-push/send/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/admin-notice-push/send/http-response.adoc[]

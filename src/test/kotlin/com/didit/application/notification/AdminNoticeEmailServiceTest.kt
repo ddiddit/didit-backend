@@ -36,7 +36,7 @@ class AdminNoticeEmailServiceTest {
         val user1 = UserFixture.create(email = "a@test.com")
         val user2 = UserFixture.create(providerId = "kakao-2", email = "b@test.com")
 
-        whenever(userRepository.findAllByDeletedAtIsNullAndEmailIsNotNull())
+        whenever(userRepository.findAllMarketingAgreedWithEmail())
             .thenReturn(listOf(user1, user2))
 
         service.send(
@@ -59,7 +59,7 @@ class AdminNoticeEmailServiceTest {
         val userId = UUID.randomUUID()
         val user = UserFixture.create(email = "selected@test.com")
 
-        whenever(userRepository.findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(listOf(userId)))
+        whenever(userRepository.findAllMarketingAgreedWithEmailByIdIn(listOf(userId)))
             .thenReturn(listOf(user))
 
         service.send(
@@ -81,7 +81,7 @@ class AdminNoticeEmailServiceTest {
         val user1 = UserFixture.create(email = "fail@test.com")
         val user2 = UserFixture.create(providerId = "kakao-2", email = "success@test.com")
 
-        whenever(userRepository.findAllByDeletedAtIsNullAndEmailIsNotNull())
+        whenever(userRepository.findAllMarketingAgreedWithEmail())
             .thenReturn(listOf(user1, user2))
 
         doThrow(RuntimeException("smtp error"))
