@@ -27,10 +27,10 @@ class AdminNoticeEmailService(
         val users =
             when (request.targetType) {
                 AdminNoticeEmailTargetType.ALL ->
-                    userRepository.findAllByDeletedAtIsNullAndEmailIsNotNull()
+                    userRepository.findAllMarketingAgreedWithEmail()
 
                 AdminNoticeEmailTargetType.SELECTED_USERS ->
-                    userRepository.findAllByIdInAndDeletedAtIsNullAndEmailIsNotNull(request.userIds)
+                    userRepository.findAllMarketingAgreedWithEmailByIdIn(request.userIds)
             }
 
         var sentCount = 0
