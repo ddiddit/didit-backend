@@ -159,6 +159,7 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
             SELECT r FROM Retrospective r
             WHERE r.status = 'PENDING'
             AND r.deletedAt IS NULL
+            AND (r.flowVersion = 'V1' OR r.conversationStatus <> 'FINISHED')
             AND r.createdAt < :cutoff
         """,
     )

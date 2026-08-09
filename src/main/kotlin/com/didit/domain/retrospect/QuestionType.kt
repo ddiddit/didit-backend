@@ -5,4 +5,5 @@ enum class QuestionType {
     Q2,
     Q3,
     Q4_DEEP,
+    V2_CHAT,
 }
