@@ -70,3 +70,32 @@ class SpeechTranscriptionFailedException(
     )
 
 class SpeechEmptyResultException : BusinessException(RetrospectErrorCode.SPEECH_EMPTY_RESULT)
+
+class RetrospectiveFlowVersionMismatchException(
+    retrospectiveId: UUID,
+) : BusinessException(RetrospectErrorCode.RETROSPECTIVE_FLOW_VERSION_MISMATCH, "retrospectiveId: $retrospectiveId")
+
+class ConversationAlreadyFinishedException(
+    retrospectiveId: UUID,
+) : BusinessException(RetrospectErrorCode.CONVERSATION_ALREADY_FINISHED, "retrospectiveId: $retrospectiveId")
+
+class ConversationTurnInProgressException(
+    retrospectiveId: UUID,
+) : BusinessException(RetrospectErrorCode.TURN_IN_PROGRESS, "retrospectiveId: $retrospectiveId")
+
+class AnotherConversationTurnInProgressException(
+    retrospectiveId: UUID,
+) : BusinessException(RetrospectErrorCode.ANOTHER_TURN_IN_PROGRESS, "retrospectiveId: $retrospectiveId")
+
+class DuplicateMessageContentMismatchException(
+    clientMessageId: UUID,
+) : BusinessException(RetrospectErrorCode.DUPLICATE_MESSAGE_CONTENT_MISMATCH, "clientMessageId: $clientMessageId")
+
+class ConversationAiFailedException(
+    retrospectiveId: UUID,
+    cause: Throwable? = null,
+) : BusinessException(RetrospectErrorCode.CONVERSATION_AI_FAILED, "retrospectiveId: $retrospectiveId") {
+    init {
+        if (cause != null) initCause(cause)
+    }
+}

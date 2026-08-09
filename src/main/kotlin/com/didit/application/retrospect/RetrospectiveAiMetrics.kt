@@ -1,5 +1,6 @@
 package com.didit.application.retrospect
 
+import com.didit.domain.retrospect.MessageRelevance
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
@@ -35,6 +36,27 @@ class RetrospectiveAiMetrics(
 
     fun incrementRejected() {
         meterRegistry.counter("didit.ai.executor.rejected").increment()
+    }
+
+    fun incrementConversationFailure() {
+        meterRegistry.counter("didit.retrospective.v2.turn", "result", "failure").increment()
+    }
+
+    fun incrementConversationRetry() {
+        meterRegistry.counter("didit.retrospective.v2.turn", "result", "retry").increment()
+    }
+
+    fun incrementConversationDuplicate() {
+        meterRegistry.counter("didit.retrospective.v2.turn", "result", "duplicate").increment()
+    }
+
+    fun incrementConversationConflict() {
+        meterRegistry.counter("didit.retrospective.v2.turn", "result", "conflict").increment()
+    }
+
+    fun incrementConversationRelevance(relevance: MessageRelevance) {
+        meterRegistry.counter("didit.retrospective.v2.relevance", "type", relevance.name).increment()
+        meterRegistry.counter("didit.retrospective.v2.turn", "result", "success").increment()
     }
 
     private fun workflowTimer(

@@ -38,6 +38,16 @@ class ChatMessage(
     @Enumerated(EnumType.STRING)
     @Column(length = 10)
     val inputType: InputType? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    val messageType: ConversationMessageType = ConversationMessageType.CONVERSATION,
+    @Column(columnDefinition = "TEXT")
+    val supportingContent: String? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    var relevance: MessageRelevance? = null,
+    @Column(nullable = false)
+    var includedInResult: Boolean = true,
 ) {
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -90,5 +100,52 @@ class ChatMessage(
                 inputType = null,
             )
         }
+
+        fun v2Intro(retrospective: Retrospective): ChatMessage =
+            ChatMessage(
+                retrospective = retrospective,
+                sender = Sender.AI,
+                content = "오늘 어떤 일을 하셨나요?",
+                questionType = QuestionType.V2_CHAT,
+                messageType = ConversationMessageType.INTRO,
+                supportingContent = "오늘 진행한 일 중 하나를 떠올려, 작업 내용과 함께 결과나 상태도 같이 적어보세요.",
+                includedInResult = false,
+            )
+
+        fun v2UserMessage(
+            retrospective: Retrospective,
+            content: String,
+        ): ChatMessage {
+            require(content.isNotBlank()) { "회고 내용은 비어 있을 수 없습니다." }
+            return ChatMessage(
+                retrospective = retrospective,
+                sender = Sender.USER,
+                content = content,
+                questionType = QuestionType.V2_CHAT,
+                inputType = InputType.TEXT,
+                messageType = ConversationMessageType.CONVERSATION,
+                includedInResult = false,
+            )
+        }
+
+        fun v2AssistantMessage(
+            retrospective: Retrospective,
+            content: String,
+            systemGuide: Boolean = false,
+        ): ChatMessage =
+            ChatMessage(
+                retrospective = retrospective,
+                sender = Sender.AI,
+                content = content,
+                questionType = QuestionType.V2_CHAT,
+                messageType =
+                    if (systemGuide) ConversationMessageType.SYSTEM_GUIDE else ConversationMessageType.CONVERSATION,
+                includedInResult = false,
+            )
+    }
+
+    fun classify(relevance: MessageRelevance) {
+        this.relevance = relevance
+        includedInResult = relevance == MessageRelevance.RETROSPECTIVE
     }
 }

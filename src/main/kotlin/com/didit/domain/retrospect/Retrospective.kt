@@ -44,6 +44,14 @@ class Retrospective(
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     var summaryGenerationStatus: SummaryGenerationStatus = SummaryGenerationStatus.NOT_STARTED,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    val flowVersion: RetrospectiveFlowVersion = RetrospectiveFlowVersion.V1,
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    var conversationStatus: ConversationStatus? = null,
+    @Column
+    var conversationFinishedAt: LocalDateTime? = null,
 ) : BaseEntity() {
     fun isCompleted(): Boolean = status == RetroStatus.COMPLETED
 
@@ -83,6 +91,18 @@ class Retrospective(
 
     fun startProgress() {
         this.status = RetroStatus.IN_PROGRESS
+    }
+
+    fun isV2(): Boolean = flowVersion == RetrospectiveFlowVersion.V2
+
+    fun isConversationActive(): Boolean = conversationStatus == ConversationStatus.ACTIVE
+
+    fun finishConversation() {
+        check(isV2()) { "V2 회고만 대화를 종료할 수 있습니다." }
+        if (conversationStatus == ConversationStatus.FINISHED) return
+        check(isConversationActive()) { "진행 중인 대화가 아닙니다." }
+        conversationStatus = ConversationStatus.FINISHED
+        conversationFinishedAt = LocalDateTime.now()
     }
 
     fun saveSummary(summary: RetrospectiveSummary) {
@@ -137,6 +157,13 @@ class Retrospective(
 
     companion object {
         fun create(userId: UUID): Retrospective = Retrospective(userId = userId)
+
+        fun createV2(userId: UUID): Retrospective =
+            Retrospective(
+                userId = userId,
+                flowVersion = RetrospectiveFlowVersion.V2,
+                conversationStatus = ConversationStatus.ACTIVE,
+            )
     }
 
     fun registerProject(projectId: UUID) {

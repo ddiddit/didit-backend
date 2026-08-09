@@ -2,7 +2,13 @@ package com.didit.adapter.integration.ai
 
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.required.AIClient
+import com.didit.application.retrospect.required.ConversationAnalysisUpdate
+import com.didit.application.retrospect.required.ConversationTurnAIRequest
+import com.didit.application.retrospect.required.ConversationV2AIClient
+import com.didit.application.retrospect.required.GeneratedConversationTurn
 import com.didit.application.retrospect.required.GeneratedDeepQuestion
+import com.didit.domain.retrospect.MessageRelevance
+import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.shared.Job
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -21,10 +27,12 @@ class OpenAiClient(
     private val restClient: RestClient,
     private val objectMapper: ObjectMapper,
     private val feedbackPrompts: FeedbackPrompts,
+    private val conversationV2Prompts: ConversationV2Prompts,
     private val metrics: OpenAiMetrics,
     @param:Value("\${openai.api-key}") private val apiKey: String,
     @param:Value("\${openai.chat.model}") private val model: String,
-) : AIClient {
+) : AIClient,
+    ConversationV2AIClient {
     companion object {
         private const val URL = "https://api.openai.com/v1/responses"
         private val logger = LoggerFactory.getLogger(OpenAiClient::class.java)
@@ -56,6 +64,12 @@ class OpenAiClient(
         val result = callWithResult(prompt, "summary", "retrospective_summary", summarySchema())
 
         return parseSummary(result)
+    }
+
+    override fun generateConversationTurn(request: ConversationTurnAIRequest): GeneratedConversationTurn {
+        val prompt = conversationV2Prompts.build(request)
+        val result = callWithResult(prompt, "conversation_v2", "retrospective_conversation_turn", conversationV2Schema())
+        return parseConversationTurn(result)
     }
 
     private fun callWithResult(
@@ -140,6 +154,20 @@ class OpenAiClient(
             throw RuntimeException("회고 요약 파싱에 실패했습니다. response: ${response.outputText}")
         }
 
+    private fun parseConversationTurn(response: OpenAiResponse): GeneratedConversationTurn {
+        val parsed = objectMapper.readValue<ConversationTurnDto>(response.outputText)
+        return GeneratedConversationTurn(
+            acknowledgement = parsed.acknowledgement,
+            interpretation = parsed.interpretation,
+            question = parsed.question,
+            questionTarget = parsed.questionTarget,
+            relevance = parsed.relevance,
+            analysisUpdates = parsed.analysisUpdates,
+            inputTokens = response.usage?.inputTokens ?: 0,
+            outputTokens = response.usage?.outputTokens ?: 0,
+        )
+    }
+
     private fun deepQuestionSchema() =
         mapOf(
             "type" to "object",
@@ -198,10 +226,74 @@ class OpenAiClient(
             "required" to listOf("title", "description"),
             "additionalProperties" to false,
         )
+
+    private fun conversationV2Schema() =
+        mapOf(
+            "type" to "object",
+            "properties" to
+                mapOf(
+                    "acknowledgement" to mapOf("type" to "string"),
+                    "interpretation" to mapOf("type" to "string"),
+                    "question" to mapOf("type" to "string"),
+                    "questionTarget" to
+                        mapOf(
+                            "type" to listOf("string", "null"),
+                            "enum" to RetrospectiveItemType.entries.map { it.name } + null,
+                        ),
+                    "relevance" to mapOf("type" to "string", "enum" to MessageRelevance.entries.map { it.name }),
+                    "analysisUpdates" to
+                        mapOf(
+                            "type" to "array",
+                            "items" to
+                                mapOf(
+                                    "type" to "object",
+                                    "properties" to
+                                        mapOf(
+                                            "itemType" to
+                                                mapOf("type" to "string", "enum" to RetrospectiveItemType.entries.map { it.name }),
+                                            "status" to
+                                                mapOf(
+                                                    "type" to "string",
+                                                    "enum" to
+                                                        com.didit.domain.retrospect.RetrospectiveItemStatus.entries
+                                                            .map { it.name },
+                                                ),
+                                            "summary" to mapOf("type" to "string"),
+                                            "evidenceMessageIds" to
+                                                mapOf(
+                                                    "type" to "array",
+                                                    "items" to mapOf("type" to "string", "format" to "uuid"),
+                                                ),
+                                        ),
+                                    "required" to listOf("itemType", "status", "summary", "evidenceMessageIds"),
+                                    "additionalProperties" to false,
+                                ),
+                        ),
+                ),
+            "required" to
+                listOf(
+                    "acknowledgement",
+                    "interpretation",
+                    "question",
+                    "questionTarget",
+                    "relevance",
+                    "analysisUpdates",
+                ),
+            "additionalProperties" to false,
+        )
 }
 
 private data class DeepQuestionDto(
     val question: String,
+)
+
+private data class ConversationTurnDto(
+    val acknowledgement: String,
+    val interpretation: String,
+    val question: String,
+    val questionTarget: RetrospectiveItemType?,
+    val relevance: MessageRelevance,
+    val analysisUpdates: List<ConversationAnalysisUpdate>,
 )
 
 private data class OpenAiRequest(

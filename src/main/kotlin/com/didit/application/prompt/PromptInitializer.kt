@@ -29,6 +29,9 @@ class PromptInitializer(
                 Triple(PromptJobType.DEVELOPER, PromptType.SUMMARY, "prompts/summary-developer.txt"),
                 Triple(PromptJobType.PLANNER, PromptType.SUMMARY, "prompts/summary-planner.txt"),
                 Triple(PromptJobType.DESIGNER, PromptType.SUMMARY, "prompts/summary-designer.txt"),
+                Triple(PromptJobType.DEVELOPER, PromptType.CONVERSATION_V2, "prompts/conversation-v2.txt"),
+                Triple(PromptJobType.PLANNER, PromptType.CONVERSATION_V2, "prompts/conversation-v2.txt"),
+                Triple(PromptJobType.DESIGNER, PromptType.CONVERSATION_V2, "prompts/conversation-v2.txt"),
             )
 
         targets.forEach { (jobType, promptType, path) ->
