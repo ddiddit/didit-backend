@@ -16,6 +16,7 @@ import org.mockito.kotlin.whenever
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
+@Suppress("DEPRECATION")
 class RetrospectiveRegisterTest {
     @Mock
     lateinit var retrospectiveRegister: RetrospectiveRegister

@@ -9,6 +9,7 @@ import com.didit.application.retrospect.dto.SubmitConversationMessageResult
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnStatus
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.retrospect.SummaryGenerationStatus
 import jakarta.validation.constraints.NotBlank
@@ -19,6 +20,7 @@ data class SubmitConversationMessageV2Request(
     val clientMessageId: UUID,
     @field:NotBlank
     val content: String,
+    val inputType: InputType = InputType.TEXT,
 )
 
 data class StartConversationV2Response(
