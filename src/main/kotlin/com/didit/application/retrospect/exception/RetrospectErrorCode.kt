@@ -7,6 +7,13 @@ enum class RetrospectErrorCode(
     override val status: HttpStatus,
     override val detail: String,
 ) : BaseErrorCode {
+    RETROSPECTIVE_FLOW_VERSION_MISMATCH(HttpStatus.BAD_REQUEST, "요청한 회고 플로우와 일치하지 않습니다."),
+    CONVERSATION_ALREADY_FINISHED(HttpStatus.CONFLICT, "이미 종료된 회고 대화입니다."),
+    TURN_IN_PROGRESS(HttpStatus.CONFLICT, "동일한 메시지를 처리하고 있습니다."),
+    ANOTHER_TURN_IN_PROGRESS(HttpStatus.CONFLICT, "이전 메시지의 응답을 생성하고 있습니다."),
+    DUPLICATE_MESSAGE_CONTENT_MISMATCH(HttpStatus.CONFLICT, "동일한 메시지 ID에 다른 내용을 사용할 수 없습니다."),
+    CONVERSATION_AI_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "AI 응답 생성에 실패했습니다. 다시 시도해주세요."),
+
     RETROSPECTIVE_NOT_FOUND(HttpStatus.NOT_FOUND, "회고를 찾을 수 없습니다."),
     RETROSPECTIVE_ALREADY_COMPLETED(HttpStatus.BAD_REQUEST, "이미 완료된 회고입니다."),
     RETROSPECTIVE_NOT_IN_PROGRESS(HttpStatus.BAD_REQUEST, "진행 중인 회고가 아닙니다."),

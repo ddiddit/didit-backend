@@ -1,0 +1,59 @@
+= 회고 V2 대화 API
+
+회고 V2는 고정 질문 순서 없이 사용자의 업무 경험을 바탕으로 AI가 후속 질문 하나를 생성합니다.
+첫 안내 메시지만 `title`과 `body`를 사용하며, 이후 대화 메시지는 `content`만 사용합니다.
+`readyToComplete`는 내부 완료 준비도이며 현재 화면의 종료 노출 조건으로 사용하지 않습니다.
+
+== 대화 시작
+
+=== Request
+
+include::{snippets}/retrospect-v2/start/http-request.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect-v2/start/http-response.adoc[]
+include::{snippets}/retrospect-v2/start/response-fields.adoc[]
+
+== 메시지 전송
+
+동일한 `clientMessageId`와 내용으로 재전송하면 이미 완료된 응답을 반환합니다.
+
+=== Request
+
+include::{snippets}/retrospect-v2/submit-message/http-request.adoc[]
+include::{snippets}/retrospect-v2/submit-message/path-parameters.adoc[]
+include::{snippets}/retrospect-v2/submit-message/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect-v2/submit-message/http-response.adoc[]
+include::{snippets}/retrospect-v2/submit-message/response-fields.adoc[]
+
+== 대화 조회
+
+앱 재진입이나 AI 응답 실패 후 현재 메시지와 턴 상태를 복구할 때 사용합니다.
+
+=== Request
+
+include::{snippets}/retrospect-v2/get-conversation/http-request.adoc[]
+include::{snippets}/retrospect-v2/get-conversation/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect-v2/get-conversation/http-response.adoc[]
+include::{snippets}/retrospect-v2/get-conversation/response-fields.adoc[]
+
+== 대화 종료
+
+대화 종료와 회고 결과 생성은 분리됩니다. 이 API는 대화만 종료하고 결과 생성 상태는 `NOT_STARTED`로 반환합니다.
+
+=== Request
+
+include::{snippets}/retrospect-v2/finish/http-request.adoc[]
+include::{snippets}/retrospect-v2/finish/path-parameters.adoc[]
+
+=== Response
+
+include::{snippets}/retrospect-v2/finish/http-response.adoc[]
+include::{snippets}/retrospect-v2/finish/response-fields.adoc[]
