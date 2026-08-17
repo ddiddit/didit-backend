@@ -26,6 +26,11 @@ include::{snippets}/retrospect/submit-answer/response-fields.adoc[]
 
 == 음성 답변 제출
 
+[WARNING]
+====
+구버전 앱 호환용 API입니다. 신규 회고에서는 음성 답변 변환 후 사용자가 수정한 텍스트를 일반 메시지 API로 전송해야 합니다.
+====
+
 === Request
 
 include::{snippets}/retrospect/submit-voice-answer/http-request.adoc[]

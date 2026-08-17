@@ -3,7 +3,9 @@ package com.didit.application.retrospect
 import com.didit.adapter.config.JpaAuditingConfig
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.retrospect.exception.ConversationAiFailedException
+import com.didit.application.retrospect.exception.DuplicateMessageContentMismatchException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
+import com.didit.application.retrospect.required.ChatMessageRepository
 import com.didit.application.retrospect.required.ConversationAnalysisUpdate
 import com.didit.application.retrospect.required.ConversationTurnAIRequest
 import com.didit.application.retrospect.required.ConversationV2AIClient
@@ -16,6 +18,7 @@ import com.didit.domain.auth.User
 import com.didit.domain.auth.UserRegisterRequest
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationTurnStatus
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -56,6 +59,9 @@ class RetrospectiveConversationV2ServiceTest {
 
     @Autowired
     private lateinit var analysisItemRepository: RetrospectiveAnalysisItemRepository
+
+    @Autowired
+    private lateinit var chatMessageRepository: ChatMessageRepository
 
     @MockitoBean
     private lateinit var retrospectiveFinder: RetrospectiveFinder
@@ -133,6 +139,40 @@ class RetrospectiveConversationV2ServiceTest {
         assertThat(restored.turns.single().status).isEqualTo(ConversationTurnStatus.COMPLETED)
         assertThat(restored.turns.single().attemptCount).isEqualTo(2)
         verify(aiClient, times(2)).generateConversationTurn(any())
+    }
+
+    @Test
+    fun `STT 입력은 수정된 내용과 입력 타입을 저장하고 동일한 대화 흐름을 진행한다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            retrospectiveResponse(invocation.getArgument(0))
+        }
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "수정한 음성 회고입니다.", InputType.STT)
+
+        val userMessage =
+            chatMessageRepository
+                .findAllByRetrospectiveIdOrderByCreatedAtAsc(started.retrospectiveId)
+                .single { it.sender.name == "USER" }
+        assertThat(userMessage.content).isEqualTo("수정한 음성 회고입니다.")
+        assertThat(userMessage.inputType).isEqualTo(InputType.STT)
+        verify(aiClient).generateConversationTurn(any())
+    }
+
+    @Test
+    fun `같은 메시지 ID의 입력 타입이 달라지면 중복 요청을 거절한다`() {
+        val started = service.start(userId)
+        val clientMessageId = UUID.randomUUID()
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            retrospectiveResponse(invocation.getArgument(0))
+        }
+        service.submitMessage(started.retrospectiveId, userId, clientMessageId, "같은 내용", InputType.TEXT)
+
+        assertThrows<DuplicateMessageContentMismatchException> {
+            service.submitMessage(started.retrospectiveId, userId, clientMessageId, "같은 내용", InputType.STT)
+        }
+
+        verify(aiClient, times(1)).generateConversationTurn(any())
     }
 
     @Test

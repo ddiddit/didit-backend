@@ -49,6 +49,7 @@ import java.time.LocalDate
 import java.time.LocalDateTime
 import java.util.UUID
 
+@Suppress("DEPRECATION")
 class RetrospectApiTest : AuthenticatedRestDocsSupport() {
     private val retrospectiveRegister: RetrospectiveRegister = mock(RetrospectiveRegister::class.java)
     private val retrospectiveFinder: RetrospectiveFinder = mock(RetrospectiveFinder::class.java)

@@ -14,6 +14,7 @@ interface RetrospectiveRegister {
         content: String,
     ): SubmitAnswerResponse
 
+    @Deprecated("Use transcribeVoiceAnswer and submit the edited text through the conversation API")
     fun submitVoiceAnswer(
         retrospectiveId: UUID,
         userId: UUID,

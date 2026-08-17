@@ -67,7 +67,7 @@ class OpenAiSpeechClient(
         runCatching {
             objectMapper.readValue(response, OpenAiSpeechResponse::class.java)
         }.getOrElse {
-            throw SpeechTranscriptionFailedException("OpenAI STT 응답 파싱 실패. response: $response")
+            throw SpeechTranscriptionFailedException("OpenAI STT 응답 파싱 실패")
         }
 
     private fun createFilePart(

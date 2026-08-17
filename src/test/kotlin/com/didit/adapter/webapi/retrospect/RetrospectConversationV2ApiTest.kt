@@ -13,10 +13,12 @@ import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnStatus
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.retrospect.SummaryGenerationStatus
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
@@ -74,7 +76,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
     @Test
     fun `V2 대화 메시지 전송`() {
         val request = SubmitConversationMessageV2Request(clientMessageId, "배포 자동화 작업을 완료했습니다.")
-        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, request.content)).thenReturn(
+        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, request.content, request.inputType)).thenReturn(
             SubmitConversationMessageResult(
                 turnId = turnId,
                 userMessageId = userMessageId,
@@ -101,6 +103,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                     requestFields(
                         fieldWithPath("clientMessageId").type(JsonFieldType.STRING).description("중복 전송 방지용 클라이언트 메시지 ID"),
                         fieldWithPath("content").type(JsonFieldType.STRING).description("사용자가 입력한 회고 내용"),
+                        fieldWithPath("inputType").type(JsonFieldType.STRING).description("입력 출처. 생략 시 TEXT").optional(),
                     ),
                     responseFields(
                         fieldWithPath("data.turnId").type(JsonFieldType.STRING).description("대화 턴 ID"),
@@ -110,6 +113,51 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                     ),
                 ),
             )
+    }
+
+    @Test
+    fun `V2 메시지 입력 타입을 생략하면 TEXT로 전달한다`() {
+        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, "직접 입력했습니다.", InputType.TEXT))
+            .thenReturn(submitMessageResult())
+
+        mockMvc
+            .perform(
+                post("/api/v2/retrospectives/{retrospectiveId}/messages", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"clientMessageId":"$clientMessageId","content":"직접 입력했습니다."}""",
+                    ),
+            ).andExpect(status().isOk)
+
+        verify(conversation).submitMessage(retrospectiveId, userId, clientMessageId, "직접 입력했습니다.", InputType.TEXT)
+    }
+
+    @Test
+    fun `V2 STT 메시지는 입력 타입을 STT로 전달한다`() {
+        val request = SubmitConversationMessageV2Request(clientMessageId, "음성 결과를 수정했습니다.", InputType.STT)
+        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, request.content, InputType.STT))
+            .thenReturn(submitMessageResult())
+
+        mockMvc
+            .perform(
+                post("/api/v2/retrospectives/{retrospectiveId}/messages", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(request)),
+            ).andExpect(status().isOk)
+
+        verify(conversation).submitMessage(retrospectiveId, userId, clientMessageId, request.content, InputType.STT)
+    }
+
+    @Test
+    fun `V2 메시지에 지원하지 않는 입력 타입을 전달하면 400을 반환한다`() {
+        mockMvc
+            .perform(
+                post("/api/v2/retrospectives/{retrospectiveId}/messages", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"clientMessageId":"$clientMessageId","content":"회고 내용","inputType":"VOICE"}""",
+                    ),
+            ).andExpect(status().isBadRequest)
     }
 
     @Test
@@ -208,6 +256,14 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             messageType = ConversationMessageType.CONVERSATION,
             content = "자동화로 가장 크게 줄어든 작업은 무엇인가요?",
             createdAt = now,
+        )
+
+    private fun submitMessageResult() =
+        SubmitConversationMessageResult(
+            turnId = turnId,
+            userMessageId = userMessageId,
+            assistantMessage = assistantMessage(),
+            readyToComplete = false,
         )
 
     private fun startResponseFields() =

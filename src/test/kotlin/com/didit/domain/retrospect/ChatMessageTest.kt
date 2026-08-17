@@ -58,4 +58,12 @@ class ChatMessageTest {
         assertFalse(message.isSkipped)
         assertNull(message.inputType)
     }
+
+    @Test
+    fun `v2UserMessage - 전달한 STT 입력 타입을 저장한다`() {
+        val message = ChatMessage.v2UserMessage(retrospective(), "수정한 음성 회고", InputType.STT)
+
+        assertEquals(InputType.STT, message.inputType)
+        assertEquals("수정한 음성 회고", message.content)
+    }
 }

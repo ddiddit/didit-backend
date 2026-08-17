@@ -18,6 +18,7 @@ include::{snippets}/retrospect-v2/start/response-fields.adoc[]
 == 메시지 전송
 
 동일한 `clientMessageId`와 내용으로 재전송하면 이미 완료된 응답을 반환합니다.
+`inputType`은 `TEXT` 또는 `STT`이며 생략하면 `TEXT`로 저장됩니다. STT 변환 텍스트를 사용자가 수정한 뒤 전송할 때는 `STT`를 전달합니다.
 
 === Request
 

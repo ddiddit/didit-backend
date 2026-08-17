@@ -12,6 +12,7 @@ import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.exception.RetrospectiveNotInProgressException
 import com.didit.application.retrospect.exception.SpeechEmptyFileException
 import com.didit.application.retrospect.exception.SpeechEmptyResultException
+import com.didit.application.retrospect.exception.SpeechTranscriptionFailedException
 import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
@@ -40,9 +41,11 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.context.ApplicationEventPublisher
+import org.springframework.web.client.ResourceAccessException
 import java.util.UUID
 
 @ExtendWith(MockitoExtension::class)
+@Suppress("DEPRECATION")
 class RetrospectServiceTest {
     @Mock
     lateinit var retrospectiveRepository: RetrospectiveRepository
@@ -349,6 +352,39 @@ class RetrospectServiceTest {
     }
 
     @Test
+    fun `transcribeVoiceAnswer - V2 대화가 종료된 상태면 STT 호출 없이 예외가 발생한다`() {
+        val retro = Retrospective.createV2(userId).apply { finishConversation() }
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<RetrospectiveNotInProgressException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, ByteArray(100) { 1 }, "voice.wav")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 삭제된 회고면 STT 호출 없이 예외가 발생한다`() {
+        val retro = Retrospective.createV2(userId).apply { softDelete() }
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+
+        assertThrows<RetrospectiveNotInProgressException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, ByteArray(100) { 1 }, "voice.wav")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 소유하지 않은 회고면 STT 호출 없이 예외가 발생한다`() {
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId))
+            .thenThrow(RetrospectiveNotFoundException(retrospectiveId))
+
+        assertThrows<RetrospectiveNotFoundException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, ByteArray(100) { 1 }, "voice.wav")
+        }
+        verify(speechClient, never()).transcribe(any(), any())
+    }
+
+    @Test
     fun `transcribeVoiceAnswer - 빈 파일이면 STT 호출 없이 예외가 발생한다`() {
         val retro = inProgressRetrospective()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
@@ -380,6 +416,38 @@ class RetrospectServiceTest {
         assertThrows<SpeechEmptyResultException> {
             retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
         }
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 외부 STT 예외를 공통 변환 실패로 반환한다`() {
+        val retro = Retrospective.createV2(userId)
+        val audioBytes = ByteArray(100) { 1 }
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(speechClient.transcribe(audioBytes, "voice.wav")).thenThrow(ResourceAccessException("network error"))
+
+        assertThrows<SpeechTranscriptionFailedException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
+        }
+        verify(retrospectiveRepository, never()).save(any())
+    }
+
+    @Test
+    fun `transcribeVoiceAnswer - 실패 후 같은 파일로 재시도할 수 있다`() {
+        val retro = Retrospective.createV2(userId)
+        val audioBytes = ByteArray(100) { 1 }
+        whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
+        whenever(speechClient.transcribe(audioBytes, "voice.wav"))
+            .thenThrow(ResourceAccessException("temporary network error"))
+            .thenReturn("재시도 성공")
+
+        assertThrows<SpeechTranscriptionFailedException> {
+            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
+        }
+        val result = retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
+
+        assertThat(result).isEqualTo("재시도 성공")
+        assertThat(retro.isPending()).isTrue()
+        verify(retrospectiveRepository, never()).save(any())
     }
 
     @Test

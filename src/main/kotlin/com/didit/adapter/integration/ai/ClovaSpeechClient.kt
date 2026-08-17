@@ -63,7 +63,7 @@ class ClovaSpeechClient(
         runCatching {
             objectMapper.readValue(response, ClovaSpeechResponse::class.java)
         }.getOrElse {
-            throw SpeechTranscriptionFailedException("CLOVA Speech 응답 파싱 실패. response: $response")
+            throw SpeechTranscriptionFailedException("CLOVA Speech 응답 파싱 실패")
         }
 
     private fun validateResult(result: ClovaSpeechResponse) {

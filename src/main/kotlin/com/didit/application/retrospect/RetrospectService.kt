@@ -14,6 +14,7 @@ import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
 import com.didit.application.retrospect.exception.RetrospectiveNotInProgressException
 import com.didit.application.retrospect.exception.SpeechEmptyFileException
 import com.didit.application.retrospect.exception.SpeechEmptyResultException
+import com.didit.application.retrospect.exception.SpeechTranscriptionFailedException
 import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
@@ -98,6 +99,7 @@ class RetrospectService(
     ): SubmitAnswerResponse = processAnswer(retrospectiveId, userId, content, InputType.TEXT)
 
     @Transactional
+    @Deprecated("Use transcribeVoiceAnswer and submit the edited text through the conversation API")
     override fun submitVoiceAnswer(
         retrospectiveId: UUID,
         userId: UUID,
@@ -113,7 +115,7 @@ class RetrospectService(
 
         if (retrospective.isPending()) retrospective.startProgress()
 
-        val content = transcribe(audioBytes, filename)
+        val content = transcribe(retrospectiveId, audioBytes, filename)
         saveUserAnswer(retrospective, content, currentQuestionType, InputType.STT)
 
         return routeAnswer(retrospective, currentQuestionType).copy(content = content)
@@ -129,7 +131,7 @@ class RetrospectService(
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
         validateRetrospectiveInProgress(retrospective, retrospectiveId)
 
-        return transcribe(audioBytes, filename)
+        return transcribe(retrospectiveId, audioBytes, filename)
     }
 
     @Transactional
@@ -318,23 +320,40 @@ class RetrospectService(
         }
 
     private fun transcribe(
+        retrospectiveId: UUID,
         audioBytes: ByteArray,
         filename: String,
     ): String {
-        if (audioBytes.isEmpty()) throw SpeechEmptyFileException()
-
-        val supportedExtensions = listOf("flac", "mp3", "mp4", "mpeg", "mpga", "m4a", "ogg", "wav", "webm")
         val extension = filename.substringAfterLast('.', "").lowercase()
+        return try {
+            if (audioBytes.isEmpty()) throw SpeechEmptyFileException()
 
-        if (extension !in supportedExtensions) {
-            throw SpeechUnsupportedFileException(filename, null)
+            val supportedExtensions = listOf("flac", "mp3", "mp4", "mpeg", "mpga", "m4a", "ogg", "wav", "webm")
+            if (extension !in supportedExtensions) {
+                throw SpeechUnsupportedFileException(filename, null)
+            }
+
+            val text =
+                try {
+                    speechClient.transcribe(audioBytes, filename).trim()
+                } catch (exception: SpeechTranscriptionFailedException) {
+                    throw exception
+                } catch (exception: Exception) {
+                    throw SpeechTranscriptionFailedException("providerFailure: ${exception::class.simpleName}")
+                }
+
+            if (text.isBlank()) throw SpeechEmptyResultException()
+            text
+        } catch (exception: Exception) {
+            logger.warn(
+                "음성 변환 실패 - retrospectiveId: {}, extension: {}, fileSize: {}, failureType: {}",
+                retrospectiveId,
+                extension,
+                audioBytes.size,
+                exception::class.simpleName,
+            )
+            throw exception
         }
-
-        val text = speechClient.transcribe(audioBytes, filename).trim()
-
-        if (text.isBlank()) throw SpeechEmptyResultException()
-
-        return text
     }
 
     private fun validateRetrospectiveInProgress(
@@ -343,6 +362,9 @@ class RetrospectService(
     ) {
         if (retrospective.isCompleted()) throw RetrospectiveAlreadyCompletedException(retrospectiveId)
         if (retrospective.isDeleted()) throw RetrospectiveNotInProgressException(retrospectiveId)
+        if (retrospective.isV2() && !retrospective.isConversationActive()) {
+            throw RetrospectiveNotInProgressException(retrospectiveId)
+        }
     }
 
     private fun saveUserAnswer(
