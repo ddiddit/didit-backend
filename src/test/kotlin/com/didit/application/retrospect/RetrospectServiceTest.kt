@@ -422,12 +422,16 @@ class RetrospectServiceTest {
     fun `transcribeVoiceAnswer - 외부 STT 예외를 공통 변환 실패로 반환한다`() {
         val retro = Retrospective.createV2(userId)
         val audioBytes = ByteArray(100) { 1 }
+        val providerException = ResourceAccessException("network error")
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
-        whenever(speechClient.transcribe(audioBytes, "voice.wav")).thenThrow(ResourceAccessException("network error"))
+        whenever(speechClient.transcribe(audioBytes, "voice.wav")).thenThrow(providerException)
 
-        assertThrows<SpeechTranscriptionFailedException> {
-            retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
-        }
+        val exception =
+            assertThrows<SpeechTranscriptionFailedException> {
+                retrospectService.transcribeVoiceAnswer(retrospectiveId, userId, audioBytes, "voice.wav")
+            }
+
+        assertThat(exception.cause).isSameAs(providerException)
         verify(retrospectiveRepository, never()).save(any())
     }
 

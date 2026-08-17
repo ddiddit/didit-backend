@@ -339,19 +339,33 @@ class RetrospectService(
                 } catch (exception: SpeechTranscriptionFailedException) {
                     throw exception
                 } catch (exception: Exception) {
-                    throw SpeechTranscriptionFailedException("providerFailure: ${exception::class.simpleName}")
+                    throw SpeechTranscriptionFailedException(
+                        "providerFailure: ${exception::class.simpleName}",
+                        exception,
+                    )
                 }
 
             if (text.isBlank()) throw SpeechEmptyResultException()
             text
         } catch (exception: Exception) {
-            logger.warn(
-                "음성 변환 실패 - retrospectiveId: {}, extension: {}, fileSize: {}, failureType: {}",
-                retrospectiveId,
-                extension,
-                audioBytes.size,
-                exception::class.simpleName,
-            )
+            if (exception is SpeechTranscriptionFailedException) {
+                logger.warn(
+                    "음성 변환 실패 - retrospectiveId: {}, extension: {}, fileSize: {}, failureType: {}",
+                    retrospectiveId,
+                    extension,
+                    audioBytes.size,
+                    exception::class.simpleName,
+                    exception,
+                )
+            } else {
+                logger.warn(
+                    "음성 변환 실패 - retrospectiveId: {}, extension: {}, fileSize: {}, failureType: {}",
+                    retrospectiveId,
+                    extension,
+                    audioBytes.size,
+                    exception::class.simpleName,
+                )
+            }
             throw exception
         }
     }
