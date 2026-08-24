@@ -5,6 +5,7 @@ import com.didit.application.common.exception.ErrorCode
 import org.slf4j.LoggerFactory
 import org.springframework.http.HttpStatus
 import org.springframework.http.ProblemDetail
+import org.springframework.http.converter.HttpMessageNotReadableException
 import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
@@ -24,6 +25,19 @@ class ApiControllerAdvice {
 
         return ProblemDetail
             .forStatusAndDetail(HttpStatus.BAD_REQUEST, detail)
+            .apply {
+                title = HttpStatus.BAD_REQUEST.reasonPhrase
+                setProperty("timestamp", OffsetDateTime.now().toString())
+                setProperty("code", ErrorCode.INVALID_REQUEST.name)
+            }
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException::class)
+    fun handleUnreadableMessage(exception: HttpMessageNotReadableException): ProblemDetail {
+        log.warn("[VALIDATION] 요청 본문 파싱 실패 message={}", exception.message)
+
+        return ProblemDetail
+            .forStatusAndDetail(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST.detail)
             .apply {
                 title = HttpStatus.BAD_REQUEST.reasonPhrase
                 setProperty("timestamp", OffsetDateTime.now().toString())

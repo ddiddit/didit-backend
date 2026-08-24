@@ -115,6 +115,12 @@ class ChatMessage(
         fun v2UserMessage(
             retrospective: Retrospective,
             content: String,
+        ): ChatMessage = v2UserMessage(retrospective, content, InputType.TEXT)
+
+        fun v2UserMessage(
+            retrospective: Retrospective,
+            content: String,
+            inputType: InputType,
         ): ChatMessage {
             require(content.isNotBlank()) { "회고 내용은 비어 있을 수 없습니다." }
             return ChatMessage(
@@ -122,7 +128,7 @@ class ChatMessage(
                 sender = Sender.USER,
                 content = content,
                 questionType = QuestionType.V2_CHAT,
-                inputType = InputType.TEXT,
+                inputType = inputType,
                 messageType = ConversationMessageType.CONVERSATION,
                 includedInResult = false,
             )

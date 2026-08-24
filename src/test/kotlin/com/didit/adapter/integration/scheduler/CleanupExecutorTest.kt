@@ -2,6 +2,7 @@ package com.didit.adapter.integration.scheduler
 
 import com.didit.application.achievement.provided.AchievementDeletionPort
 import com.didit.application.auth.required.RefreshTokenRepository
+import com.didit.application.auth.required.SocialLoginSessionRepository
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.notification.provided.NotificationDeletionPort
 import com.didit.application.organization.provided.OrganizationDeletionPort
@@ -24,6 +25,9 @@ class CleanupExecutorTest {
 
     @Mock
     lateinit var refreshTokenRepository: RefreshTokenRepository
+
+    @Mock
+    lateinit var socialLoginSessionRepository: SocialLoginSessionRepository
 
     @Mock
     lateinit var userRepository: UserRepository

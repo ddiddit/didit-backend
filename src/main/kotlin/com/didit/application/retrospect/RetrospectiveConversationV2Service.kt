@@ -32,6 +32,7 @@ import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnStatus
+import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveAnalysisEvidence
@@ -98,10 +99,11 @@ class RetrospectiveConversationV2Service(
         userId: UUID,
         clientMessageId: UUID,
         content: String,
+        inputType: InputType,
     ): SubmitConversationMessageResult {
         val preparation =
             metrics.recordStage("conversation_v2", "prepare") {
-                prepareTurn(retrospectiveId, userId, clientMessageId, content)
+                prepareTurn(retrospectiveId, userId, clientMessageId, content, inputType)
             }
         preparation.cachedResult?.let {
             metrics.incrementConversationDuplicate()
@@ -182,6 +184,7 @@ class RetrospectiveConversationV2Service(
         userId: UUID,
         clientMessageId: UUID,
         content: String,
+        inputType: InputType,
     ): TurnPreparation =
         transactionTemplate.execute {
             val retrospective = findV2ForUpdate(retrospectiveId, userId)
@@ -190,7 +193,9 @@ class RetrospectiveConversationV2Service(
             val existing = turnRepository.findByRetrospectiveIdAndClientMessageId(retrospectiveId, clientMessageId)
             if (existing != null) {
                 val userMessage = chatMessageRepository.findById(existing.userMessageId) ?: error("사용자 메시지를 찾을 수 없습니다.")
-                if (userMessage.content != content) throw DuplicateMessageContentMismatchException(clientMessageId)
+                if (userMessage.content != content || userMessage.inputType != inputType) {
+                    throw DuplicateMessageContentMismatchException(clientMessageId)
+                }
                 when (existing.status) {
                     ConversationTurnStatus.PROCESSING -> throw ConversationTurnInProgressException(retrospectiveId)
                     ConversationTurnStatus.COMPLETED ->
@@ -219,7 +224,7 @@ class RetrospectiveConversationV2Service(
             }
 
             if (retrospective.isPending()) retrospective.startProgress()
-            val userMessage = ChatMessage.v2UserMessage(retrospective, content)
+            val userMessage = ChatMessage.v2UserMessage(retrospective, content, inputType)
             retrospective.addMessage(userMessage)
             retrospectiveRepository.save(retrospective)
             val turn =

@@ -1,8 +1,10 @@
 package com.didit.adapter.integration.oauth
 
 import com.didit.application.auth.dto.UserInfo
+import com.didit.application.auth.exception.InvalidSocialCredentialTypeException
 import com.didit.application.auth.exception.OAuthUserInfoFailedException
 import com.didit.application.auth.required.OAuthClient
+import com.didit.domain.auth.SocialCredentialType
 import com.fasterxml.jackson.databind.ObjectMapper
 import io.jsonwebtoken.Jwts
 import org.springframework.beans.factory.annotation.Value
@@ -38,6 +40,14 @@ class AppleOAuthClient(
             providerId = claims.subject,
             email = claims["email"] as? String,
         )
+    }
+
+    override fun getUserInfo(
+        credentialType: SocialCredentialType,
+        credential: String,
+    ): UserInfo {
+        if (credentialType != SocialCredentialType.ID_TOKEN) throw InvalidSocialCredentialTypeException()
+        return getUserInfo(credential)
     }
 
     private fun fetchApplePublicKey(idToken: String): RSAPublicKey {

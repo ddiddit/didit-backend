@@ -87,6 +87,8 @@ class RetrospectApi(
     }
 
     @RequireAuth
+    @Deprecated("Use the transcription endpoint and submit the edited text through the conversation API")
+    @Suppress("DEPRECATION")
     @PostMapping("/api/v1/retrospectives/{retrospectiveId}/answers/voice", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     fun submitVoiceAnswer(
         @CurrentUserId userId: UUID,

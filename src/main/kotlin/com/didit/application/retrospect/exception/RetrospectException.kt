@@ -64,10 +64,15 @@ class SpeechUnsupportedFileException(
 
 class SpeechTranscriptionFailedException(
     message: String,
+    cause: Throwable? = null,
 ) : BusinessException(
         RetrospectErrorCode.SPEECH_TRANSCRIPTION_FAILED,
         message,
-    )
+    ) {
+    init {
+        if (cause != null) initCause(cause)
+    }
+}
 
 class SpeechEmptyResultException : BusinessException(RetrospectErrorCode.SPEECH_EMPTY_RESULT)
 

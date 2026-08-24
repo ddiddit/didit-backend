@@ -2,6 +2,7 @@ package com.didit.adapter.integration.scheduler
 
 import com.didit.application.achievement.provided.AchievementDeletionPort
 import com.didit.application.auth.required.RefreshTokenRepository
+import com.didit.application.auth.required.SocialLoginSessionRepository
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.notification.provided.NotificationDeletionPort
 import com.didit.application.organization.provided.OrganizationDeletionPort
@@ -16,6 +17,7 @@ import java.util.UUID
 class CleanupExecutor(
     private val retrospectiveRepository: RetrospectiveRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
+    private val socialLoginSessionRepository: SocialLoginSessionRepository,
     private val userRepository: UserRepository,
     private val projectDeletionPort: OrganizationDeletionPort,
     private val notificationDeletionPort: NotificationDeletionPort,
@@ -32,6 +34,9 @@ class CleanupExecutor(
 
     @Transactional
     fun cleanExpiredRefreshTokens(): Int = refreshTokenRepository.deleteAllExpiredBefore(LocalDateTime.now())
+
+    @Transactional
+    fun cleanExpiredSocialLoginSessions(): Int = socialLoginSessionRepository.deleteAllExpiredBefore(LocalDateTime.now())
 
     fun findWithdrawnToAnonymize(): List<UUID> =
         userRepository.findAllWithdrawnAndNotAnonymizedBefore(LocalDateTime.now().minusDays(30)).map { it.id }

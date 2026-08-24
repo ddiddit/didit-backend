@@ -34,14 +34,29 @@ management:
 oauth:
   kakao:
     user-info-url: https://kapi.kakao.com/v2/user/me
+    token-url: https://kauth.kakao.com/oauth/token
+    token-info-url: https://kapi.kakao.com/v1/user/access_token_info
+    rest-api-key: ${OAUTH_KAKAO_REST_API_KEY:}
+    client-secret: ${OAUTH_KAKAO_CLIENT_SECRET:}
+    redirect-uri: ${OAUTH_KAKAO_REDIRECT_URI:https://app.didit.io.kr/auth/kakao/callback}
+    app-id: ${OAUTH_KAKAO_APP_ID:}
   google:
     token-info-url: https://oauth2.googleapis.com/tokeninfo
+    allowed-client-ids: ${OAUTH_GOOGLE_ALLOWED_CLIENT_IDS:}
   apple:
     jwks-url: https://appleid.apple.com/auth/keys
 
 jwt:
   access-token-expiry-ms: 3600000
   refresh-token-expiry-days: 14
+
+social-login:
+  apple-enabled: ${OAUTH_APPLE_ENABLED:false}
+  session-expiry-minutes: 15
+  email-verification:
+    expiry-minutes: 10
+    max-attempts: 5
+    resend-cooldown-seconds: 60
 
 achievement:
   feature-launched-at: ${ACHIEVEMENT_FEATURE_LAUNCHED_AT:2026-06-30T00:00:00}
