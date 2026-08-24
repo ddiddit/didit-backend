@@ -5,26 +5,24 @@ import com.didit.application.audit.AuditAction
 import com.didit.application.audit.AuditLogger
 import com.didit.application.auth.dto.RefreshResponse
 import com.didit.application.auth.dto.TokenResponse
+import com.didit.application.auth.exception.AccountVerificationRequiredException
 import com.didit.application.auth.exception.ExpiredRefreshTokenException
 import com.didit.application.auth.exception.InvalidRefreshTokenException
 import com.didit.application.auth.provided.Auth
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.required.OAuthClientFactory
 import com.didit.application.auth.required.RefreshTokenRepository
+import com.didit.application.auth.required.SocialIdentityRepository
 import com.didit.application.auth.required.TokenProvider
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.auth.required.WithdrawalRecordRepository
 import com.didit.application.notification.required.DeviceTokenRepository
 import com.didit.domain.auth.Provider
-import com.didit.domain.auth.RefreshToken
+import com.didit.domain.auth.SocialIdentity
 import com.didit.domain.auth.User
-import com.didit.domain.auth.UserLoggedInEvent
-import com.didit.domain.auth.UserRegisterRequest
 import com.didit.domain.auth.WithdrawalReason
 import com.didit.domain.auth.WithdrawalRecord
-import com.didit.domain.shared.ServiceTime
 import org.slf4j.LoggerFactory
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import java.util.UUID
@@ -33,6 +31,7 @@ import java.util.UUID
 @Service
 class AuthService(
     private val userRepository: UserRepository,
+    private val socialIdentityRepository: SocialIdentityRepository,
     private val refreshTokenRepository: RefreshTokenRepository,
     private val userFinder: UserFinder,
     private val oAuthClientFactory: OAuthClientFactory,
@@ -40,7 +39,7 @@ class AuthService(
     private val withdrawalRecordRepository: WithdrawalRecordRepository,
     private val auditLogger: AuditLogger,
     private val deviceTokenRepository: DeviceTokenRepository,
-    private val eventPublisher: ApplicationEventPublisher,
+    private val loginCompletionService: LoginCompletionService,
 ) : Auth {
     companion object {
         private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -55,25 +54,11 @@ class AuthService(
 
         val userInfo = client.getUserInfo(oauthToken)
 
-        val (user, isNewUser) = resolveUser(provider, userInfo.providerId, userInfo.email)
+        val (user, isNewUser) = resolveUser(provider, userInfo.providerId)
 
         logger.info("로그인 성공 - userId: ${user.id}, provider: $provider, isNewUser: $isNewUser")
 
-        auditLogger.log(
-            actorId = user.id,
-            actorType = ActorType.USER,
-            action = AuditAction.USER_LOGGED_IN,
-            payload = mapOf("provider" to provider.name),
-        )
-
-        eventPublisher.publishEvent(
-            UserLoggedInEvent(
-                userId = user.id,
-                accessDateKst = ServiceTime.today(),
-            ),
-        )
-
-        return issueTokens(user, isNewUser)
+        return loginCompletionService.complete(user, provider, isNewUser)
     }
 
     @Transactional
@@ -95,6 +80,7 @@ class AuthService(
 
         user.withdraw()
         userRepository.save(user)
+        socialIdentityRepository.deleteAllByUserId(user.id)
 
         deviceTokenRepository.deleteByUserId(user.id)
 
@@ -146,9 +132,15 @@ class AuthService(
     private fun resolveUser(
         provider: Provider,
         providerId: String,
-        email: String?,
     ): Pair<User, Boolean> {
+        socialIdentityRepository.findByProviderAndProviderId(provider, providerId)?.let { identity ->
+            val user = userRepository.findById(identity.userId)
+            if (user != null && !user.isDeleted) return user to false
+            socialIdentityRepository.delete(identity)
+        }
+
         userRepository.findByProviderAndProviderId(provider, providerId)?.let {
+            socialIdentityRepository.save(SocialIdentity.create(it.id, provider, providerId))
             return it to false
         }
         userRepository.findByProviderAndProviderIdAndDeletedAtIsNotNull(provider, providerId)?.let { withdrawn ->
@@ -157,19 +149,7 @@ class AuthService(
                 userRepository.save(withdrawn)
             }
         }
-        return createNewUser(provider, providerId, email) to true
-    }
-
-    private fun createNewUser(
-        provider: Provider,
-        providerId: String,
-        email: String?,
-    ): User {
-        logger.info("신규 유저 생성 - provider: $provider, providerId: $providerId")
-
-        return userRepository.save(
-            User.register(UserRegisterRequest(provider = provider, providerId = providerId, email = email)),
-        )
+        throw AccountVerificationRequiredException()
     }
 
     private fun rejoinUser(user: User): User {
@@ -178,26 +158,5 @@ class AuthService(
         user.rejoin()
 
         return userRepository.save(user)
-    }
-
-    private fun issueTokens(
-        user: User,
-        isNewUser: Boolean,
-    ): TokenResponse {
-        // 로그인마다 새 리프레시 토큰을 추가 발급 — 기기별 다중 세션 허용
-        // (기존 deleteByUserId는 다른 기기에서 로그인할 때마다 앱 세션을 무효화시켜
-        //  자동 로그인이 풀리는 원인이었음. 만료 토큰은 CleanupScheduler가 매일 정리)
-        val newRefreshToken = tokenProvider.generateRefreshToken()
-
-        refreshTokenRepository.save(
-            RefreshToken.create(user.id, newRefreshToken, tokenProvider.getRefreshTokenExpiresAt()),
-        )
-
-        return TokenResponse(
-            accessToken = tokenProvider.generateAccessToken(user.id),
-            refreshToken = newRefreshToken,
-            isNewUser = isNewUser,
-            isOnboardingCompleted = user.isOnboardingCompleted,
-        )
     }
 }

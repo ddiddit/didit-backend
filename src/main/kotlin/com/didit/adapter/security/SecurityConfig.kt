@@ -40,6 +40,7 @@ class SecurityConfig(
                         "/api/v1/app/config",
                         "/api/v1/auth/login",
                         "/api/v1/auth/refresh",
+                        "/api/v2/auth/social/**",
                         "/api/v1/notification-histories/**",
                         "/api/v1/users/nickname/check",
                         "/api/v1/admin/auth/login",

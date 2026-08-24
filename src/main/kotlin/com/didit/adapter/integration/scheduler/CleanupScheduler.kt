@@ -16,6 +16,7 @@ class CleanupScheduler(
     fun cleanup() {
         cleanPendingRetrospects()
         cleanExpiredRefreshTokens()
+        cleanExpiredSocialLoginSessions()
         cleanWithdrawnUsers()
     }
 
@@ -29,6 +30,12 @@ class CleanupScheduler(
         runCatching { cleanupExecutor.cleanExpiredRefreshTokens() }
             .onSuccess { logger.info("만료 리프레시 토큰 삭제 - count: $it") }
             .onFailure { logger.error("만료 리프레시 토큰 삭제 실패", it) }
+    }
+
+    private fun cleanExpiredSocialLoginSessions() {
+        runCatching { cleanupExecutor.cleanExpiredSocialLoginSessions() }
+            .onSuccess { logger.info("만료 소셜 로그인 세션 삭제 - count: $it") }
+            .onFailure { logger.error("만료 소셜 로그인 세션 삭제 실패", it) }
     }
 
     private fun cleanWithdrawnUsers() {

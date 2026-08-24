@@ -40,6 +40,17 @@ interface UserRepository : Repository<User, UUID> {
     @Query(
         """
         SELECT u FROM User u
+        WHERE u.deletedAt IS NULL
+          AND LOWER(TRIM(u.email)) = :normalizedEmail
+        """,
+    )
+    fun findAllActiveByNormalizedEmail(
+        @Param("normalizedEmail") normalizedEmail: String,
+    ): List<User>
+
+    @Query(
+        """
+        SELECT u FROM User u
         JOIN u.consent c
         WHERE u.deletedAt IS NULL
         AND u.email IS NOT NULL
