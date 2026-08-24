@@ -5,6 +5,8 @@ import com.didit.domain.auth.SocialCredentialType
 import org.assertj.core.api.Assertions.assertThat
 import org.assertj.core.api.Assertions.assertThatThrownBy
 import org.junit.jupiter.api.Test
+import org.springframework.context.annotation.AnnotationConfigApplicationContext
+import org.springframework.core.env.MapPropertySource
 import org.springframework.http.MediaType
 import org.springframework.test.web.client.MockRestServiceServer
 import org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo
@@ -13,6 +15,27 @@ import org.springframework.web.client.RestClient
 import java.time.Instant
 
 class GoogleOAuthClientTest {
+    @Test
+    fun `Google OAuth 설정값을 Spring 생성자에 주입한다`() {
+        AnnotationConfigApplicationContext().use { context ->
+            context.environment.propertySources.addFirst(
+                MapPropertySource(
+                    "googleOAuthTestProperties",
+                    mapOf(
+                        "oauth.google.token-info-url" to TOKEN_INFO_URL,
+                        "oauth.google.allowed-client-ids" to "web-client-id",
+                    ),
+                ),
+            )
+            context.beanFactory.registerSingleton("restClient", RestClient.create())
+            context.register(GoogleOAuthClient::class.java)
+
+            context.refresh()
+
+            assertThat(context.getBean(GoogleOAuthClient::class.java)).isNotNull
+        }
+    }
+
     @Test
     fun `Google ID 토큰의 발급자 대상 만료시간을 검증한다`() {
         val builder = RestClient.builder()

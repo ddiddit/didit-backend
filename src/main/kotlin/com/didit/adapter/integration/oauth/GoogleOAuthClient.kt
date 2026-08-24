@@ -16,10 +16,10 @@ import java.time.Instant
 class GoogleOAuthClient(
     private val restClient: RestClient,
     @param:Value("\${oauth.google.token-info-url}") private val tokenInfoUrl: String,
-    @param:Value("\${oauth.google.allowed-client-ids:}") allowedClientIds: String,
+    @param:Value("\${oauth.google.allowed-client-ids:}") private val allowedClientIdsConfig: String,
 ) : OAuthClient {
     private val allowedClientIds =
-        allowedClientIds
+        allowedClientIdsConfig
             .split(",")
             .map(String::trim)
             .filter(String::isNotEmpty)
