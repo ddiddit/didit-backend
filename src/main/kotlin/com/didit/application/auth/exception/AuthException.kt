@@ -28,3 +28,21 @@ class UnsupportedOAuthProviderException : BusinessException(AuthErrorCode.UNSUPP
 class DuplicateNicknameException : BusinessException(AuthErrorCode.DUPLICATE_NICKNAME)
 
 class OAuthUserInfoFailedException : BusinessException(AuthErrorCode.OAUTH_USER_INFO_FAILED)
+
+class InvalidSocialCredentialTypeException : BusinessException(AuthErrorCode.INVALID_SOCIAL_CREDENTIAL_TYPE)
+
+class AccountVerificationRequiredException : BusinessException(AuthErrorCode.ACCOUNT_VERIFICATION_REQUIRED)
+
+class InvalidSocialLoginSessionException : BusinessException(AuthErrorCode.SOCIAL_LOGIN_SESSION_INVALID)
+
+class ExpiredSocialLoginSessionException : BusinessException(AuthErrorCode.SOCIAL_LOGIN_SESSION_EXPIRED)
+
+class InvalidEmailVerificationException : BusinessException(AuthErrorCode.EMAIL_VERIFICATION_INVALID)
+
+class ExpiredEmailVerificationException : BusinessException(AuthErrorCode.EMAIL_VERIFICATION_EXPIRED)
+
+class EmailVerificationAttemptsExceededException : BusinessException(AuthErrorCode.EMAIL_VERIFICATION_ATTEMPTS_EXCEEDED)
+
+class EmailVerificationResendTooSoonException : BusinessException(AuthErrorCode.EMAIL_VERIFICATION_RESEND_TOO_SOON)
+
+class EmailRequiredException : BusinessException(AuthErrorCode.EMAIL_REQUIRED)
