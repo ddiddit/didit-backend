@@ -46,6 +46,8 @@ class RetrospectiveResultV2CompletionCoordinator(
     private val eventPublisher: ApplicationEventPublisher,
     @param:Value("\${retrospective.v2.result-generation-timeout-seconds:600}")
     private val resultGenerationTimeoutSeconds: Long,
+    @param:Value("\${retrospective.v2.max-context-characters:30000}")
+    private val maxContextCharacters: Int,
 ) {
     fun complete(
         retrospectiveId: UUID,
@@ -65,7 +67,6 @@ class RetrospectiveResultV2CompletionCoordinator(
                     metrics.recordStage("result_v2", "save") {
                         save(retrospectiveId, userId, checkNotNull(preparation.attemptId), generated)
                     }
-                publishCompletedEvent(retrospectiveId, userId)
                 result
             } catch (exception: Exception) {
                 reset(retrospectiveId, userId, preparation.attemptId)
@@ -104,9 +105,11 @@ class RetrospectiveResultV2CompletionCoordinator(
                         job = user.job,
                         experience = user.experience,
                         messages =
-                            chatMessageRepository
-                                .findAllResultEvidenceByRetrospectiveId(retrospectiveId)
-                                .map { ConversationContextMessage(it.id, it.sender, it.content) },
+                            trimContext(
+                                chatMessageRepository
+                                    .findAllResultEvidenceByRetrospectiveId(retrospectiveId)
+                                    .map { ConversationContextMessage(it.id, it.sender, it.content) },
+                            ),
                         analysisItems =
                             analysisItemRepository
                                 .findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)
@@ -115,6 +118,16 @@ class RetrospectiveResultV2CompletionCoordinator(
                 attemptId = attemptId,
             )
         }!!
+
+    private fun trimContext(messages: List<ConversationContextMessage>): List<ConversationContextMessage> {
+        var used = 0
+        return messages
+            .asReversed()
+            .takeWhile {
+                used += it.content.length
+                used <= maxContextCharacters
+            }.asReversed()
+    }
 
     private fun save(
         retrospectiveId: UUID,
@@ -145,6 +158,7 @@ class RetrospectiveResultV2CompletionCoordinator(
             )
             retrospective.addTokens(generated.inputTokens, generated.outputTokens)
             retrospectiveRepository.save(retrospective)
+            publishCompletedEvent(retrospectiveId, userId)
             retrospective.toFinishResult()
         }!!
 

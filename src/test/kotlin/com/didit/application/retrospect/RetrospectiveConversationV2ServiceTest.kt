@@ -219,6 +219,28 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `결과 생성은 관련 메시지 컨텍스트를 최대 문자 수로 제한한다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            retrospectiveResponse(invocation.getArgument(0))
+        }
+        val olderMessage = "가".repeat(20_000)
+        val newerMessage = "나".repeat(20_000)
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), olderMessage)
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), newerMessage)
+        whenever(resultAIClient.generateResult(any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<com.didit.application.retrospect.required.RetrospectiveResultV2AIRequest>(0)
+            assertThat(request.messages.sumOf { it.content.length }).isLessThanOrEqualTo(30_000)
+            assertThat(request.messages).extracting<String> { it.content }.containsExactly(newerMessage)
+            generatedResult()
+        }
+
+        service.finish(started.retrospectiveId, userId)
+
+        verify(resultAIClient).generateResult(any())
+    }
+
+    @Test
     fun `완료 요청을 다시 보내면 저장된 결과를 반환하고 AI를 다시 호출하지 않는다`() {
         val started = service.start(userId)
         whenever(resultAIClient.generateResult(any())).thenReturn(generatedResult())
