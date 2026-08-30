@@ -11,6 +11,7 @@ data class SocialLoginRequest(
     val provider: Provider,
     val credentialType: SocialCredentialType,
     @field:NotBlank val credential: String,
+    val redirectUri: String? = null,
 )
 
 data class EmailVerificationStartRequest(

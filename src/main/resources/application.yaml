@@ -38,7 +38,7 @@ oauth:
     token-info-url: https://kapi.kakao.com/v1/user/access_token_info
     rest-api-key: ${OAUTH_KAKAO_REST_API_KEY:}
     client-secret: ${OAUTH_KAKAO_CLIENT_SECRET:}
-    redirect-uri: ${OAUTH_KAKAO_REDIRECT_URI:https://app.didit.io.kr/auth/kakao/callback}
+    allowed-redirect-uris: ${OAUTH_KAKAO_ALLOWED_REDIRECT_URIS:https://app.didit.io.kr/auth/kakao/callback}
     app-id: ${OAUTH_KAKAO_APP_ID:}
   google:
     token-info-url: https://oauth2.googleapis.com/tokeninfo

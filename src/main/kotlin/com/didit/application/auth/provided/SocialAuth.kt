@@ -10,6 +10,7 @@ interface SocialAuth {
         provider: Provider,
         credentialType: SocialCredentialType,
         credential: String,
+        redirectUri: String?,
     ): SocialLoginResult
 
     fun startEmailVerification(

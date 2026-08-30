@@ -2,6 +2,23 @@
 
 == 소셜 로그인
 
+`/api/v1/auth/login`은 이미 발급된 소셜 access token을 사용하는 이전 로그인 API입니다.
+
+== 소셜 로그인 v2
+
+카카오 인가 코드 로그인은 `POST /api/v2/auth/social/login`을 사용합니다. `credentialType`이
+`AUTHORIZATION_CODE`인 Kakao 요청은 인가 코드 발급에 사용한 `redirectUri`를 함께 전달해야 합니다.
+
+=== Request
+
+include::{snippets}/auth/social-login-v2/http-request.adoc[]
+include::{snippets}/auth/social-login-v2/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/auth/social-login-v2/http-response.adoc[]
+include::{snippets}/auth/social-login-v2/response-fields.adoc[]
+
 === Request
 
 include::{snippets}/auth/login/http-request.adoc[]
