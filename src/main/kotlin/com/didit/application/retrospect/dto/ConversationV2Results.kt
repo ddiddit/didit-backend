@@ -53,4 +53,16 @@ data class FinishConversationV2Result(
     val retrospectiveId: UUID,
     val conversationStatus: ConversationStatus,
     val resultGenerationStatus: SummaryGenerationStatus,
+    val title: String,
+    val result: RetrospectiveResultV2Result,
+)
+
+data class RetrospectiveResultV2Result(
+    val summary: String?,
+    val strength: String?,
+    val improvement: String?,
+    val process: String?,
+    val learning: String?,
+    val insight: String?,
+    val nextActions: List<String>?,
 )

@@ -5,6 +5,7 @@ import com.didit.application.retrospect.dto.ConversationMessageResult
 import com.didit.application.retrospect.dto.ConversationTurnResult
 import com.didit.application.retrospect.dto.ConversationV2Result
 import com.didit.application.retrospect.dto.FinishConversationV2Result
+import com.didit.application.retrospect.dto.RetrospectiveResultV2Result
 import com.didit.application.retrospect.dto.StartConversationV2Result
 import com.didit.application.retrospect.dto.SubmitConversationMessageResult
 import com.didit.application.retrospect.provided.RetrospectiveConversationV2
@@ -215,13 +216,25 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             FinishConversationV2Result(
                 retrospectiveId = retrospectiveId,
                 conversationStatus = ConversationStatus.FINISHED,
-                resultGenerationStatus = SummaryGenerationStatus.NOT_STARTED,
+                resultGenerationStatus = SummaryGenerationStatus.GENERATED,
+                title = "배포 오류 롤백 회고",
+                result =
+                    RetrospectiveResultV2Result(
+                        summary = "배포 오류를 발견하고 롤백했다.",
+                        strength = null,
+                        improvement = "배포 전 확인이 부족했다.",
+                        process = "로그를 확인해 원인을 좁혔다.",
+                        learning = "배포 체크리스트가 필요하다.",
+                        insight = null,
+                        nextActions = listOf("배포 체크리스트를 만든다."),
+                    ),
             ),
         )
 
         mockMvc
             .perform(post("/api/v2/retrospectives/{retrospectiveId}/finish", retrospectiveId))
             .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.result.strength").value("오늘 잘한 점은 대화에서 확인되지 않았어요."))
             .andDo(
                 document(
                     "retrospect-v2/finish",
@@ -233,7 +246,15 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.conversationStatus").type(JsonFieldType.STRING).description("종료된 대화 상태"),
                         fieldWithPath("data.resultGenerationStatus")
                             .type(JsonFieldType.STRING)
-                            .description("별도 결과 생성 상태. 대화 종료 시에는 NOT_STARTED"),
+                            .description("구조화 결과 생성 상태. 성공 시 GENERATED"),
+                        fieldWithPath("data.title").type(JsonFieldType.STRING).description("자동 생성된 구체적인 회고 제목"),
+                        fieldWithPath("data.result.summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
+                        fieldWithPath("data.result.strength").type(JsonFieldType.STRING).description("오늘 잘한 점").optional(),
+                        fieldWithPath("data.result.improvement").type(JsonFieldType.STRING).description("아쉬웠던 지점").optional(),
+                        fieldWithPath("data.result.process").type(JsonFieldType.STRING).description("돌아본 과정").optional(),
+                        fieldWithPath("data.result.learning").type(JsonFieldType.STRING).description("오늘의 배움").optional(),
+                        fieldWithPath("data.result.insight").type(JsonFieldType.STRING).description("디딧의 인사이트").optional(),
+                        fieldWithPath("data.result.nextActions").type(JsonFieldType.ARRAY).description("다음에 해볼 일, 최대 3개").optional(),
                     ),
                 ),
             )

@@ -100,6 +100,60 @@ class RetrospectiveTest {
     }
 
     @Test
+    fun `saveV2Result - 결과를 정규화하고 회고를 완료한다`() {
+        val retro = Retrospective.createV2(userId).apply { startProgress() }
+
+        retro.saveV2Result(
+            title = "  로그인 오류 원인 정리  ",
+            result =
+                RetrospectiveResultV2(
+                    summary = "  로그인 오류를 추적했다.  ",
+                    strength = "   ",
+                    improvement = "예외 조건을 늦게 확인했다.",
+                    process = null,
+                    learning = "실패 조건을 먼저 정의해야 한다.",
+                    insight = "  재현 조건 분리가 원인 파악을 도왔다. ",
+                    nextActions = listOf("  만료 테스트 추가하기  ", "", "만료 테스트 추가하기", "응답 명세 정리하기"),
+                ),
+        )
+
+        assertThat(retro.title).isEqualTo("로그인 오류 원인 정리")
+        assertThat(retro.isCompleted()).isTrue()
+        assertThat(retro.summaryGenerationStatus).isEqualTo(SummaryGenerationStatus.GENERATED)
+        assertThat(retro.resultV2?.summary).isEqualTo("로그인 오류를 추적했다.")
+        assertThat(retro.resultV2?.strength).isNull()
+        assertThat(retro.resultV2?.nextActions).containsExactly("만료 테스트 추가하기", "응답 명세 정리하기")
+    }
+
+    @Test
+    fun `saveV2Result - 다음 행동이 3개를 초과하면 거절한다`() {
+        val retro = Retrospective.createV2(userId).apply { startProgress() }
+
+        assertThrows<IllegalArgumentException> {
+            retro.saveV2Result(
+                title = "로그인 오류 원인 정리",
+                result =
+                    RetrospectiveResultV2(
+                        summary = null,
+                        strength = null,
+                        improvement = null,
+                        process = null,
+                        learning = null,
+                        insight = null,
+                        nextActions = listOf("행동 1", "행동 2", "행동 3", "행동 4"),
+                    ),
+            )
+        }
+    }
+
+    @Test
+    fun `NullableStringListJsonConverter - 손상된 JSON은 오류로 드러낸다`() {
+        assertThrows<Exception> {
+            NullableStringListJsonConverter().convertToEntityAttribute("{invalid-json")
+        }
+    }
+
+    @Test
     fun `addTokens - 토큰이 누적된다`() {
         val retro = retrospective()
 

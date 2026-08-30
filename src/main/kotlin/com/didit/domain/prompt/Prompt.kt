@@ -41,4 +41,4 @@ class Prompt(
 
 enum class PromptJobType { DEVELOPER, PLANNER, DESIGNER }
 
-enum class PromptType { DEEP_QUESTION, SUMMARY, CONVERSATION_V2 }
+enum class PromptType { DEEP_QUESTION, SUMMARY, CONVERSATION_V2, RESULT_V2 }

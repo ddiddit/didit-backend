@@ -9,6 +9,7 @@ import com.didit.application.retrospect.dto.DeepQuestionResponse
 import com.didit.application.retrospect.dto.RetrospectiveDetailResult
 import com.didit.application.retrospect.dto.RetrospectiveListItemResult
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
+import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.SearchHistoryRegister
 import com.didit.application.retrospect.required.RetrospectiveRepository
@@ -16,6 +17,7 @@ import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.Sender
+import com.didit.domain.retrospect.SummaryGenerationStatus
 import com.didit.domain.shared.ServiceTime
 import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
@@ -165,6 +167,19 @@ class RetrospectQueryService(
             project = project,
             tags = tags,
         )
+    }
+
+    override fun findStructuredResult(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): RetrospectiveDetailResult {
+        val result = findRetrospectWithProjectAndTags(retrospectiveId, userId)
+        if (!result.retrospective.isCompleted() ||
+            result.retrospective.summaryGenerationStatus != SummaryGenerationStatus.GENERATED
+        ) {
+            throw SummaryNotGeneratedException(retrospectiveId)
+        }
+        return result
     }
 
     override fun findAllWithProjectAndTagsByUserId(userId: UUID): List<RetrospectiveDetailResult> =

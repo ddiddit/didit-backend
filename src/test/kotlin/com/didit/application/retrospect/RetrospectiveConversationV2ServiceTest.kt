@@ -4,15 +4,20 @@ import com.didit.adapter.config.JpaAuditingConfig
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.retrospect.exception.ConversationAiFailedException
 import com.didit.application.retrospect.exception.DuplicateMessageContentMismatchException
+import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
+import com.didit.application.retrospect.exception.RetrospectiveResultGenerationFailedException
+import com.didit.application.retrospect.exception.SummaryGenerationInProgressException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.required.ChatMessageRepository
 import com.didit.application.retrospect.required.ConversationAnalysisUpdate
 import com.didit.application.retrospect.required.ConversationTurnAIRequest
 import com.didit.application.retrospect.required.ConversationV2AIClient
 import com.didit.application.retrospect.required.GeneratedConversationTurn
+import com.didit.application.retrospect.required.GeneratedRetrospectiveResultV2
 import com.didit.application.retrospect.required.RetrospectiveAnalysisItemRepository
 import com.didit.application.retrospect.required.RetrospectivePolicy
 import com.didit.application.retrospect.required.RetrospectiveRepository
+import com.didit.application.retrospect.required.RetrospectiveResultV2AIClient
 import com.didit.domain.auth.Provider
 import com.didit.domain.auth.User
 import com.didit.domain.auth.UserRegisterRequest
@@ -28,18 +33,21 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
 import org.mockito.kotlin.any
+import org.mockito.kotlin.never
 import org.mockito.kotlin.times
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest
 import org.springframework.boot.test.context.TestConfiguration
+import org.springframework.context.ApplicationEventPublisher
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Import
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.test.context.bean.override.mockito.MockitoBean
 import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import java.time.LocalDateTime
 import java.util.UUID
 
 @DataJpaTest
@@ -47,6 +55,7 @@ import java.util.UUID
 @Import(
     JpaAuditingConfig::class,
     RetrospectiveConversationV2Service::class,
+    RetrospectiveResultV2CompletionCoordinator::class,
     RetrospectiveConversationV2ServiceTest.MetricsConfig::class,
 )
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -74,6 +83,12 @@ class RetrospectiveConversationV2ServiceTest {
 
     @MockitoBean
     private lateinit var aiClient: ConversationV2AIClient
+
+    @MockitoBean
+    private lateinit var resultAIClient: RetrospectiveResultV2AIClient
+
+    @MockitoBean
+    private lateinit var eventPublisher: ApplicationEventPublisher
 
     private val userId = UUID.randomUUID()
     private val user =
@@ -176,17 +191,132 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
-    fun `종료는 대화만 동결하고 회고 결과를 생성하지 않는다`() {
+    fun `종료는 관련 메시지만으로 구조화 결과를 생성하고 저장한다`() {
         val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+            if (request.messages.last().content == "자바 정렬 코드를 짜줘.") offTopicResponse() else retrospectiveResponse(request)
+        }
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "자바 정렬 코드를 짜줘.")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 오류를 찾아 롤백했습니다.")
+        whenever(resultAIClient.generateResult(any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<com.didit.application.retrospect.required.RetrospectiveResultV2AIRequest>(0)
+            assertThat(request.messages).hasSize(1)
+            assertThat(request.messages.single().content).isEqualTo("배포 오류를 찾아 롤백했습니다.")
+            generatedResult()
+        }
 
         val result = service.finish(started.retrospectiveId, userId)
         val saved = checkNotNull(retrospectiveRepository.findByIdAndUserId(started.retrospectiveId, userId))
 
         assertThat(result.conversationStatus.name).isEqualTo("FINISHED")
-        assertThat(result.resultGenerationStatus.name).isEqualTo("NOT_STARTED")
-        assertThat(saved.summary?.summary).isNull()
+        assertThat(result.resultGenerationStatus.name).isEqualTo("GENERATED")
+        assertThat(result.title).isEqualTo("배포 오류 롤백 회고")
+        assertThat(result.result.strength).isNull()
+        assertThat(saved.resultV2?.summary).isEqualTo("배포 오류를 발견하고 롤백했다.")
+        assertThat(saved.status.name).isEqualTo("COMPLETED")
         assertThat(saved.conversationFinishedAt).isNotNull()
     }
+
+    @Test
+    fun `완료 요청을 다시 보내면 저장된 결과를 반환하고 AI를 다시 호출하지 않는다`() {
+        val started = service.start(userId)
+        whenever(resultAIClient.generateResult(any())).thenReturn(generatedResult())
+
+        val first = service.finish(started.retrospectiveId, userId)
+        val duplicate = service.finish(started.retrospectiveId, userId)
+
+        assertThat(duplicate).isEqualTo(first)
+        verify(resultAIClient, times(1)).generateResult(any())
+    }
+
+    @Test
+    fun `결과 생성 실패 시 상태를 복구해 같은 완료 요청으로 재시도할 수 있다`() {
+        val started = service.start(userId)
+        whenever(resultAIClient.generateResult(any()))
+            .thenThrow(IllegalStateException("temporary failure"))
+            .thenReturn(generatedResult())
+
+        assertThrows<RetrospectiveResultGenerationFailedException> {
+            service.finish(started.retrospectiveId, userId)
+        }
+        val failed = checkNotNull(retrospectiveRepository.findByIdAndUserId(started.retrospectiveId, userId))
+        assertThat(failed.conversationStatus?.name).isEqualTo("FINISHED")
+        assertThat(failed.summaryGenerationStatus.name).isEqualTo("NOT_STARTED")
+
+        val retried = service.finish(started.retrospectiveId, userId)
+
+        assertThat(retried.resultGenerationStatus.name).isEqualTo("GENERATED")
+        verify(resultAIClient, times(2)).generateResult(any())
+    }
+
+    @Test
+    fun `오래된 결과 생성 상태는 재획득해 완료할 수 있다`() {
+        val started = service.start(userId)
+        val retrospective = retrospectiveRepository.findByIdAndUserId(started.retrospectiveId, userId)!!
+        retrospective.finishConversation()
+        retrospective.startV2ResultGeneration(LocalDateTime.now().minusMinutes(11))
+        retrospectiveRepository.save(retrospective)
+        whenever(resultAIClient.generateResult(any())).thenReturn(generatedResult())
+
+        val result = service.finish(started.retrospectiveId, userId)
+
+        assertThat(result.resultGenerationStatus.name).isEqualTo("GENERATED")
+        verify(resultAIClient).generateResult(any())
+    }
+
+    @Test
+    fun `최근 결과 생성 상태는 중복 완료 요청을 거절한다`() {
+        val started = service.start(userId)
+        val retrospective = retrospectiveRepository.findByIdAndUserId(started.retrospectiveId, userId)!!
+        retrospective.finishConversation()
+        retrospective.startV2ResultGeneration(LocalDateTime.now())
+        retrospectiveRepository.save(retrospective)
+
+        assertThrows<SummaryGenerationInProgressException> {
+            service.finish(started.retrospectiveId, userId)
+        }
+        verify(resultAIClient, never()).generateResult(any())
+    }
+
+    @Test
+    fun `삭제된 회고는 결과 생성 요청에서 제외한다`() {
+        val started = service.start(userId)
+        val retrospective = retrospectiveRepository.findByIdAndUserId(started.retrospectiveId, userId)!!
+        retrospective.softDelete()
+        retrospectiveRepository.save(retrospective)
+
+        assertThrows<RetrospectiveNotFoundException> {
+            service.finish(started.retrospectiveId, userId)
+        }
+        verify(resultAIClient, never()).generateResult(any())
+    }
+
+    private fun generatedResult() =
+        GeneratedRetrospectiveResultV2(
+            title = "배포 오류 롤백 회고",
+            summary = "배포 오류를 발견하고 롤백했다.",
+            strength = null,
+            improvement = "배포 전 확인이 부족했다.",
+            process = "로그를 확인해 원인을 좁혔다.",
+            learning = "배포 체크리스트가 필요하다.",
+            insight = null,
+            nextActions = listOf("배포 체크리스트를 만든다."),
+            inputTokens = 120,
+            outputTokens = 50,
+        )
+
+    private fun offTopicResponse() =
+        GeneratedConversationTurn(
+            acknowledgement = "요청을 확인했어요.",
+            interpretation = "업무 회고와 직접 관련 없는 요청이에요.",
+            question = "오늘 실제 업무에서 있었던 일을 들려주시겠어요?",
+            questionTarget = RetrospectiveItemType.FACT,
+            relevance = MessageRelevance.OFF_TOPIC,
+            analysisUpdates = emptyList(),
+            inputTokens = 20,
+            outputTokens = 10,
+        )
 
     private fun retrospectiveResponse(request: ConversationTurnAIRequest) =
         GeneratedConversationTurn(

@@ -60,6 +60,11 @@ interface RetrospectiveFinder {
         userId: UUID,
     ): RetrospectiveDetailResult
 
+    fun findStructuredResult(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): RetrospectiveDetailResult
+
     fun findAllWithProjectAndTagsByUserId(userId: UUID): List<RetrospectiveDetailResult>
 
     fun findByProjectWithProjectAndTags(
