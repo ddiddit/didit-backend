@@ -146,7 +146,7 @@ if [ "$HEALTH_OK" = false ]; then
 fi
 
 echo -e "${YELLOW}[9/10] Nginx upstream 전환 ($CURRENT → $NEXT)${NC}"
-cat > "$NGINX_UPSTREAM" << EOF
+sudo tee > "$NGINX_UPSTREAM" << EOF
 upstream didit-api {
     server 127.0.0.1:${NEXT_PORT};
 }
