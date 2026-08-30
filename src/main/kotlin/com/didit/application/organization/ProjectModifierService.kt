@@ -33,7 +33,6 @@ class ProjectModifierService(
         val project =
             projectRepository.findByIdAndUserIdAndDeletedAtIsNull(projectId, userId)
                 ?: throw ProjectNotFoundException(projectId)
-
         val normalizedName = newName.trim()
 
         if (project.name == normalizedName) return
