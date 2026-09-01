@@ -3,6 +3,7 @@ package com.didit.application.retrospect.dto
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnStatus
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.retrospect.SummaryGenerationStatus
 import java.time.LocalDateTime
@@ -53,4 +54,16 @@ data class FinishConversationV2Result(
     val retrospectiveId: UUID,
     val conversationStatus: ConversationStatus,
     val resultGenerationStatus: SummaryGenerationStatus,
+    val title: String,
+    val result: RetrospectiveResultV2Result,
+)
+
+data class RetrospectiveResultV2Result(
+    val summary: String?,
+    val strengths: List<String>?,
+    val improvements: List<String>?,
+    val processes: List<String>?,
+    val learnings: List<String>?,
+    val insight: RetrospectiveResultDetail?,
+    val nextActions: List<RetrospectiveResultDetail>?,
 )

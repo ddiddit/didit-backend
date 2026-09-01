@@ -41,11 +41,9 @@ import com.didit.domain.retrospect.RetrospectiveConversationTurn
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
-import com.didit.domain.retrospect.SummaryGenerationStatus
 import com.didit.domain.shared.ServiceTime
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
-import org.springframework.context.ApplicationEventPublisher
 import org.springframework.stereotype.Service
 import org.springframework.transaction.support.TransactionTemplate
 import java.util.UUID
@@ -63,7 +61,7 @@ class RetrospectiveConversationV2Service(
     private val aiClient: ConversationV2AIClient,
     private val transactionTemplate: TransactionTemplate,
     private val metrics: RetrospectiveAiMetrics,
-    private val eventPublisher: ApplicationEventPublisher,
+    private val resultCompletionCoordinator: RetrospectiveResultV2CompletionCoordinator,
     @param:Value("\${retrospective.v2.max-context-characters:30000}")
     private val maxContextCharacters: Int,
 ) : RetrospectiveConversationV2 {
@@ -156,28 +154,7 @@ class RetrospectiveConversationV2Service(
     override fun finish(
         retrospectiveId: UUID,
         userId: UUID,
-    ): FinishConversationV2Result {
-        var newlyFinished = false
-        val result =
-            transactionTemplate.execute {
-                val retrospective = findV2ForUpdate(retrospectiveId, userId)
-                if (retrospective.conversationStatus != ConversationStatus.FINISHED) {
-                    if (turnRepository.findFirstByRetrospectiveIdAndStatus(retrospectiveId, ConversationTurnStatus.PROCESSING) != null) {
-                        throw AnotherConversationTurnInProgressException(retrospectiveId)
-                    }
-                    retrospective.finishConversation()
-                    retrospectiveRepository.save(retrospective)
-                    newlyFinished = true
-                }
-                FinishConversationV2Result(
-                    retrospectiveId = retrospectiveId,
-                    conversationStatus = ConversationStatus.FINISHED,
-                    resultGenerationStatus = SummaryGenerationStatus.NOT_STARTED,
-                )
-            }!!
-        if (newlyFinished) eventPublisher.publishEvent(RetrospectiveConversationFinishedEvent(retrospectiveId, userId))
-        return result
-    }
+    ): FinishConversationV2Result = resultCompletionCoordinator.complete(retrospectiveId, userId)
 
     private fun prepareTurn(
         retrospectiveId: UUID,

@@ -22,17 +22,20 @@ class PromptInitializer(
 
     override fun run(args: ApplicationArguments) {
         val targets =
-            listOf(
-                Triple(PromptJobType.DEVELOPER, PromptType.DEEP_QUESTION, "prompts/deep-question-developer.txt"),
-                Triple(PromptJobType.PLANNER, PromptType.DEEP_QUESTION, "prompts/deep-question-planner.txt"),
-                Triple(PromptJobType.DESIGNER, PromptType.DEEP_QUESTION, "prompts/deep-question-designer.txt"),
-                Triple(PromptJobType.DEVELOPER, PromptType.SUMMARY, "prompts/summary-developer.txt"),
-                Triple(PromptJobType.PLANNER, PromptType.SUMMARY, "prompts/summary-planner.txt"),
-                Triple(PromptJobType.DESIGNER, PromptType.SUMMARY, "prompts/summary-designer.txt"),
-                Triple(PromptJobType.DEVELOPER, PromptType.CONVERSATION_V2, "prompts/conversation-v2.txt"),
-                Triple(PromptJobType.PLANNER, PromptType.CONVERSATION_V2, "prompts/conversation-v2.txt"),
-                Triple(PromptJobType.DESIGNER, PromptType.CONVERSATION_V2, "prompts/conversation-v2.txt"),
-            )
+            buildList {
+                addAll(
+                    listOf(
+                        Triple(PromptJobType.DEVELOPER, PromptType.DEEP_QUESTION, "prompts/deep-question-developer.txt"),
+                        Triple(PromptJobType.PLANNER, PromptType.DEEP_QUESTION, "prompts/deep-question-planner.txt"),
+                        Triple(PromptJobType.DESIGNER, PromptType.DEEP_QUESTION, "prompts/deep-question-designer.txt"),
+                        Triple(PromptJobType.DEVELOPER, PromptType.SUMMARY, "prompts/summary-developer.txt"),
+                        Triple(PromptJobType.PLANNER, PromptType.SUMMARY, "prompts/summary-planner.txt"),
+                        Triple(PromptJobType.DESIGNER, PromptType.SUMMARY, "prompts/summary-designer.txt"),
+                    ),
+                )
+                addAll(PromptJobType.entries.map { Triple(it, PromptType.CONVERSATION_V2, "prompts/conversation-v2.txt") })
+                addAll(PromptJobType.entries.map { Triple(it, PromptType.RESULT_V2, "prompts/result-v2.txt") })
+            }
 
         targets.forEach { (jobType, promptType, path) ->
             if (promptRepository.findByJobTypeAndPromptType(jobType, promptType) != null) {

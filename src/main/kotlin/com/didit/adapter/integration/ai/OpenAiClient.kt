@@ -7,8 +7,12 @@ import com.didit.application.retrospect.required.ConversationTurnAIRequest
 import com.didit.application.retrospect.required.ConversationV2AIClient
 import com.didit.application.retrospect.required.GeneratedConversationTurn
 import com.didit.application.retrospect.required.GeneratedDeepQuestion
+import com.didit.application.retrospect.required.GeneratedRetrospectiveResultV2
+import com.didit.application.retrospect.required.RetrospectiveResultV2AIClient
+import com.didit.application.retrospect.required.RetrospectiveResultV2AIRequest
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemType
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.shared.Job
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -28,11 +32,13 @@ class OpenAiClient(
     private val objectMapper: ObjectMapper,
     private val feedbackPrompts: FeedbackPrompts,
     private val conversationV2Prompts: ConversationV2Prompts,
+    private val retrospectiveResultV2Prompts: RetrospectiveResultV2Prompts,
     private val metrics: OpenAiMetrics,
     @param:Value("\${openai.api-key}") private val apiKey: String,
     @param:Value("\${openai.chat.model}") private val model: String,
 ) : AIClient,
-    ConversationV2AIClient {
+    ConversationV2AIClient,
+    RetrospectiveResultV2AIClient {
     companion object {
         private const val URL = "https://api.openai.com/v1/responses"
         private val logger = LoggerFactory.getLogger(OpenAiClient::class.java)
@@ -70,6 +76,24 @@ class OpenAiClient(
         val prompt = conversationV2Prompts.build(request)
         val result = callWithResult(prompt, "conversation_v2", "retrospective_conversation_turn", conversationV2Schema())
         return parseConversationTurn(result)
+    }
+
+    override fun generateResult(request: RetrospectiveResultV2AIRequest): GeneratedRetrospectiveResultV2 {
+        val prompt = retrospectiveResultV2Prompts.build(request)
+        val response = callWithResult(prompt, "result_v2", "retrospective_result_v2", resultV2Schema())
+        val parsed = objectMapper.readValue<RetrospectiveResultV2Dto>(response.outputText)
+        return GeneratedRetrospectiveResultV2(
+            title = parsed.title,
+            summary = parsed.summary,
+            strengths = parsed.strengths,
+            improvements = parsed.improvements,
+            processes = parsed.processes,
+            learnings = parsed.learnings,
+            insight = parsed.insight,
+            nextActions = parsed.nextActions,
+            inputTokens = response.usage?.inputTokens ?: 0,
+            outputTokens = response.usage?.outputTokens ?: 0,
+        )
     }
 
     private fun callWithResult(
@@ -281,6 +305,72 @@ class OpenAiClient(
                 ),
             "additionalProperties" to false,
         )
+
+    private fun resultV2Schema() =
+        mapOf(
+            "type" to "object",
+            "properties" to
+                mapOf(
+                    "title" to mapOf("type" to "string", "minLength" to 1, "maxLength" to 25),
+                    "summary" to nullableStringSchema(),
+                    "strengths" to nullableStringListSchema(),
+                    "improvements" to nullableStringListSchema(),
+                    "processes" to nullableStringListSchema(),
+                    "learnings" to nullableStringListSchema(),
+                    "insight" to nullableResultDetailSchema(),
+                    "nextActions" to nullableResultDetailListSchema(),
+                ),
+            "required" to
+                listOf(
+                    "title",
+                    "summary",
+                    "strengths",
+                    "improvements",
+                    "processes",
+                    "learnings",
+                    "insight",
+                    "nextActions",
+                ),
+            "additionalProperties" to false,
+        )
+
+    private fun nullableStringSchema() = mapOf("type" to listOf("string", "null"))
+
+    private fun nullableStringListSchema() =
+        mapOf(
+            "type" to listOf("array", "null"),
+            "items" to mapOf("type" to "string", "minLength" to 1),
+            "minItems" to 1,
+            "maxItems" to 2,
+        )
+
+    private fun nullableResultDetailSchema() =
+        mapOf(
+            "type" to listOf("object", "null"),
+            "properties" to resultDetailProperties(),
+            "required" to listOf("title", "description"),
+            "additionalProperties" to false,
+        )
+
+    private fun nullableResultDetailListSchema() =
+        mapOf(
+            "type" to listOf("array", "null"),
+            "items" to
+                mapOf(
+                    "type" to "object",
+                    "properties" to resultDetailProperties(),
+                    "required" to listOf("title", "description"),
+                    "additionalProperties" to false,
+                ),
+            "minItems" to 1,
+            "maxItems" to 2,
+        )
+
+    private fun resultDetailProperties() =
+        mapOf(
+            "title" to mapOf("type" to "string", "minLength" to 1),
+            "description" to mapOf("type" to "string", "minLength" to 1),
+        )
 }
 
 private data class DeepQuestionDto(
@@ -294,6 +384,17 @@ private data class ConversationTurnDto(
     val questionTarget: RetrospectiveItemType?,
     val relevance: MessageRelevance,
     val analysisUpdates: List<ConversationAnalysisUpdate>,
+)
+
+private data class RetrospectiveResultV2Dto(
+    val title: String,
+    val summary: String?,
+    val strengths: List<String>?,
+    val improvements: List<String>?,
+    val processes: List<String>?,
+    val learnings: List<String>?,
+    val insight: RetrospectiveResultDetail?,
+    val nextActions: List<RetrospectiveResultDetail>?,
 )
 
 private data class OpenAiRequest(

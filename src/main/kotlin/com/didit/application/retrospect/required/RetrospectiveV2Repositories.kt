@@ -20,6 +20,19 @@ interface ChatMessageRepository : Repository<ChatMessage, UUID> {
         @Param("retrospectiveId") retrospectiveId: UUID,
     ): List<ChatMessage>
 
+    @Query(
+        """
+        SELECT m FROM ChatMessage m
+        WHERE m.retrospective.id = :retrospectiveId
+        AND m.sender = com.didit.domain.retrospect.Sender.USER
+        AND m.includedInResult = true
+        ORDER BY m.createdAt ASC
+        """,
+    )
+    fun findAllResultEvidenceByRetrospectiveId(
+        @Param("retrospectiveId") retrospectiveId: UUID,
+    ): List<ChatMessage>
+
     fun findAllByIdIn(ids: Collection<UUID>): List<ChatMessage>
 }
 

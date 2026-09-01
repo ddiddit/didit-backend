@@ -124,6 +124,8 @@ data class FinishConversationV2Response(
     val retrospectiveId: UUID,
     val conversationStatus: ConversationStatus,
     val resultGenerationStatus: SummaryGenerationStatus,
+    val title: String,
+    val result: StructuredRetrospectiveContentResponse,
 ) {
     companion object {
         fun from(result: FinishConversationV2Result) =
@@ -131,6 +133,8 @@ data class FinishConversationV2Response(
                 retrospectiveId = result.retrospectiveId,
                 conversationStatus = result.conversationStatus,
                 resultGenerationStatus = result.resultGenerationStatus,
+                title = result.title,
+                result = StructuredRetrospectiveContentResponse.fromV2Result(result.result),
             )
     }
 }

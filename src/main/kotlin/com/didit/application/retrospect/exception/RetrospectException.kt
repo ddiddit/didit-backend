@@ -104,3 +104,12 @@ class ConversationAiFailedException(
         if (cause != null) initCause(cause)
     }
 }
+
+class RetrospectiveResultGenerationFailedException(
+    retrospectiveId: UUID,
+    cause: Throwable? = null,
+) : BusinessException(RetrospectErrorCode.RESULT_GENERATION_FAILED, "retrospectiveId: $retrospectiveId") {
+    init {
+        if (cause != null) initCause(cause)
+    }
+}
