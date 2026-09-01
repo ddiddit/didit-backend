@@ -34,7 +34,7 @@
 | `OAUTH_KAKAO_APP_ID` | Kakao 콘솔의 숫자 앱 ID | 백엔드 설정 |
 | `OAUTH_KAKAO_REST_API_KEY` | Kakao 인가코드 교환용 REST API 키 | 프런트에도 동일 값 사용 가능 |
 | `OAUTH_KAKAO_CLIENT_SECRET` | Kakao 토큰 교환 Client Secret | 백엔드 전용 비밀값 |
-| `OAUTH_KAKAO_REDIRECT_URI` | `https://app.didit.io.kr/auth/kakao/callback` | 공개 가능 |
+| `OAUTH_KAKAO_ALLOWED_REDIRECT_URIS` | 카카오 인가 코드 교환에 허용할 callback URI 목록(쉼표 구분) | 공개 가능 |
 | `OAUTH_APPLE_ENABLED` | Apple 준비 전 `false`, 설정 완료 뒤 검증 후 `true` | 백엔드 설정 |
 | `GMAIL_USERNAME` | OTP 발송 Gmail 계정 | 백엔드 전용 |
 | `GMAIL_APP_PASSWORD` | Gmail 앱 비밀번호 | 백엔드 전용 비밀값 |

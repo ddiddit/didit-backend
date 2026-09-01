@@ -11,4 +11,10 @@ interface OAuthClient {
         credentialType: SocialCredentialType,
         credential: String,
     ): UserInfo = throw InvalidSocialCredentialTypeException()
+
+    fun getUserInfo(
+        credentialType: SocialCredentialType,
+        credential: String,
+        redirectUri: String?,
+    ): UserInfo = getUserInfo(credentialType, credential)
 }

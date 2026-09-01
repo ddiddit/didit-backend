@@ -2,6 +2,7 @@ package com.didit.adapter.integration.oauth
 
 import com.didit.application.auth.dto.UserInfo
 import com.didit.application.auth.exception.InvalidSocialCredentialTypeException
+import com.didit.application.auth.exception.InvalidSocialRedirectUriException
 import com.didit.application.auth.exception.OAuthUserInfoFailedException
 import com.didit.application.auth.required.OAuthClient
 import com.didit.domain.auth.SocialCredentialType
@@ -21,30 +22,42 @@ class KakaoOAuthClient(
     @param:Value("\${oauth.kakao.token-info-url}") private val tokenInfoUrl: String,
     @param:Value("\${oauth.kakao.rest-api-key:}") private val restApiKey: String,
     @param:Value("\${oauth.kakao.client-secret:}") private val clientSecret: String,
-    @param:Value("\${oauth.kakao.redirect-uri}") private val redirectUri: String,
+    @param:Value("\${oauth.kakao.allowed-redirect-uris}") private val allowedRedirectUrisConfig: String,
     @param:Value("\${oauth.kakao.app-id:}") private val appId: Long?,
 ) : OAuthClient {
+    private val allowedRedirectUris =
+        allowedRedirectUrisConfig
+            .split(",")
+            .map(String::trim)
+            .filter(String::isNotEmpty)
+            .toSet()
+
     override fun getUserInfo(oauthToken: String): UserInfo = getUserInfoWithAccessToken(oauthToken)
 
     override fun getUserInfo(
         credentialType: SocialCredentialType,
         credential: String,
+        redirectUri: String?,
     ): UserInfo =
         when (credentialType) {
             SocialCredentialType.ACCESS_TOKEN -> getUserInfoWithAccessToken(credential)
-            SocialCredentialType.AUTHORIZATION_CODE -> getUserInfoWithAccessToken(exchangeAuthorizationCode(credential))
+            SocialCredentialType.AUTHORIZATION_CODE -> getUserInfoWithAccessToken(exchangeAuthorizationCode(credential, redirectUri))
             else -> throw InvalidSocialCredentialTypeException()
         }
 
-    private fun exchangeAuthorizationCode(code: String): String {
+    private fun exchangeAuthorizationCode(
+        code: String,
+        redirectUri: String?,
+    ): String {
         if (restApiKey.isBlank() || clientSecret.isBlank()) throw OAuthUserInfoFailedException()
+        val validatedRedirectUri = redirectUri?.takeIf { it in allowedRedirectUris } ?: throw InvalidSocialRedirectUriException()
 
         val form =
             LinkedMultiValueMap<String, String>().apply {
                 add("grant_type", "authorization_code")
                 add("client_id", restApiKey)
                 add("client_secret", clientSecret)
-                add("redirect_uri", redirectUri)
+                add("redirect_uri", validatedRedirectUri)
                 add("code", code)
             }
 

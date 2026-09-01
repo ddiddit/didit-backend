@@ -48,10 +48,11 @@ class SocialAuthService(
         provider: Provider,
         credentialType: SocialCredentialType,
         credential: String,
+        redirectUri: String?,
     ): SocialLoginResult {
         if (provider == Provider.APPLE && !appleEnabled) throw UnsupportedOAuthProviderException()
 
-        val userInfo = oAuthClientFactory.getClient(provider).getUserInfo(credentialType, credential)
+        val userInfo = oAuthClientFactory.getClient(provider).getUserInfo(credentialType, credential, redirectUri)
 
         findActiveUser(provider, userInfo.providerId)?.let { user ->
             return authenticated(user, provider, false)

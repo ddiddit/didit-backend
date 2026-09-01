@@ -31,6 +31,8 @@ class OAuthUserInfoFailedException : BusinessException(AuthErrorCode.OAUTH_USER_
 
 class InvalidSocialCredentialTypeException : BusinessException(AuthErrorCode.INVALID_SOCIAL_CREDENTIAL_TYPE)
 
+class InvalidSocialRedirectUriException : BusinessException(AuthErrorCode.INVALID_SOCIAL_REDIRECT_URI)
+
 class AccountVerificationRequiredException : BusinessException(AuthErrorCode.ACCOUNT_VERIFICATION_REQUIRED)
 
 class InvalidSocialLoginSessionException : BusinessException(AuthErrorCode.SOCIAL_LOGIN_SESSION_INVALID)

@@ -96,7 +96,7 @@ class SocialAuthServiceTest {
         whenever(userRepository.findById(user.id)).thenReturn(user)
         whenever(loginCompletionService.complete(user, Provider.KAKAO, false)).thenReturn(tokenResponse(isNewUser = false))
 
-        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code")
+        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code", null)
 
         assertThat(result.status).isEqualTo(SocialLoginStatus.AUTHENTICATED)
         assertThat(result.token?.isNewUser).isFalse()
@@ -109,7 +109,7 @@ class SocialAuthServiceTest {
         whenever(userRepository.findByProviderAndProviderId(Provider.KAKAO, "new-kakao-id")).thenReturn(null)
         whenever(sessionRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code")
+        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code", null)
 
         assertThat(result.status).isEqualTo(SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED)
         assertThat(result.loginSessionToken).isNotBlank()

@@ -17,6 +17,7 @@ enum class AuthErrorCode(
 
     UNSUPPORTED_OAUTH_PROVIDER(HttpStatus.BAD_REQUEST, "지원하지 않는 소셜 로그인입니다."),
     INVALID_SOCIAL_CREDENTIAL_TYPE(HttpStatus.BAD_REQUEST, "소셜 로그인 인증 방식이 올바르지 않습니다."),
+    INVALID_SOCIAL_REDIRECT_URI(HttpStatus.BAD_REQUEST, "소셜 로그인 callback URI가 올바르지 않습니다."),
     ACCOUNT_VERIFICATION_REQUIRED(HttpStatus.CONFLICT, "계정 보호를 위해 이메일 인증이 필요합니다."),
     SOCIAL_LOGIN_SESSION_INVALID(HttpStatus.UNAUTHORIZED, "소셜 로그인 세션이 유효하지 않습니다."),
     SOCIAL_LOGIN_SESSION_EXPIRED(HttpStatus.UNAUTHORIZED, "소셜 로그인 세션이 만료되었습니다."),
