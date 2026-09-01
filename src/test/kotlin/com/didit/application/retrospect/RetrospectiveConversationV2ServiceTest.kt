@@ -27,6 +27,7 @@ import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.BeforeEach
@@ -212,7 +213,7 @@ class RetrospectiveConversationV2ServiceTest {
         assertThat(result.conversationStatus.name).isEqualTo("FINISHED")
         assertThat(result.resultGenerationStatus.name).isEqualTo("GENERATED")
         assertThat(result.title).isEqualTo("배포 오류 롤백 회고")
-        assertThat(result.result.strength).isNull()
+        assertThat(result.result.strengths).isNull()
         assertThat(saved.resultV2?.summary).isEqualTo("배포 오류를 발견하고 롤백했다.")
         assertThat(saved.status.name).isEqualTo("COMPLETED")
         assertThat(saved.conversationFinishedAt).isNotNull()
@@ -318,12 +319,12 @@ class RetrospectiveConversationV2ServiceTest {
         GeneratedRetrospectiveResultV2(
             title = "배포 오류 롤백 회고",
             summary = "배포 오류를 발견하고 롤백했다.",
-            strength = null,
-            improvement = "배포 전 확인이 부족했다.",
-            process = "로그를 확인해 원인을 좁혔다.",
-            learning = "배포 체크리스트가 필요하다.",
+            strengths = null,
+            improvements = listOf("배포 전 확인이 부족했다."),
+            processes = listOf("로그를 확인해 원인을 좁혔다."),
+            learnings = listOf("배포 체크리스트가 필요하다."),
             insight = null,
-            nextActions = listOf("배포 체크리스트를 만든다."),
+            nextActions = listOf(RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리한다.")),
             inputTokens = 120,
             outputTokens = 50,
         )

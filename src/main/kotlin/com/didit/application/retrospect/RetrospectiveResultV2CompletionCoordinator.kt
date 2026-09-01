@@ -148,10 +148,10 @@ class RetrospectiveResultV2CompletionCoordinator(
                 result =
                     RetrospectiveResultV2(
                         summary = generated.summary,
-                        strength = generated.strength,
-                        improvement = generated.improvement,
-                        process = generated.process,
-                        learning = generated.learning,
+                        strengths = generated.strengths,
+                        improvements = generated.improvements,
+                        processes = generated.processes,
+                        learnings = generated.learnings,
                         insight = generated.insight,
                         nextActions = generated.nextActions,
                     ),
@@ -200,10 +200,10 @@ class RetrospectiveResultV2CompletionCoordinator(
             result =
                 RetrospectiveResultV2Result(
                     summary = stored.summary,
-                    strength = stored.strength,
-                    improvement = stored.improvement,
-                    process = stored.process,
-                    learning = stored.learning,
+                    strengths = stored.strengths,
+                    improvements = stored.improvements,
+                    processes = stored.processes,
+                    learnings = stored.learnings,
                     insight = stored.insight,
                     nextActions = stored.nextActions,
                 ),

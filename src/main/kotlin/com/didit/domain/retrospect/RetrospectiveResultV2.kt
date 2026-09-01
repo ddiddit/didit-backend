@@ -11,12 +11,12 @@ import jakarta.persistence.Embeddable
 @Embeddable
 class RetrospectiveResultV2(
     summary: String?,
-    strength: String?,
-    improvement: String?,
-    process: String?,
-    learning: String?,
-    insight: String?,
-    nextActions: List<String>?,
+    strengths: List<String>?,
+    improvements: List<String>?,
+    processes: List<String>?,
+    learnings: List<String>?,
+    insight: RetrospectiveResultDetail?,
+    nextActions: List<RetrospectiveResultDetail>?,
 ) {
     @Column(name = "result_schema_version")
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION
@@ -24,35 +24,59 @@ class RetrospectiveResultV2(
     @Column(name = "result_summary", columnDefinition = "TEXT")
     val summary: String? = summary.normalized()
 
+    @Convert(converter = NullableStringListJsonConverter::class)
     @Column(name = "result_strength", columnDefinition = "TEXT")
-    val strength: String? = strength.normalized()
-
-    @Column(name = "result_improvement", columnDefinition = "TEXT")
-    val improvement: String? = improvement.normalized()
-
-    @Column(name = "result_process", columnDefinition = "TEXT")
-    val process: String? = process.normalized()
-
-    @Column(name = "result_learning", columnDefinition = "TEXT")
-    val learning: String? = learning.normalized()
-
-    @Column(name = "result_insight", columnDefinition = "TEXT")
-    val insight: String? = insight.normalized()
+    val strengths: List<String>? = strengths.normalizedItems("오늘 잘한 점")
 
     @Convert(converter = NullableStringListJsonConverter::class)
+    @Column(name = "result_improvement", columnDefinition = "TEXT")
+    val improvements: List<String>? = improvements.normalizedItems("아쉬웠던 점")
+
+    @Convert(converter = NullableStringListJsonConverter::class)
+    @Column(name = "result_process", columnDefinition = "TEXT")
+    val processes: List<String>? = processes.normalizedItems("해결 과정")
+
+    @Convert(converter = NullableStringListJsonConverter::class)
+    @Column(name = "result_learning", columnDefinition = "TEXT")
+    val learnings: List<String>? = learnings.normalizedItems("배운 점")
+
+    @Convert(converter = NullableResultDetailJsonConverter::class)
+    @Column(name = "result_insight", columnDefinition = "TEXT")
+    val insight: RetrospectiveResultDetail? = insight?.normalized()
+
+    @Convert(converter = NullableResultDetailListJsonConverter::class)
     @Column(name = "result_next_actions", columnDefinition = "TEXT")
-    val nextActions: List<String>? =
+    val nextActions: List<RetrospectiveResultDetail>? =
         nextActions
             ?.mapNotNull { it.normalized() }
             ?.distinct()
             ?.takeIf { it.isNotEmpty() }
-            ?.also { require(it.size <= MAX_NEXT_ACTIONS) { "다음 행동은 최대 3개까지 저장할 수 있습니다." } }
+            ?.also { require(it.size <= MAX_ITEMS) { "다음 행동은 최대 2개까지 저장할 수 있습니다." } }
 
     companion object {
-        private const val CURRENT_SCHEMA_VERSION = 2
-        private const val MAX_NEXT_ACTIONS = 3
+        private const val CURRENT_SCHEMA_VERSION = 3
+        private const val MAX_ITEMS = 2
 
         private fun String?.normalized(): String? = this?.trim()?.takeIf(String::isNotEmpty)
+
+        private fun List<String>?.normalizedItems(name: String): List<String>? =
+            this
+                ?.mapNotNull { it.normalized() }
+                ?.distinct()
+                ?.takeIf { it.isNotEmpty() }
+                ?.also { require(it.size <= MAX_ITEMS) { "${name}은 최대 2개까지 저장할 수 있습니다." } }
+    }
+}
+
+data class RetrospectiveResultDetail(
+    val title: String,
+    val description: String,
+) {
+    internal fun normalized(): RetrospectiveResultDetail? {
+        val normalizedTitle = title.trim()
+        val normalizedDescription = description.trim()
+        if (normalizedTitle.isEmpty() || normalizedDescription.isEmpty()) return null
+        return RetrospectiveResultDetail(normalizedTitle, normalizedDescription)
     }
 }
 
@@ -62,8 +86,23 @@ class NullableStringListJsonConverter : AttributeConverter<List<String>, String>
 
     override fun convertToEntityAttribute(dbData: String?): List<String>? =
         dbData?.takeIf(String::isNotBlank)?.let { data -> objectMapper.readValue<List<String>>(data) }
-
-    companion object {
-        private val objectMapper = jacksonObjectMapper()
-    }
 }
+
+@Converter
+class NullableResultDetailJsonConverter : AttributeConverter<RetrospectiveResultDetail, String> {
+    override fun convertToDatabaseColumn(attribute: RetrospectiveResultDetail?): String? = attribute?.let(objectMapper::writeValueAsString)
+
+    override fun convertToEntityAttribute(dbData: String?): RetrospectiveResultDetail? =
+        dbData?.takeIf(String::isNotBlank)?.let { data -> objectMapper.readValue<RetrospectiveResultDetail>(data) }
+}
+
+@Converter
+class NullableResultDetailListJsonConverter : AttributeConverter<List<RetrospectiveResultDetail>, String> {
+    override fun convertToDatabaseColumn(attribute: List<RetrospectiveResultDetail>?): String? =
+        attribute?.let(objectMapper::writeValueAsString)
+
+    override fun convertToEntityAttribute(dbData: String?): List<RetrospectiveResultDetail>? =
+        dbData?.takeIf(String::isNotBlank)?.let { data -> objectMapper.readValue<List<RetrospectiveResultDetail>>(data) }
+}
+
+private val objectMapper = jacksonObjectMapper()

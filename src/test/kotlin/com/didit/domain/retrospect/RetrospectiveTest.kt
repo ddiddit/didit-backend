@@ -108,12 +108,17 @@ class RetrospectiveTest {
             result =
                 RetrospectiveResultV2(
                     summary = "  로그인 오류를 추적했다.  ",
-                    strength = "   ",
-                    improvement = "예외 조건을 늦게 확인했다.",
-                    process = null,
-                    learning = "실패 조건을 먼저 정의해야 한다.",
-                    insight = "  재현 조건 분리가 원인 파악을 도왔다. ",
-                    nextActions = listOf("  만료 테스트 추가하기  ", "", "만료 테스트 추가하기", "응답 명세 정리하기"),
+                    strengths = listOf("   "),
+                    improvements = listOf(" 예외 조건을 늦게 확인했다. ", "예외 조건을 늦게 확인했다."),
+                    processes = null,
+                    learnings = listOf("실패 조건을 먼저 정의해야 한다."),
+                    insight = RetrospectiveResultDetail("  재현 조건 분리 ", " 원인 파악을 도왔다. "),
+                    nextActions =
+                        listOf(
+                            RetrospectiveResultDetail("  만료 테스트 추가  ", " 인증 만료 조건을 검증한다. "),
+                            RetrospectiveResultDetail("만료 테스트 추가", "인증 만료 조건을 검증한다."),
+                            RetrospectiveResultDetail("응답 명세 정리", "오류 응답을 문서화한다."),
+                        ),
                 ),
         )
 
@@ -121,12 +126,19 @@ class RetrospectiveTest {
         assertThat(retro.isCompleted()).isTrue()
         assertThat(retro.summaryGenerationStatus).isEqualTo(SummaryGenerationStatus.GENERATED)
         assertThat(retro.resultV2?.summary).isEqualTo("로그인 오류를 추적했다.")
-        assertThat(retro.resultV2?.strength).isNull()
-        assertThat(retro.resultV2?.nextActions).containsExactly("만료 테스트 추가하기", "응답 명세 정리하기")
+        assertThat(retro.resultV2?.strengths).isNull()
+        assertThat(retro.resultV2?.improvements).containsExactly("예외 조건을 늦게 확인했다.")
+        assertThat(retro.resultV2?.insight)
+            .isEqualTo(RetrospectiveResultDetail("재현 조건 분리", "원인 파악을 도왔다."))
+        assertThat(retro.resultV2?.nextActions)
+            .containsExactly(
+                RetrospectiveResultDetail("만료 테스트 추가", "인증 만료 조건을 검증한다."),
+                RetrospectiveResultDetail("응답 명세 정리", "오류 응답을 문서화한다."),
+            )
     }
 
     @Test
-    fun `saveV2Result - 다음 행동이 3개를 초과하면 거절한다`() {
+    fun `saveV2Result - 불릿 항목이 2개를 초과하면 거절한다`() {
         val retro = Retrospective.createV2(userId).apply { startProgress() }
 
         assertThrows<IllegalArgumentException> {
@@ -135,12 +147,38 @@ class RetrospectiveTest {
                 result =
                     RetrospectiveResultV2(
                         summary = null,
-                        strength = null,
-                        improvement = null,
-                        process = null,
-                        learning = null,
+                        strengths = listOf("잘한 점 1", "잘한 점 2", "잘한 점 3"),
+                        improvements = null,
+                        processes = null,
+                        learnings = null,
                         insight = null,
-                        nextActions = listOf("행동 1", "행동 2", "행동 3", "행동 4"),
+                        nextActions = null,
+                    ),
+            )
+        }
+    }
+
+    @Test
+    fun `saveV2Result - 다음 행동이 2개를 초과하면 거절한다`() {
+        val retro = Retrospective.createV2(userId).apply { startProgress() }
+
+        assertThrows<IllegalArgumentException> {
+            retro.saveV2Result(
+                title = "로그인 오류 원인 정리",
+                result =
+                    RetrospectiveResultV2(
+                        summary = null,
+                        strengths = null,
+                        improvements = null,
+                        processes = null,
+                        learnings = null,
+                        insight = null,
+                        nextActions =
+                            listOf(
+                                RetrospectiveResultDetail("행동 1", "설명 1"),
+                                RetrospectiveResultDetail("행동 2", "설명 2"),
+                                RetrospectiveResultDetail("행동 3", "설명 3"),
+                            ),
                     ),
             )
         }

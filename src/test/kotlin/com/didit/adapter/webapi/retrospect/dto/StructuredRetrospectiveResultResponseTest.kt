@@ -22,10 +22,10 @@ class StructuredRetrospectiveResultResponseTest {
                     result =
                         RetrospectiveResultV2(
                             summary = "배포 오류를 발견하고 롤백했다.",
-                            strength = null,
-                            improvement = null,
-                            process = "로그를 확인했다.",
-                            learning = null,
+                            strengths = null,
+                            improvements = null,
+                            processes = listOf("로그를 확인했다."),
+                            learnings = null,
                             insight = null,
                             nextActions = null,
                         ),
@@ -34,9 +34,11 @@ class StructuredRetrospectiveResultResponseTest {
 
         val response = StructuredRetrospectiveResultResponse.from(RetrospectiveDetailResult(retrospective, null, emptyList()))
 
-        assertThat(retrospective.resultV2?.strength).isNull()
+        assertThat(retrospective.resultV2?.strengths).isNull()
         assertThat(response.flowVersion.name).isEqualTo("V2")
-        assertThat(response.content.strength).isEqualTo(StructuredResultDefaults.STRENGTH)
+        assertThat(response.content.strengths).containsExactly(StructuredResultDefaults.STRENGTH)
+        assertThat(response.content.processes).containsExactly("로그를 확인했다.")
+        assertThat(response.content.insight).isEqualTo(StructuredResultDefaults.INSIGHT)
         assertThat(response.content.nextActions).containsExactly(StructuredResultDefaults.NEXT_ACTION)
     }
 
@@ -64,11 +66,12 @@ class StructuredRetrospectiveResultResponseTest {
 
         assertThat(response.flowVersion.name).isEqualTo("V1")
         assertThat(response.content.summary).isEqualTo("기존 요약")
-        assertThat(response.content.strength).isEqualTo(StructuredResultDefaults.STRENGTH)
-        assertThat(response.content.improvement).isEqualTo("일정이 촉박했다.")
-        assertThat(response.content.process).isEqualTo("범위를 줄였다.")
-        assertThat(response.content.learning).isEqualTo("우선순위 합의가 중요하다.")
-        assertThat(response.content.insight).contains("범위 조정", "초기에 합의해야 한다.")
-        assertThat(response.content.nextActions).containsExactly("체크인\n착수일에 범위를 확인한다.")
+        assertThat(response.content.strengths).containsExactly(StructuredResultDefaults.STRENGTH)
+        assertThat(response.content.improvements).containsExactly("일정이 촉박했다.")
+        assertThat(response.content.processes).containsExactly("범위를 줄였다.")
+        assertThat(response.content.learnings).containsExactly("우선순위 합의가 중요하다.")
+        assertThat(response.content.insight).isEqualTo(StructuredResultDetailResponse("범위 조정", "초기에 합의해야 한다."))
+        assertThat(response.content.nextActions)
+            .containsExactly(StructuredResultDetailResponse("체크인", "착수일에 범위를 확인한다."))
     }
 }

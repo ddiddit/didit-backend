@@ -1,0 +1,133 @@
+= 회고 V2 API
+
+회고 V2는 고정 질문 순서 없이 사용자의 업무 경험을 바탕으로 AI가 후속 질문 하나를 생성합니다.
+첫 안내 메시지만 `title`과 `body`를 사용하고, 이후 대화 메시지는 `content`만 사용합니다.
+`readyToComplete`는 내부 완료 준비도이며 현재 화면의 종료 노출 조건으로 사용하지 않습니다.
+
+== 대화형 회고
+
+=== 대화 시작
+
+==== Request
+
+include::{snippets}/retrospect-v2/start/http-request.adoc[]
+
+==== Response
+
+include::{snippets}/retrospect-v2/start/http-response.adoc[]
+include::{snippets}/retrospect-v2/start/response-fields.adoc[]
+
+=== 메시지 전송
+
+동일한 `clientMessageId` 와 내용으로 재전송하면 이미 완료된 응답을 반환합니다.
+`inputType` 은 `TEXT` 또는 `STT`이며 생략하면 `TEXT`로 저장됩니다. STT 변환 텍스트를 사용자가 수정한 뒤 전송할 때는 `STT`를 전달합니다.
+
+==== Request
+
+include::{snippets}/retrospect-v2/submit-message/http-request.adoc[]
+include::{snippets}/retrospect-v2/submit-message/path-parameters.adoc[]
+include::{snippets}/retrospect-v2/submit-message/request-fields.adoc[]
+
+==== Response
+
+include::{snippets}/retrospect-v2/submit-message/http-response.adoc[]
+include::{snippets}/retrospect-v2/submit-message/response-fields.adoc[]
+
+=== 대화 조회
+
+앱 재진입이나 AI 응답 실패 후 현재 메시지와 턴 상태를 복구할 때 사용합니다.
+저장된 전체 대화 메시지와 턴 상태를 순서대로 반환하므로, 회고 ID를 알고 있으면 진행 중인 대화를 이어갈 수 있습니다.
+
+[NOTE]
+====
+현재 회고 목록 API는 완료된 회고만 반환, 진행 중인 회고를 다시 찾는 별도 API는 아직 존재 X
+
+따라서 재진입 시에 클라이언트가 진행 중인 회고 ID 보관 필요. 진행 중인 회고 탐색 및 개수 제한 정책은 추후 논의 후 확정.
+
+V2 대화 화면에서 단순히 이탈할 때는 V1 회고 나가기 API 호출 X
+====
+
+==== Request
+
+include::{snippets}/retrospect-v2/get-conversation/http-request.adoc[]
+include::{snippets}/retrospect-v2/get-conversation/path-parameters.adoc[]
+
+==== Response
+
+include::{snippets}/retrospect-v2/get-conversation/http-response.adoc[]
+include::{snippets}/retrospect-v2/get-conversation/response-fields.adoc[]
+
+=== 대화 종료 및 결과 생성
+
+대화 종료 요청 한 번으로 확인된 대화 내용을 바탕으로 구조화 회고 결과를 생성하고 저장합니다.
+
+완료된 회고에 같은 요청을 다시 보내면 저장된 결과를 반환하며, 생성 실패 시에는 다시 시도할 수 있도록 생성 상태를 복구합니다.
+
+성공 시 `resultGenerationStatus`는 `GENERATED`이며 자동 생성된 제목과 구조화 결과를 함께 반환합니다.
+
+==== Request
+
+include::{snippets}/retrospect-v2/finish/http-request.adoc[]
+include::{snippets}/retrospect-v2/finish/path-parameters.adoc[]
+
+==== Response
+
+include::{snippets}/retrospect-v2/finish/http-response.adoc[]
+include::{snippets}/retrospect-v2/finish/response-fields.adoc[]
+
+== 회고 조회
+
+[[회고-목록-조회-v2]]
+=== 회고 목록 조회
+
+프로젝트명과 태그 정보를 포함한 회고 목록을 조회합니다.
+
+==== Request
+
+include::{snippets}/retrospect/v2/find-all/http-request.adoc[]
+
+==== Response
+
+include::{snippets}/retrospect/v2/find-all/http-response.adoc[]
+include::{snippets}/retrospect/v2/find-all/response-fields.adoc[]
+
+[[회고-상세-조회-v2]]
+=== 회고 상세 조회
+
+프로젝트와 태그 정보를 포함한 회고 상세 정보를 조회합니다.
+
+==== Request
+
+include::{snippets}/retrospect/v2/find-by-id/http-request.adoc[]
+include::{snippets}/retrospect/v2/find-by-id/path-parameters.adoc[]
+
+==== Response
+
+include::{snippets}/retrospect/v2/find-by-id/http-response.adoc[]
+include::{snippets}/retrospect/v2/find-by-id/response-fields.adoc[]
+
+[[구조화-회고-결과-상세-조회-v2]]
+=== 구조화 회고 결과 상세 조회
+
+기존 V1과 신규 V2 회고를 공통 구조의 결과로 조회합니다.
+프로젝트와 태그 정보를 포함하며, 대화에서 확인되지 않은 결과 항목은 기본 안내 문구로 반환합니다.
+
+결과 항목은 최종 결과 화면에 맞춰 다음 구조로 반환합니다.
+
+* `summary`: 단일 회고 요약
+* `strengths`, `improvements`, `processes`, `learnings`: 각각 최대 2개의 불릿 문장
+* `insight`: 제목과 설명을 가진 단일 객체
+* `nextActions`: 제목과 설명을 가진 최대 2개의 실행 항목
+
+AI는 대화에서 확인된 서로 다른 근거가 하나면 1개, 두 개면 2개를 생성합니다.
+근거가 없거나 하나의 내용을 억지로 나눠야 하는 경우에는 개수를 채우지 않습니다.
+
+==== Request
+
+include::{snippets}/retrospect/v2/find-result/http-request.adoc[]
+include::{snippets}/retrospect/v2/find-result/path-parameters.adoc[]
+
+==== Response
+
+include::{snippets}/retrospect/v2/find-result/http-response.adoc[]
+include::{snippets}/retrospect/v2/find-result/response-fields.adoc[]

@@ -10,6 +10,7 @@ import com.didit.application.retrospect.required.RetrospectiveResultV2AIClient
 import com.didit.domain.auth.User
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveCompletedEvent
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -83,12 +84,12 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
         GeneratedRetrospectiveResultV2(
             title = "배포 자동화 회고",
             summary = "요약",
-            strength = "잘한 점",
-            improvement = "아쉬운 점",
-            process = "과정",
-            learning = "배움",
-            insight = "인사이트",
-            nextActions = listOf("다음 행동"),
+            strengths = listOf("잘한 점"),
+            improvements = listOf("아쉬운 점"),
+            processes = listOf("과정"),
+            learnings = listOf("배움"),
+            insight = RetrospectiveResultDetail("인사이트", "인사이트 설명"),
+            nextActions = listOf(RetrospectiveResultDetail("다음 행동", "다음 행동 설명")),
             inputTokens = 10,
             outputTokens = 5,
         )

@@ -15,6 +15,7 @@ import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnStatus
 import com.didit.domain.retrospect.InputType
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.retrospect.SummaryGenerationStatus
 import org.junit.jupiter.api.Test
@@ -221,12 +222,18 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                 result =
                     RetrospectiveResultV2Result(
                         summary = "배포 오류를 발견하고 롤백했다.",
-                        strength = null,
-                        improvement = "배포 전 확인이 부족했다.",
-                        process = "로그를 확인해 원인을 좁혔다.",
-                        learning = "배포 체크리스트가 필요하다.",
+                        strengths = null,
+                        improvements = listOf("배포 전 확인이 부족했다."),
+                        processes = listOf("로그를 확인해 원인을 좁혔다."),
+                        learnings = listOf("배포 체크리스트가 필요하다."),
                         insight = null,
-                        nextActions = listOf("배포 체크리스트를 만든다."),
+                        nextActions =
+                            listOf(
+                                RetrospectiveResultDetail(
+                                    title = "배포 체크리스트 작성",
+                                    description = "배포 전 확인 항목을 정리한다.",
+                                ),
+                            ),
                     ),
             ),
         )
@@ -234,7 +241,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
         mockMvc
             .perform(post("/api/v2/retrospectives/{retrospectiveId}/finish", retrospectiveId))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.result.strength").value("오늘 잘한 점은 대화에서 확인되지 않았어요."))
+            .andExpect(jsonPath("$.data.result.strengths[0]").value("오늘 잘한 점은 대화에서 확인되지 않았어요."))
             .andDo(
                 document(
                     "retrospect-v2/finish",
@@ -249,12 +256,16 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                             .description("구조화 결과 생성 상태. 성공 시 GENERATED"),
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("자동 생성된 구체적인 회고 제목"),
                         fieldWithPath("data.result.summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
-                        fieldWithPath("data.result.strength").type(JsonFieldType.STRING).description("오늘 잘한 점").optional(),
-                        fieldWithPath("data.result.improvement").type(JsonFieldType.STRING).description("아쉬웠던 지점").optional(),
-                        fieldWithPath("data.result.process").type(JsonFieldType.STRING).description("돌아본 과정").optional(),
-                        fieldWithPath("data.result.learning").type(JsonFieldType.STRING).description("오늘의 배움").optional(),
-                        fieldWithPath("data.result.insight").type(JsonFieldType.STRING).description("디딧의 인사이트").optional(),
-                        fieldWithPath("data.result.nextActions").type(JsonFieldType.ARRAY).description("다음에 해볼 일, 최대 3개").optional(),
+                        fieldWithPath("data.result.strengths").type(JsonFieldType.ARRAY).description("오늘 잘한 점, 최대 2개"),
+                        fieldWithPath("data.result.improvements").type(JsonFieldType.ARRAY).description("아쉬웠던 점, 최대 2개"),
+                        fieldWithPath("data.result.processes").type(JsonFieldType.ARRAY).description("해결 과정, 최대 2개"),
+                        fieldWithPath("data.result.learnings").type(JsonFieldType.ARRAY).description("배운 점, 최대 2개"),
+                        fieldWithPath("data.result.insight").type(JsonFieldType.OBJECT).description("디딧의 인사이트"),
+                        fieldWithPath("data.result.insight.title").type(JsonFieldType.STRING).description("인사이트 제목"),
+                        fieldWithPath("data.result.insight.description").type(JsonFieldType.STRING).description("인사이트 설명"),
+                        fieldWithPath("data.result.nextActions").type(JsonFieldType.ARRAY).description("다음 행동, 최대 2개"),
+                        fieldWithPath("data.result.nextActions[].title").type(JsonFieldType.STRING).description("다음 행동 제목"),
+                        fieldWithPath("data.result.nextActions[].description").type(JsonFieldType.STRING).description("다음 행동 설명"),
                     ),
                 ),
             )

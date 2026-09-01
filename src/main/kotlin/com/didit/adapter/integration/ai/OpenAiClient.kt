@@ -12,6 +12,7 @@ import com.didit.application.retrospect.required.RetrospectiveResultV2AIClient
 import com.didit.application.retrospect.required.RetrospectiveResultV2AIRequest
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemType
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.shared.Job
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -84,10 +85,10 @@ class OpenAiClient(
         return GeneratedRetrospectiveResultV2(
             title = parsed.title,
             summary = parsed.summary,
-            strength = parsed.strength,
-            improvement = parsed.improvement,
-            process = parsed.process,
-            learning = parsed.learning,
+            strengths = parsed.strengths,
+            improvements = parsed.improvements,
+            processes = parsed.processes,
+            learnings = parsed.learnings,
             insight = parsed.insight,
             nextActions = parsed.nextActions,
             inputTokens = response.usage?.inputTokens ?: 0,
@@ -312,26 +313,21 @@ class OpenAiClient(
                 mapOf(
                     "title" to mapOf("type" to "string", "minLength" to 1, "maxLength" to 25),
                     "summary" to nullableStringSchema(),
-                    "strength" to nullableStringSchema(),
-                    "improvement" to nullableStringSchema(),
-                    "process" to nullableStringSchema(),
-                    "learning" to nullableStringSchema(),
-                    "insight" to nullableStringSchema(),
-                    "nextActions" to
-                        mapOf(
-                            "type" to listOf("array", "null"),
-                            "items" to mapOf("type" to "string"),
-                            "maxItems" to 3,
-                        ),
+                    "strengths" to nullableStringListSchema(),
+                    "improvements" to nullableStringListSchema(),
+                    "processes" to nullableStringListSchema(),
+                    "learnings" to nullableStringListSchema(),
+                    "insight" to nullableResultDetailSchema(),
+                    "nextActions" to nullableResultDetailListSchema(),
                 ),
             "required" to
                 listOf(
                     "title",
                     "summary",
-                    "strength",
-                    "improvement",
-                    "process",
-                    "learning",
+                    "strengths",
+                    "improvements",
+                    "processes",
+                    "learnings",
                     "insight",
                     "nextActions",
                 ),
@@ -339,6 +335,42 @@ class OpenAiClient(
         )
 
     private fun nullableStringSchema() = mapOf("type" to listOf("string", "null"))
+
+    private fun nullableStringListSchema() =
+        mapOf(
+            "type" to listOf("array", "null"),
+            "items" to mapOf("type" to "string", "minLength" to 1),
+            "minItems" to 1,
+            "maxItems" to 2,
+        )
+
+    private fun nullableResultDetailSchema() =
+        mapOf(
+            "type" to listOf("object", "null"),
+            "properties" to resultDetailProperties(),
+            "required" to listOf("title", "description"),
+            "additionalProperties" to false,
+        )
+
+    private fun nullableResultDetailListSchema() =
+        mapOf(
+            "type" to listOf("array", "null"),
+            "items" to
+                mapOf(
+                    "type" to "object",
+                    "properties" to resultDetailProperties(),
+                    "required" to listOf("title", "description"),
+                    "additionalProperties" to false,
+                ),
+            "minItems" to 1,
+            "maxItems" to 2,
+        )
+
+    private fun resultDetailProperties() =
+        mapOf(
+            "title" to mapOf("type" to "string", "minLength" to 1),
+            "description" to mapOf("type" to "string", "minLength" to 1),
+        )
 }
 
 private data class DeepQuestionDto(
@@ -357,12 +389,12 @@ private data class ConversationTurnDto(
 private data class RetrospectiveResultV2Dto(
     val title: String,
     val summary: String?,
-    val strength: String?,
-    val improvement: String?,
-    val process: String?,
-    val learning: String?,
-    val insight: String?,
-    val nextActions: List<String>?,
+    val strengths: List<String>?,
+    val improvements: List<String>?,
+    val processes: List<String>?,
+    val learnings: List<String>?,
+    val insight: RetrospectiveResultDetail?,
+    val nextActions: List<RetrospectiveResultDetail>?,
 )
 
 private data class OpenAiRequest(

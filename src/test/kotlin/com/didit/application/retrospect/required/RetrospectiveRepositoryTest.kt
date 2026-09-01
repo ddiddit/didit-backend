@@ -4,6 +4,7 @@ import com.didit.application.organization.required.RetrospectTagRepository
 import com.didit.domain.organization.RetrospectiveTag
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.RetrospectiveResultV2
 import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.support.RepositoryTestSupport
@@ -121,12 +122,16 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
                     result =
                         RetrospectiveResultV2(
                             summary = "배포 직후 장애를 발견하고 롤백했다.",
-                            strength = null,
-                            improvement = "배포 전 확인이 부족했다.",
-                            process = "로그를 확인해 원인을 좁혔다.",
-                            learning = "체크리스트가 필요하다.",
+                            strengths = null,
+                            improvements = listOf("배포 전 확인이 부족했다."),
+                            processes = listOf("로그를 확인해 원인을 좁혔다."),
+                            learnings = listOf("체크리스트가 필요하다."),
                             insight = null,
-                            nextActions = listOf("배포 체크리스트를 만든다.", "알림 기준을 점검한다."),
+                            nextActions =
+                                listOf(
+                                    RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리한다."),
+                                    RetrospectiveResultDetail("알림 기준 점검", "장애 알림 임계값을 확인한다."),
+                                ),
                         ),
                 )
             }
@@ -137,9 +142,12 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         val saved = retrospectiveRepository.findByIdAndUserId(retrospective.id, userId)!!
         val listItem = retrospectiveRepository.findListItemsByUserId(userId).single()
 
-        assertThat(saved.resultV2?.strength).isNull()
+        assertThat(saved.resultV2?.strengths).isNull()
         assertThat(saved.resultV2?.nextActions)
-            .containsExactly("배포 체크리스트를 만든다.", "알림 기준을 점검한다.")
+            .containsExactly(
+                RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리한다."),
+                RetrospectiveResultDetail("알림 기준 점검", "장애 알림 임계값을 확인한다."),
+            )
         assertThat(listItem.summary).isEqualTo("배포 직후 장애를 발견하고 롤백했다.")
     }
 
@@ -161,7 +169,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         val saved = retrospectiveRepository.findByIdAndUserId(retrospective.id, userId)!!
 
         assertThat(saved.resultV2).isNotNull
-        assertThat(saved.resultV2?.schemaVersion).isEqualTo(2)
+        assertThat(saved.resultV2?.schemaVersion).isEqualTo(3)
     }
 
     @Test
