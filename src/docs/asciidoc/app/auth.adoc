@@ -16,8 +16,14 @@ include::{snippets}/auth/login/response-fields.adoc[]
 
 == 소셜 로그인 v2
 
-카카오 인가 코드 로그인은 `POST /api/v2/auth/social/login`을 사용합니다. `credentialType`이
-`AUTHORIZATION_CODE`인 Kakao 요청은 인가 코드 발급에 사용한 `redirectUri`를 함께 전달해야 합니다.
+`POST /api/v2/auth/social/login`은 KAKAO, GOOGLE, APPLE 로그인에 공통으로 사용합니다.
+각 제공자에 맞는 `credentialType`과 `credential`을 전달합니다.
+
+`redirectUri` 는 인가 코드 교환에 필요한 제공자만 전달합니다. 현재 Kakao의 `AUTHORIZATION_CODE` 요청은
+인가 코드 발급에 사용한 callback URI를 `redirectUri`로 함께 전달해야 합니다.
+
+응답의 `data.status`가 `AUTHENTICATED`이면 발급된 서비스 토큰을 사용합니다. `EMAIL_VERIFICATION_REQUIRED`이면
+아래 이메일 인증번호 발송과 이메일 인증 완료 API를 순서대로 호출합니다.
 
 === Request
 
@@ -28,6 +34,36 @@ include::{snippets}/auth/social-login-v2/request-fields.adoc[]
 
 include::{snippets}/auth/social-login-v2/http-response.adoc[]
 include::{snippets}/auth/social-login-v2/response-fields.adoc[]
+
+=== 이메일 인증번호 발송
+
+소셜 로그인 v2 응답이 `EMAIL_VERIFICATION_REQUIRED`인 경우,
+`POST /api/v2/auth/social/email/start`를 호출해 해당 이메일 주소로 인증번호를 전송합니다.
+
+==== Request
+
+include::{snippets}/auth/social-login-v2/email-start/http-request.adoc[]
+include::{snippets}/auth/social-login-v2/email-start/request-fields.adoc[]
+
+==== Response
+
+include::{snippets}/auth/social-login-v2/email-start/http-response.adoc[]
+include::{snippets}/auth/social-login-v2/email-start/response-fields.adoc[]
+
+=== 이메일 인증 완료
+
+소셜 로그인 v2 진행중 이메일로 받은 인증번호를 `POST /api/v2/auth/social/email/verify` 에 전달합니다.
+인증에 성공하면 `AUTHENTICATED` 상태와 서비스 토큰이 반환됩니다.
+
+==== Request
+
+include::{snippets}/auth/social-login-v2/email-verify/http-request.adoc[]
+include::{snippets}/auth/social-login-v2/email-verify/request-fields.adoc[]
+
+==== Response
+
+include::{snippets}/auth/social-login-v2/email-verify/http-response.adoc[]
+include::{snippets}/auth/social-login-v2/email-verify/response-fields.adoc[]
 
 == 토큰 재발급
 

@@ -13,6 +13,7 @@ import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
@@ -29,7 +30,7 @@ class SocialAuthApiTest : RestDocsSupport() {
 
     @Test
     fun `소셜 로그인 v2`() {
-        whenever(socialAuth.login(any(), any(), any(), any())).thenReturn(
+        whenever(socialAuth.login(any(), any(), any(), anyOrNull())).thenReturn(
             SocialLoginResult(
                 status = SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED,
                 loginSessionToken = "login-session-token",
@@ -43,10 +44,9 @@ class SocialAuthApiTest : RestDocsSupport() {
                 content =
                     objectMapper.writeValueAsString(
                         mapOf(
-                            "provider" to Provider.KAKAO,
-                            "credentialType" to SocialCredentialType.AUTHORIZATION_CODE,
-                            "credential" to "authorization-code",
-                            "redirectUri" to "http://localhost:3000/auth/kakao/callback",
+                            "provider" to Provider.GOOGLE,
+                            "credentialType" to SocialCredentialType.ID_TOKEN,
+                            "credential" to "id-token",
                         ),
                     )
             }.andExpect {
@@ -61,12 +61,14 @@ class SocialAuthApiTest : RestDocsSupport() {
                         ApiDocumentUtils.getDocumentRequest(),
                         ApiDocumentUtils.getDocumentResponse(),
                         requestFields(
-                            fieldWithPath("provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자"),
-                            fieldWithPath("credentialType").type(JsonFieldType.STRING).description("Kakao 인가 코드는 AUTHORIZATION_CODE"),
-                            fieldWithPath("credential").type(JsonFieldType.STRING).description("소셜 로그인 credential"),
+                            fieldWithPath("provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자 (KAKAO, GOOGLE, APPLE)"),
+                            fieldWithPath(
+                                "credentialType",
+                            ).type(JsonFieldType.STRING).description("제공자에 맞는 인증값 유형 (ID_TOKEN, ACCESS_TOKEN, AUTHORIZATION_CODE)"),
+                            fieldWithPath("credential").type(JsonFieldType.STRING).description("credentialType에 맞는 소셜 인증값"),
                             fieldWithPath(
                                 "redirectUri",
-                            ).type(JsonFieldType.STRING).description("Kakao 인가 코드 발급에 사용한 callback URI").optional(),
+                            ).type(JsonFieldType.STRING).description("인가 코드 교환에 사용할 callback URI (필요한 제공자에 한함)").optional(),
                         ),
                         responseFields(
                             fieldWithPath("data.status").type(JsonFieldType.STRING).description("로그인 처리 상태"),
@@ -99,6 +101,21 @@ class SocialAuthApiTest : RestDocsSupport() {
             }.andExpect {
                 status { isOk() }
                 jsonPath("$.data.expiresInSeconds") { value(600) }
+            }.andDo {
+                handle(
+                    document(
+                        "auth/social-login-v2/email-start",
+                        ApiDocumentUtils.getDocumentRequest(),
+                        ApiDocumentUtils.getDocumentResponse(),
+                        requestFields(
+                            fieldWithPath("loginSessionToken").type(JsonFieldType.STRING).description("소셜 로그인 세션 토큰"),
+                            fieldWithPath("email").type(JsonFieldType.STRING).description("인증번호를 받을 이메일 주소"),
+                        ),
+                        responseFields(
+                            fieldWithPath("data.expiresInSeconds").type(JsonFieldType.NUMBER).description("인증번호 만료까지 남은 초"),
+                        ),
+                    ),
+                )
             }
     }
 
@@ -133,6 +150,27 @@ class SocialAuthApiTest : RestDocsSupport() {
                 jsonPath("$.data.accessToken") { value("access-token") }
                 jsonPath("$.data.isNewUser") { value(false) }
                 jsonPath("$.data.isOnboardingCompleted") { value(true) }
+            }.andDo {
+                handle(
+                    document(
+                        "auth/social-login-v2/email-verify",
+                        ApiDocumentUtils.getDocumentRequest(),
+                        ApiDocumentUtils.getDocumentResponse(),
+                        requestFields(
+                            fieldWithPath("loginSessionToken").type(JsonFieldType.STRING).description("소셜 로그인 세션 토큰"),
+                            fieldWithPath("code").type(JsonFieldType.STRING).description("이메일 인증번호"),
+                        ),
+                        responseFields(
+                            fieldWithPath("data.status").type(JsonFieldType.STRING).description("로그인 처리 상태"),
+                            fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰").optional(),
+                            fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰").optional(),
+                            fieldWithPath("data.isNewUser").type(JsonFieldType.BOOLEAN).description("신규 사용자 여부").optional(),
+                            fieldWithPath("data.isOnboardingCompleted").type(JsonFieldType.BOOLEAN).description("온보딩 완료 여부").optional(),
+                            fieldWithPath("data.loginSessionToken").type(JsonFieldType.STRING).description("이메일 인증용 로그인 세션 토큰").optional(),
+                            fieldWithPath("data.emailHint").type(JsonFieldType.STRING).description("이메일 인증 안내용 마스킹 이메일").optional(),
+                        ),
+                    ),
+                )
             }
     }
 }
