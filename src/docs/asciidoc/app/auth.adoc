@@ -16,14 +16,18 @@ include::{snippets}/auth/login/response-fields.adoc[]
 
 == 소셜 로그인 v2
 
-`POST /api/v2/auth/social/login`은 KAKAO, GOOGLE, APPLE 로그인에 공통으로 사용합니다.
-각 제공자에 맞는 `credentialType`과 `credential`을 전달합니다.
+`POST /api/v2/auth/social/login`은 소셜 로그인에 공통으로 사용합니다. 현재 배포 환경에서는 KAKAO와 GOOGLE을
+지원하며, APPLE은 기능 게이트가 비활성화되어 요청 시 지원하지 않는 제공자로 처리됩니다. 제공자에 맞는
+`credentialType`과 `credential`을 전달합니다.
 
 `redirectUri` 는 인가 코드 교환에 필요한 제공자만 전달합니다. 현재 Kakao의 `AUTHORIZATION_CODE` 요청은
 인가 코드 발급에 사용한 callback URI를 `redirectUri`로 함께 전달해야 합니다.
 
-응답의 `data.status`가 `AUTHENTICATED`이면 발급된 서비스 토큰을 사용합니다. `EMAIL_VERIFICATION_REQUIRED`이면
-아래 이메일 인증번호 발송과 이메일 인증 완료 API를 순서대로 호출합니다.
+응답의 `data.status`에 따라 처리합니다.
+
+* `AUTHENTICATED`: 발급된 서비스 토큰을 사용합니다.
+* `EMAIL_VERIFICATION_REQUIRED`: 아래 이메일 인증번호 발송과 이메일 인증 완료 API를 순서대로 호출합니다.
+* `SUPPORT_REQUIRED`: 계정을 안전하게 특정할 수 없는 상태입니다. 서비스 토큰은 반환되지 않으며 고객센터 또는 문의 채널로 안내합니다.
 
 === Request
 
@@ -52,8 +56,9 @@ include::{snippets}/auth/social-login-v2/email-start/response-fields.adoc[]
 
 === 이메일 인증 완료
 
-소셜 로그인 v2 진행중 이메일로 받은 인증번호를 `POST /api/v2/auth/social/email/verify` 에 전달합니다.
-인증에 성공하면 `AUTHENTICATED` 상태와 서비스 토큰이 반환됩니다.
+소셜 로그인 v2 진행 중 이메일로 받은 인증번호를 `POST /api/v2/auth/social/email/verify`에 전달합니다.
+응답이 `AUTHENTICATED`이면 서비스 토큰을 사용합니다. `SUPPORT_REQUIRED`이면 서비스 토큰을 사용하지 않고
+고객센터 또는 문의 채널로 안내합니다.
 
 ==== Request
 

@@ -61,7 +61,9 @@ class SocialAuthApiTest : RestDocsSupport() {
                         ApiDocumentUtils.getDocumentRequest(),
                         ApiDocumentUtils.getDocumentResponse(),
                         requestFields(
-                            fieldWithPath("provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자 (KAKAO, GOOGLE, APPLE)"),
+                            fieldWithPath(
+                                "provider",
+                            ).type(JsonFieldType.STRING).description("소셜 로그인 제공자 (현재 KAKAO, GOOGLE 지원; APPLE 기능 게이트 비활성)"),
                             fieldWithPath(
                                 "credentialType",
                             ).type(JsonFieldType.STRING).description("제공자에 맞는 인증값 유형 (ID_TOKEN, ACCESS_TOKEN, AUTHORIZATION_CODE)"),
@@ -71,7 +73,11 @@ class SocialAuthApiTest : RestDocsSupport() {
                             ).type(JsonFieldType.STRING).description("인가 코드 교환에 사용할 callback URI (필요한 제공자에 한함)").optional(),
                         ),
                         responseFields(
-                            fieldWithPath("data.status").type(JsonFieldType.STRING).description("로그인 처리 상태"),
+                            fieldWithPath(
+                                "data.status",
+                            ).type(
+                                JsonFieldType.STRING,
+                            ).description("로그인 처리 상태 (AUTHENTICATED, EMAIL_VERIFICATION_REQUIRED, SUPPORT_REQUIRED)"),
                             fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰").optional(),
                             fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰").optional(),
                             fieldWithPath("data.isNewUser").type(JsonFieldType.BOOLEAN).description("신규 사용자 여부").optional(),
@@ -161,7 +167,9 @@ class SocialAuthApiTest : RestDocsSupport() {
                             fieldWithPath("code").type(JsonFieldType.STRING).description("이메일 인증번호"),
                         ),
                         responseFields(
-                            fieldWithPath("data.status").type(JsonFieldType.STRING).description("로그인 처리 상태"),
+                            fieldWithPath(
+                                "data.status",
+                            ).type(JsonFieldType.STRING).description("로그인 처리 상태 (AUTHENTICATED: 서비스 토큰 사용, SUPPORT_REQUIRED: 고객센터 안내)"),
                             fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰").optional(),
                             fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰").optional(),
                             fieldWithPath("data.isNewUser").type(JsonFieldType.BOOLEAN).description("신규 사용자 여부").optional(),
