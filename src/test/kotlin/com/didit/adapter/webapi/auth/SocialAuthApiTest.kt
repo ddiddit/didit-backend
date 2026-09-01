@@ -28,7 +28,7 @@ class SocialAuthApiTest : RestDocsSupport() {
     override fun initController() = SocialAuthApi(socialAuth)
 
     @Test
-    fun `모르는 식별자의 로그인 응답은 이메일 인증 세션만 반환한다`() {
+    fun `소셜 로그인 v2`() {
         whenever(socialAuth.login(any(), any(), any(), any())).thenReturn(
             SocialLoginResult(
                 status = SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED,
@@ -55,31 +55,35 @@ class SocialAuthApiTest : RestDocsSupport() {
                 jsonPath("$.data.loginSessionToken") { value("login-session-token") }
                 jsonPath("$.data.accessToken") { value(nullValue()) }
             }.andDo {
-                document(
-                    "auth/social-login-v2",
-                    ApiDocumentUtils.getDocumentRequest(),
-                    ApiDocumentUtils.getDocumentResponse(),
-                    requestFields(
-                        fieldWithPath("provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자"),
-                        fieldWithPath("credentialType").type(JsonFieldType.STRING).description("Kakao 인가 코드는 AUTHORIZATION_CODE"),
-                        fieldWithPath("credential").type(JsonFieldType.STRING).description("소셜 로그인 credential"),
-                        fieldWithPath("redirectUri").type(JsonFieldType.STRING).description("Kakao 인가 코드 발급에 사용한 callback URI").optional(),
-                    ),
-                    responseFields(
-                        fieldWithPath("data.status").type(JsonFieldType.STRING).description("로그인 처리 상태"),
-                        fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰").optional(),
-                        fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰").optional(),
-                        fieldWithPath("data.isNewUser").type(JsonFieldType.BOOLEAN).description("신규 사용자 여부").optional(),
-                        fieldWithPath("data.isOnboardingCompleted").type(JsonFieldType.BOOLEAN).description("온보딩 완료 여부").optional(),
-                        fieldWithPath("data.loginSessionToken").type(JsonFieldType.STRING).description("이메일 인증용 로그인 세션 토큰").optional(),
-                        fieldWithPath("data.emailHint").type(JsonFieldType.STRING).description("이메일 인증 안내용 마스킹 이메일").optional(),
+                handle(
+                    document(
+                        "auth/social-login-v2",
+                        ApiDocumentUtils.getDocumentRequest(),
+                        ApiDocumentUtils.getDocumentResponse(),
+                        requestFields(
+                            fieldWithPath("provider").type(JsonFieldType.STRING).description("소셜 로그인 제공자"),
+                            fieldWithPath("credentialType").type(JsonFieldType.STRING).description("Kakao 인가 코드는 AUTHORIZATION_CODE"),
+                            fieldWithPath("credential").type(JsonFieldType.STRING).description("소셜 로그인 credential"),
+                            fieldWithPath(
+                                "redirectUri",
+                            ).type(JsonFieldType.STRING).description("Kakao 인가 코드 발급에 사용한 callback URI").optional(),
+                        ),
+                        responseFields(
+                            fieldWithPath("data.status").type(JsonFieldType.STRING).description("로그인 처리 상태"),
+                            fieldWithPath("data.accessToken").type(JsonFieldType.STRING).description("액세스 토큰").optional(),
+                            fieldWithPath("data.refreshToken").type(JsonFieldType.STRING).description("리프레시 토큰").optional(),
+                            fieldWithPath("data.isNewUser").type(JsonFieldType.BOOLEAN).description("신규 사용자 여부").optional(),
+                            fieldWithPath("data.isOnboardingCompleted").type(JsonFieldType.BOOLEAN).description("온보딩 완료 여부").optional(),
+                            fieldWithPath("data.loginSessionToken").type(JsonFieldType.STRING).description("이메일 인증용 로그인 세션 토큰").optional(),
+                            fieldWithPath("data.emailHint").type(JsonFieldType.STRING).description("이메일 인증 안내용 마스킹 이메일").optional(),
+                        ),
                     ),
                 )
             }
     }
 
     @Test
-    fun `이메일 인증번호 발송 요청은 만료 초를 반환한다`() {
+    fun `소셜 로그인 v2 이메일 인증번호 발송`() {
         whenever(socialAuth.startEmailVerification(any(), any())).thenReturn(EmailVerificationStartResult(600))
 
         mockMvc
@@ -99,7 +103,7 @@ class SocialAuthApiTest : RestDocsSupport() {
     }
 
     @Test
-    fun `이메일 인증 완료 후에는 서버 판정 결과와 서비스 토큰을 반환한다`() {
+    fun `소셜 로그인 v2 이메일 인증 완료`() {
         whenever(socialAuth.verifyEmail(any(), any())).thenReturn(
             SocialLoginResult(
                 status = SocialLoginStatus.AUTHENTICATED,
