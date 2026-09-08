@@ -1,6 +1,7 @@
 package com.didit.application.retrospect.exception
 
 import com.didit.application.common.exception.BusinessException
+import java.time.LocalDate
 import java.util.UUID
 
 class RetrospectiveNotFoundException(
@@ -30,6 +31,20 @@ class SummaryAlreadyGeneratedException(
         RetrospectErrorCode.SUMMARY_ALREADY_GENERATED,
         "retrospectiveId: $retrospectiveId",
     )
+
+class RetrospectiveMemoNotFoundException(
+    memoId: UUID,
+) : BusinessException(RetrospectErrorCode.RETROSPECTIVE_MEMO_NOT_FOUND, "memoId: $memoId")
+
+class DuplicateRetrospectiveMemoException(
+    retrospectiveId: UUID,
+    memoDate: LocalDate,
+) : BusinessException(
+        RetrospectErrorCode.DUPLICATE_RETROSPECTIVE_MEMO,
+        "retrospectiveId: $retrospectiveId, memoDate: $memoDate",
+    )
+
+class InvalidRetrospectiveMemoContentException : BusinessException(RetrospectErrorCode.INVALID_RETROSPECTIVE_MEMO_CONTENT)
 
 class RetrospectiveAlreadyCompletedException(
     retrospectiveId: UUID,

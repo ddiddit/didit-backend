@@ -16,6 +16,7 @@ import com.didit.application.retrospect.exception.SpeechTranscriptionFailedExcep
 import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
+import com.didit.application.retrospect.required.RetrospectiveMemoRepository
 import com.didit.application.retrospect.required.RetrospectivePolicy
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.SpeechClient
@@ -74,6 +75,9 @@ class RetrospectServiceTest {
     @Mock
     lateinit var retrospectivePolicy: RetrospectivePolicy
 
+    @Mock
+    lateinit var retrospectiveMemoRepository: RetrospectiveMemoRepository
+
     private lateinit var retrospectService: RetrospectService
 
     private val userId = UUID.randomUUID()
@@ -92,6 +96,7 @@ class RetrospectServiceTest {
                 auditLogger = auditLogger,
                 projectRepository = projectRepository,
                 retrospectivePolicy = retrospectivePolicy,
+                retrospectiveMemoRepository = retrospectiveMemoRepository,
             )
     }
 
@@ -567,7 +572,7 @@ class RetrospectServiceTest {
     }
 
     @Test
-    fun `delete - 회고를 소프트 삭제한다`() {
+    fun `delete - 회고와 메모를 함께 삭제한다`() {
         val retro = inProgressRetrospective()
         whenever(retrospectiveFinder.findById(retrospectiveId, userId)).thenReturn(retro)
         whenever(retrospectiveRepository.save(any())).thenAnswer { it.arguments[0] }
@@ -575,6 +580,7 @@ class RetrospectServiceTest {
         retrospectService.delete(retrospectiveId, userId)
 
         assertThat(retro.isDeleted()).isTrue()
+        verify(retrospectiveMemoRepository).deleteAllByRetrospectiveId(retro.id)
     }
 
     @Test

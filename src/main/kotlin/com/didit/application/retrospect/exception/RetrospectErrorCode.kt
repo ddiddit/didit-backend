@@ -22,6 +22,9 @@ enum class RetrospectErrorCode(
     SUMMARY_NOT_GENERATED(HttpStatus.BAD_REQUEST, "AI 요약이 아직 생성되지 않았습니다."),
     SUMMARY_GENERATION_IN_PROGRESS(HttpStatus.CONFLICT, "AI 요약을 생성 중입니다."),
     SUMMARY_ALREADY_GENERATED(HttpStatus.CONFLICT, "AI 요약이 이미 생성되었습니다."),
+    RETROSPECTIVE_MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "메모를 찾을 수 없습니다."),
+    DUPLICATE_RETROSPECTIVE_MEMO(HttpStatus.CONFLICT, "오늘은 이미 이 회고의 메모를 작성했습니다."),
+    INVALID_RETROSPECTIVE_MEMO_CONTENT(HttpStatus.BAD_REQUEST, "메모 내용은 비어 있을 수 없습니다."),
 
     SPEECH_EMPTY_FILE(HttpStatus.BAD_REQUEST, "음성 파일이 비어 있습니다."),
     SPEECH_UNSUPPORTED_FILE(HttpStatus.BAD_REQUEST, "지원하지 않는 음성 파일 형식입니다."),
