@@ -45,7 +45,6 @@ import com.didit.domain.retrospect.RetrospectiveAnalysisItem
 import com.didit.domain.retrospect.RetrospectiveConversationTurn
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
-import com.didit.domain.retrospect.Sender
 import com.didit.domain.shared.ServiceTime
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -71,6 +70,7 @@ class RetrospectiveConversationV2Service(
     private val resultCompletionCoordinator: RetrospectiveResultV2CompletionCoordinator,
     private val eventPublisher: ApplicationEventPublisher,
     private val sensitiveDataDetector: AttachmentSensitiveDataDetector,
+    private val turnPolicy: ConversationV2TurnPolicy,
     @param:Value("\${retrospective.v2.max-context-characters:30000}")
     private val maxContextCharacters: Int,
 ) : RetrospectiveConversationV2 {
@@ -93,7 +93,13 @@ class RetrospectiveConversationV2Service(
             }
 
             val retrospective = Retrospective.createV2(userId)
-            val intro = ChatMessage.v2Intro(retrospective)
+            val introSnapshot = turnPolicy.initialIntro()
+            val intro =
+                ChatMessage.v2Intro(
+                    retrospective = retrospective,
+                    content = introSnapshot.content,
+                    supportingContent = introSnapshot.supportingContent,
+                )
             retrospective.addMessage(intro)
             retrospectiveRepository.save(retrospective)
             analysisItemRepository.saveAll(RetrospectiveAnalysisItem.initialize(retrospective.id))
@@ -403,7 +409,7 @@ class RetrospectiveConversationV2Service(
                 .filter { it.analysisStatus == com.didit.domain.retrospect.AttachmentAnalysisStatus.COMPLETED }
         val currentAttachmentContexts = currentAttachments.map(AttachmentConversationContextMapper::from)
         val context =
-            ConversationContextTrimmer.trim(
+            turnPolicy.trimContext(
                 messages.map { message ->
                     ConversationContextMessage(
                         id = message.id,
@@ -437,7 +443,11 @@ class RetrospectiveConversationV2Service(
                         messages = context,
                         analysisItems = items.map { ConversationAnalysisItem(it.itemType, it.status, it.summary) },
                         currentMessageId = userMessage.id,
-                        consecutiveIrrelevantCount = consecutiveIrrelevantCount(messages, userMessage.id),
+                        consecutiveIrrelevantCount =
+                            turnPolicy.consecutiveIrrelevantCount(
+                                messages.map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance) },
+                                userMessage.id,
+                            ),
                     )
                 } else {
                     null
@@ -482,13 +492,13 @@ class RetrospectiveConversationV2Service(
                     generatedContent,
                 ).joinToString("\n")
             check(responseContent.isNotBlank()) { "AI 응답이 비어 있습니다." }
+            val assistantSnapshot = turnPolicy.assistantSnapshot(generated).copy(content = responseContent)
             val assistantMessage =
                 chatMessageRepository.save(
                     ChatMessage.v2AssistantMessage(
                         retrospective = retrospective,
-                        content = responseContent,
-                        systemGuide =
-                            generated.relevance == MessageRelevance.OFF_TOPIC || generated.relevance == MessageRelevance.SERVICE_HELP,
+                        content = assistantSnapshot.content,
+                        messageType = assistantSnapshot.messageType,
                     ),
                 )
 
@@ -515,23 +525,27 @@ class RetrospectiveConversationV2Service(
         generated: GeneratedConversationTurn,
     ) {
         val items = findOrInitializeItems(retrospectiveId).associateBy { it.itemType }
-        val validMessages =
+        val messages =
             chatMessageRepository
                 .findAllByRetrospectiveIdOrderByCreatedAtAsc(retrospectiveId)
-                .filter { it.sender == Sender.USER && it.includedInResult }
-                .associateBy { it.id }
-        generated.analysisUpdates.forEach { update ->
-            val evidenceIds = update.evidenceMessageIds.filter { it in validMessages }
-            if (evidenceIds.isEmpty()) return@forEach
-            val item = items[update.itemType] ?: return@forEach
-            item.update(update.status, update.summary)
-            analysisItemRepository.save(item)
-            val newEvidence =
-                evidenceIds
-                    .filterNot { evidenceRepository.existsByAnalysisItemIdAndMessageId(item.id, it) }
-                    .map { RetrospectiveAnalysisEvidence(analysisItemId = item.id, messageId = it) }
-            if (newEvidence.isNotEmpty()) evidenceRepository.saveAll(newEvidence)
-        }
+                .map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance) }
+        turnPolicy
+            .applyAnalysisUpdates(
+                items.values.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary) },
+                generated.analysisUpdates,
+                messages,
+            ).filter { it.applied }
+            .forEach { decision ->
+                val item = checkNotNull(items[decision.update.itemType])
+                val after = checkNotNull(decision.after)
+                item.update(after.status, after.summary.orEmpty())
+                analysisItemRepository.save(item)
+                val newEvidence =
+                    decision.acceptedEvidenceMessageIds
+                        .filterNot { evidenceRepository.existsByAnalysisItemIdAndMessageId(item.id, it) }
+                        .map { RetrospectiveAnalysisEvidence(analysisItemId = item.id, messageId = it) }
+                if (newEvidence.isNotEmpty()) evidenceRepository.saveAll(newEvidence)
+            }
     }
 
     private fun markFailed(
@@ -590,16 +604,6 @@ class RetrospectiveConversationV2Service(
             listOf(RetrospectiveItemType.STRENGTH, RetrospectiveItemType.BLOCK, RetrospectiveItemType.PROCESS).any(::collected) &&
             listOf(RetrospectiveItemType.LEARN, RetrospectiveItemType.ACTION).any(::collected)
     }
-
-    private fun consecutiveIrrelevantCount(
-        messages: List<ChatMessage>,
-        currentMessageId: UUID,
-    ): Int =
-        messages
-            .filter { it.sender == Sender.USER && it.id != currentMessageId }
-            .asReversed()
-            .takeWhile { it.relevance != MessageRelevance.RETROSPECTIVE }
-            .count { it.relevance != null }
 
     private fun ChatMessage.toResult(
         attachments: List<com.didit.domain.retrospect.RetrospectiveAttachment> = emptyList(),

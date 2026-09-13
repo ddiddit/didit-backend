@@ -21,8 +21,13 @@ class ConversationV2Prompts(
         val template =
             promptRepository.findByJobTypeAndPromptType(jobType, PromptType.CONVERSATION_V2)?.content
                 ?: ClassPathResource("prompts/conversation-v2.txt").inputStream.bufferedReader().readText()
-        return template.replace("{{context}}", objectMapper.writeValueAsString(request))
+        return render(template, request)
     }
+
+    fun render(
+        template: String,
+        request: ConversationTurnAIRequest,
+    ): String = template.replace("{{context}}", objectMapper.writeValueAsString(request))
 
     private fun Job?.toPromptJobType(): PromptJobType =
         when (this) {

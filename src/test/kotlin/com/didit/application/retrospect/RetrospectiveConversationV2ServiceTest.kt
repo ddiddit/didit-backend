@@ -61,6 +61,7 @@ import java.util.UUID
     RetrospectiveConversationV2Service::class,
     RetrospectiveResultV2CompletionCoordinator::class,
     AttachmentSensitiveDataDetector::class,
+    ConversationV2TurnPolicy::class,
     RetrospectiveConversationV2ServiceTest.MetricsConfig::class,
 )
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -444,6 +445,27 @@ class RetrospectiveConversationV2ServiceTest {
         service.finish(started.retrospectiveId, userId)
 
         verify(resultAIClient).generateResult(any())
+    }
+
+    @Test
+    fun `연속된 무관 대화는 공용 policy의 count와 SYSTEM_GUIDE 응답으로 저장한다`() {
+        // Break caught: production bypasses the shared policy and sends the wrong irrelevant count or assistant message type.
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+            if (request.messages.last().content == "오늘 업무 이야기를 할게") {
+                assertThat(request.consecutiveIrrelevantCount).isEqualTo(2)
+            }
+            offTopicResponse()
+        }
+
+        val first = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "점심 메뉴를 추천해줘")
+        val second = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "근처 카페도 알려줘")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "오늘 업무 이야기를 할게")
+
+        assertThat(first.assistantMessage.messageType).isEqualTo(ConversationMessageType.SYSTEM_GUIDE)
+        assertThat(second.assistantMessage.messageType).isEqualTo(ConversationMessageType.SYSTEM_GUIDE)
+        verify(aiClient, times(3)).generateConversationTurn(any())
     }
 
     @Test

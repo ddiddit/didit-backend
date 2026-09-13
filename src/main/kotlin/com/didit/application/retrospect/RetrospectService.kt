@@ -19,6 +19,7 @@ import com.didit.application.retrospect.exception.SpeechUnsupportedFileException
 import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.provided.RetrospectiveRegister
+import com.didit.application.retrospect.required.RetrospectiveMemoRepository
 import com.didit.application.retrospect.required.RetrospectivePolicy
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.SpeechClient
@@ -48,6 +49,7 @@ class RetrospectService(
     private val auditLogger: AuditLogger,
     private val projectRepository: ProjectRepository,
     private val retrospectivePolicy: RetrospectivePolicy,
+    private val retrospectiveMemoRepository: RetrospectiveMemoRepository,
 ) : RetrospectiveRegister {
     companion object {
         private val logger = LoggerFactory.getLogger(RetrospectService::class.java)
@@ -201,9 +203,7 @@ class RetrospectService(
     ): Retrospective {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
 
-        retrospective.softDelete()
-
-        retrospectiveRepository.save(retrospective)
+        deleteRetrospective(retrospective)
 
         logger.info("회고 다시 시작 - userId: $userId, retrospectiveId: $retrospectiveId")
 
@@ -232,9 +232,7 @@ class RetrospectService(
     ) {
         val retrospective = retrospectiveFinder.findById(retrospectiveId, userId)
 
-        retrospective.softDelete()
-
-        retrospectiveRepository.save(retrospective)
+        deleteRetrospective(retrospective)
 
         logger.info("회고 삭제 - userId: $userId, retrospectiveId: $retrospectiveId")
     }
@@ -248,11 +246,15 @@ class RetrospectService(
 
         if (!retrospective.isPending()) return
 
-        retrospective.softDelete()
-
-        retrospectiveRepository.save(retrospective)
+        deleteRetrospective(retrospective)
 
         logger.info("회고 나가기 - userId: $userId, retrospectiveId: $retrospectiveId")
+    }
+
+    private fun deleteRetrospective(retrospective: Retrospective) {
+        retrospectiveMemoRepository.deleteAllByRetrospectiveId(retrospective.id)
+        retrospective.softDelete()
+        retrospectiveRepository.save(retrospective)
     }
 
     @Transactional
