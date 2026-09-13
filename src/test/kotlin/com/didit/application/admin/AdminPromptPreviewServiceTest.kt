@@ -31,6 +31,7 @@ import org.mockito.kotlin.mock
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.boot.test.context.runner.ApplicationContextRunner
 import java.util.UUID
 
 class AdminPromptPreviewServiceTest {
@@ -142,6 +143,48 @@ class AdminPromptPreviewServiceTest {
         val result = service.preview(command(promptSource = AdminPromptSource.DRAFT, draftPrompt = "초안"))
 
         assertThat(result.nextState.analysisItems).allMatch { it.status == RetrospectiveItemStatus.EMPTY }
+    }
+
+    @Test
+    fun `내용이 없는 AI 응답은 상태에 추가하지 않고 실패한다`() {
+        whenever(aiClient.preview(any(), any())).thenReturn(
+            generatedTurn().copy(acknowledgement = " ", interpretation = "", question = ""),
+        )
+
+        assertThatThrownBy { service.preview(command()) }
+            .isInstanceOf(IllegalStateException::class.java)
+            .hasMessage("AI 응답이 비어 있습니다.")
+    }
+
+    @Test
+    fun `운영 설정의 context 문자 제한을 preview에도 적용한다`() {
+        val requestCaptor = argumentCaptor<com.didit.application.retrospect.required.ConversationTurnAIRequest>()
+        val oldMessage = message(UUID.randomUUID()).copy(content = "12345678")
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(oldMessage),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.EMPTY, null)
+                    },
+            )
+
+        ApplicationContextRunner()
+            .withPropertyValues("retrospective.v2.max-context-characters=10")
+            .withBean(PromptRepository::class.java, { promptRepository })
+            .withBean(AdminPromptPreviewAIClient::class.java, { aiClient })
+            .withBean(ConversationV2TurnPolicy::class.java)
+            .withBean(AdminPromptPreviewService::class.java)
+            .run { context ->
+                context.getBean(AdminPromptPreviewService::class.java).preview(
+                    command(priorState = priorState, message = "1234"),
+                )
+            }
+
+        verify(aiClient).preview(any(), requestCaptor.capture())
+        assertThat(requestCaptor.firstValue.messages)
+            .extracting<String> { it.content }
+            .containsExactly("1234")
     }
 
     @Test

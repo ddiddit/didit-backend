@@ -25,6 +25,7 @@ import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
 import java.util.UUID
 
@@ -33,6 +34,7 @@ class AdminPromptPreviewService(
     private val promptRepository: PromptRepository,
     private val aiClient: AdminPromptPreviewAIClient,
     private val turnPolicy: ConversationV2TurnPolicy,
+    @param:Value("\${retrospective.v2.max-context-characters:30000}")
     private val maxContextCharacters: Int = 30_000,
 ) : AdminPromptPreview {
     override fun preview(command: AdminPromptPreviewCommand): AdminPromptPreviewResult {
@@ -67,13 +69,14 @@ class AdminPromptPreviewService(
                     ),
             )
         val generated = aiClient.preview(template, aiRequest)
+        val assistantSnapshot = turnPolicy.assistantSnapshot(generated)
+        check(assistantSnapshot.content.isNotBlank()) { "AI 응답이 비어 있습니다." }
         val classifiedMessages =
             messagesBeforeGeneration.map { message ->
                 if (message.id == command.userMessageId) message.copy(relevance = generated.relevance) else message
             }
         val analysisItems =
             applyAnalysisUpdates(priorState.analysisItems, generated.relevance, generated.analysisUpdates, classifiedMessages)
-        val assistantSnapshot = turnPolicy.assistantSnapshot(generated)
         val assistantMessage =
             AdminPromptPreviewMessage(
                 id = UUID.randomUUID(),
