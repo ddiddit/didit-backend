@@ -1,5 +1,6 @@
 package com.didit.adapter.integration.ai
 
+import com.didit.application.admin.required.AdminPromptPreviewAIClient
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.required.AIClient
 import com.didit.application.retrospect.required.ConversationAnalysisUpdate
@@ -37,6 +38,7 @@ class OpenAiClient(
     @param:Value("\${openai.api-key}") private val apiKey: String,
     @param:Value("\${openai.chat.model}") private val model: String,
 ) : AIClient,
+    AdminPromptPreviewAIClient,
     ConversationV2AIClient,
     RetrospectiveResultV2AIClient {
     companion object {
@@ -76,6 +78,15 @@ class OpenAiClient(
         val prompt = conversationV2Prompts.build(request)
         val result = callWithResult(prompt, "conversation_v2", "retrospective_conversation_turn", conversationV2Schema())
         return parseConversationTurn(result)
+    }
+
+    override fun preview(
+        template: String,
+        request: ConversationTurnAIRequest,
+    ): GeneratedConversationTurn {
+        val renderedPrompt = conversationV2Prompts.render(template, request)
+        val response = callWithResult(renderedPrompt, "conversation_v2_preview", "retrospective_conversation_turn", conversationV2Schema())
+        return parseConversationTurn(response)
     }
 
     override fun generateResult(request: RetrospectiveResultV2AIRequest): GeneratedRetrospectiveResultV2 {
@@ -134,7 +145,11 @@ class OpenAiClient(
                     ).retrieve()
                     .body<String>() ?: throw RuntimeException("OpenAI 응답을 받지 못했습니다.")
 
-            logger.debug("OpenAI 전체 응답: $rawResponse")
+            logger.debug(
+                "OpenAI response received - operation: {}, responseLength: {}",
+                operation,
+                rawResponse.length,
+            )
 
             objectMapper.readValue<OpenAiResponse>(rawResponse).also {
                 metrics.recordTokens(operation, it.usage?.inputTokens ?: 0, it.usage?.outputTokens ?: 0)

@@ -102,13 +102,24 @@ class ChatMessage(
         }
 
         fun v2Intro(retrospective: Retrospective): ChatMessage =
+            v2Intro(
+                retrospective = retrospective,
+                content = "오늘 어떤 일을 하셨나요?",
+                supportingContent = "오늘 진행한 일 중 하나를 떠올려, 작업 내용과 함께 결과나 상태도 같이 적어보세요.",
+            )
+
+        fun v2Intro(
+            retrospective: Retrospective,
+            content: String,
+            supportingContent: String?,
+        ): ChatMessage =
             ChatMessage(
                 retrospective = retrospective,
                 sender = Sender.AI,
-                content = "오늘 어떤 일을 하셨나요?",
+                content = content,
                 questionType = QuestionType.V2_CHAT,
                 messageType = ConversationMessageType.INTRO,
-                supportingContent = "오늘 진행한 일 중 하나를 떠올려, 작업 내용과 함께 결과나 상태도 같이 적어보세요.",
+                supportingContent = supportingContent,
                 includedInResult = false,
             )
 
@@ -139,15 +150,29 @@ class ChatMessage(
             content: String,
             systemGuide: Boolean = false,
         ): ChatMessage =
-            ChatMessage(
+            v2AssistantMessage(
+                retrospective = retrospective,
+                content = content,
+                messageType = if (systemGuide) ConversationMessageType.SYSTEM_GUIDE else ConversationMessageType.CONVERSATION,
+            )
+
+        fun v2AssistantMessage(
+            retrospective: Retrospective,
+            content: String,
+            messageType: ConversationMessageType,
+        ): ChatMessage {
+            require(messageType == ConversationMessageType.CONVERSATION || messageType == ConversationMessageType.SYSTEM_GUIDE) {
+                "V2 assistant message type must be CONVERSATION or SYSTEM_GUIDE."
+            }
+            return ChatMessage(
                 retrospective = retrospective,
                 sender = Sender.AI,
                 content = content,
                 questionType = QuestionType.V2_CHAT,
-                messageType =
-                    if (systemGuide) ConversationMessageType.SYSTEM_GUIDE else ConversationMessageType.CONVERSATION,
+                messageType = messageType,
                 includedInResult = false,
             )
+        }
     }
 
     fun classify(relevance: MessageRelevance) {
