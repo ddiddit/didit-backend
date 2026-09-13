@@ -1,74 +1,24 @@
-= 회고 V2 API
+== 회고 V2
 
 회고 V2는 고정 질문 순서 없이 사용자의 업무 경험을 바탕으로 AI가 후속 질문 하나를 생성합니다.
 
-== 첨부파일 업로드 URL 생성
+=== 대화형 회고
 
-JPG, PNG, PDF, TXT, MD 파일을 지원하며 파일당 최대 10MB입니다. 업로드 요청에는 파일 본문의 SHA-256 값을 Base64로 인코딩한 `checksumSha256`을 전달합니다. 반환된 URL에 요청한 `Content-Type`, `Content-Length`, `x-amz-checksum-sha256` 헤더를 동일하게 넣어 PUT한 뒤 업로드 완료 API를 호출합니다. 체크섬이 달라지면 S3가 업로드를 거부하므로 같은 URL로 다른 파일을 덮어쓸 수 없습니다.
-
-클라이언트는 파일 선택 전에 `회사 기밀이나 개인정보가 포함된 파일은 첨부하지 않도록 주의해 주세요.` 안내를 노출해야 합니다.
-
-=== Request
-
-include::{snippets}/retrospect-v2/create-attachment-upload/http-request.adoc[]
-include::{snippets}/retrospect-v2/create-attachment-upload/path-parameters.adoc[]
-include::{snippets}/retrospect-v2/create-attachment-upload/request-fields.adoc[]
-
-=== Response
-
-include::{snippets}/retrospect-v2/create-attachment-upload/http-response.adoc[]
-include::{snippets}/retrospect-v2/create-attachment-upload/response-fields.adoc[]
-
-== 첨부파일 업로드 완료
-
-=== Request
-
-include::{snippets}/retrospect-v2/complete-attachment-upload/http-request.adoc[]
-include::{snippets}/retrospect-v2/complete-attachment-upload/path-parameters.adoc[]
-
-=== Response
-
-include::{snippets}/retrospect-v2/complete-attachment-upload/http-response.adoc[]
-include::{snippets}/retrospect-v2/complete-attachment-upload/response-fields.adoc[]
-
-== 첨부파일 삭제
-
-전송 전에는 모든 첨부파일을 삭제할 수 있습니다. 전송 후에는 답변 편집 정책상 일반 첨부파일을 삭제할 수 없지만, 서버가 민감정보를 감지해 삭제를 권고한 첨부파일은 삭제할 수 있습니다.
-
-include::{snippets}/retrospect-v2/delete-attachment/http-request.adoc[]
-include::{snippets}/retrospect-v2/delete-attachment/path-parameters.adoc[]
-include::{snippets}/retrospect-v2/delete-attachment/http-response.adoc[]
-
-== 첨부파일 상세보기 URL 생성
-
-include::{snippets}/retrospect-v2/create-attachment-download/http-request.adoc[]
-include::{snippets}/retrospect-v2/create-attachment-download/path-parameters.adoc[]
-include::{snippets}/retrospect-v2/create-attachment-download/http-response.adoc[]
-include::{snippets}/retrospect-v2/create-attachment-download/response-fields.adoc[]
-
-== 첨부파일 분석 재시도
-
-include::{snippets}/retrospect-v2/retry-attachment-analysis/http-request.adoc[]
-include::{snippets}/retrospect-v2/retry-attachment-analysis/path-parameters.adoc[]
-include::{snippets}/retrospect-v2/retry-attachment-analysis/http-response.adoc[]
-include::{snippets}/retrospect-v2/retry-attachment-analysis/response-fields.adoc[]
 첫 안내 메시지만 `title`과 `body`를 사용하고, 이후 대화 메시지는 `content`만 사용합니다.
 `readyToComplete`는 내부 완료 준비도이며 현재 화면의 종료 노출 조건으로 사용하지 않습니다.
 
-== 대화형 회고
+==== 대화 시작
 
-=== 대화 시작
-
-==== Request
+===== Request
 
 include::{snippets}/retrospect-v2/start/http-request.adoc[]
 
-==== Response
+===== Response
 
 include::{snippets}/retrospect-v2/start/http-response.adoc[]
 include::{snippets}/retrospect-v2/start/response-fields.adoc[]
 
-=== 메시지 전송
+==== 메시지 전송
 
 동일한 `clientMessageId` 와 내용으로 재전송하면 이미 완료된 응답을 반환합니다.
 `inputType` 은 `TEXT` 또는 `STT`이며 생략하면 `TEXT`로 저장됩니다. STT 변환 텍스트를 사용자가 수정한 뒤 전송할 때는 `STT`를 전달합니다.
@@ -81,23 +31,31 @@ include::{snippets}/retrospect-v2/start/response-fields.adoc[]
 
 파일만 전송하는 요청과 비동기 응답 예시는 다음과 같습니다.
 
+===== 예시
+
+====== Request
+
 include::{snippets}/retrospect-v2/submit-attachment-message/http-request.adoc[]
-include::{snippets}/retrospect-v2/submit-attachment-message/http-response.adoc[]
+include::{snippets}/retrospect-v2/submit-attachment-message/path-parameters.adoc[]
 include::{snippets}/retrospect-v2/submit-attachment-message/request-fields.adoc[]
+
+====== Response
+
+include::{snippets}/retrospect-v2/submit-attachment-message/http-response.adoc[]
 include::{snippets}/retrospect-v2/submit-attachment-message/response-fields.adoc[]
 
-==== Request
+===== Request
 
 include::{snippets}/retrospect-v2/submit-message/http-request.adoc[]
 include::{snippets}/retrospect-v2/submit-message/path-parameters.adoc[]
 include::{snippets}/retrospect-v2/submit-message/request-fields.adoc[]
 
-==== Response
+===== Response
 
 include::{snippets}/retrospect-v2/submit-message/http-response.adoc[]
 include::{snippets}/retrospect-v2/submit-message/response-fields.adoc[]
 
-=== 대화 조회
+==== 대화 조회
 
 앱 재진입이나 AI 응답 실패 후 현재 메시지와 턴 상태를 복구할 때 사용합니다.
 저장된 전체 대화 메시지와 턴 상태를 순서대로 반환하므로, 회고 ID를 알고 있으면 진행 중인 대화를 이어갈 수 있습니다.
@@ -111,17 +69,17 @@ include::{snippets}/retrospect-v2/submit-message/response-fields.adoc[]
 V2 대화 화면에서 단순히 이탈할 때는 V1 회고 나가기 API 호출 X
 ====
 
-==== Request
+===== Request
 
 include::{snippets}/retrospect-v2/get-conversation/http-request.adoc[]
 include::{snippets}/retrospect-v2/get-conversation/path-parameters.adoc[]
 
-==== Response
+===== Response
 
 include::{snippets}/retrospect-v2/get-conversation/http-response.adoc[]
 include::{snippets}/retrospect-v2/get-conversation/response-fields.adoc[]
 
-=== 대화 종료 및 결과 생성
+==== 대화 종료 및 결과 생성
 
 대화 종료 요청 한 번으로 확인된 대화 내용을 바탕으로 구조화 회고 결과를 생성하고 저장합니다.
 
@@ -129,125 +87,78 @@ include::{snippets}/retrospect-v2/get-conversation/response-fields.adoc[]
 
 성공 시 `resultGenerationStatus`는 `GENERATED`이며 자동 생성된 제목과 구조화 결과를 함께 반환합니다.
 
-==== Request
+===== Request
 
 include::{snippets}/retrospect-v2/finish/http-request.adoc[]
 include::{snippets}/retrospect-v2/finish/path-parameters.adoc[]
 
-==== Response
+===== Response
 
 include::{snippets}/retrospect-v2/finish/http-response.adoc[]
 include::{snippets}/retrospect-v2/finish/response-fields.adoc[]
 
-== 회고 조회
+=== 첨부파일 업로드 URL 생성
 
-[[회고-목록-조회-v2]]
-=== 회고 목록 조회
+JPG, PNG, PDF, TXT, MD 파일을 지원하며 파일당 최대 10MB입니다. 업로드 요청에는 파일 본문의 SHA-256 값을 Base64로 인코딩한 `checksumSha256`을 전달합니다. 반환된 URL에 요청한 `Content-Type`, `Content-Length`, `x-amz-checksum-sha256` 헤더를 동일하게 넣어 PUT한 뒤 업로드 완료 API를 호출합니다. 체크섬이 달라지면 S3가 업로드를 거부하므로 같은 URL로 다른 파일을 덮어쓸 수 없습니다.
 
-프로젝트명과 태그 정보를 포함한 회고 목록을 조회합니다.
-
-==== Request
-
-include::{snippets}/retrospect/v2/find-all/http-request.adoc[]
-
-==== Response
-
-include::{snippets}/retrospect/v2/find-all/http-response.adoc[]
-include::{snippets}/retrospect/v2/find-all/response-fields.adoc[]
-
-[[회고-상세-조회-v2]]
-=== 회고 상세 조회
-
-프로젝트와 태그 정보를 포함한 회고 상세 정보를 조회합니다.
+클라이언트는 파일 선택 전에 `회사 기밀이나 개인정보가 포함된 파일은 첨부하지 않도록 주의해 주세요.` 안내를 노출해야 합니다.
 
 ==== Request
 
-include::{snippets}/retrospect/v2/find-by-id/http-request.adoc[]
-include::{snippets}/retrospect/v2/find-by-id/path-parameters.adoc[]
+include::{snippets}/retrospect-v2/create-attachment-upload/http-request.adoc[]
+include::{snippets}/retrospect-v2/create-attachment-upload/path-parameters.adoc[]
+include::{snippets}/retrospect-v2/create-attachment-upload/request-fields.adoc[]
 
 ==== Response
 
-include::{snippets}/retrospect/v2/find-by-id/http-response.adoc[]
-include::{snippets}/retrospect/v2/find-by-id/response-fields.adoc[]
+include::{snippets}/retrospect-v2/create-attachment-upload/http-response.adoc[]
+include::{snippets}/retrospect-v2/create-attachment-upload/response-fields.adoc[]
 
-[[구조화-회고-결과-상세-조회-v2]]
-=== 구조화 회고 결과 상세 조회
-
-기존 V1과 신규 V2 회고를 공통 구조의 결과로 조회합니다.
-프로젝트와 태그 정보를 포함하며, 대화에서 확인되지 않은 결과 항목은 기본 안내 문구로 반환합니다.
-
-결과 항목은 최종 결과 화면에 맞춰 다음 구조로 반환합니다.
-
-* `summary`: 단일 회고 요약
-* `strengths`, `improvements`, `processes`, `learnings`: 각각 최대 2개의 불릿 문장
-* `insight`: 제목과 설명을 가진 단일 객체
-* `nextActions`: 제목과 설명을 가진 최대 2개의 실행 항목
-
-AI는 대화에서 확인된 서로 다른 근거가 하나면 1개, 두 개면 2개를 생성합니다.
-근거가 없거나 하나의 내용을 억지로 나눠야 하는 경우에는 개수를 채우지 않습니다.
+=== 첨부파일 업로드 완료
 
 ==== Request
 
-include::{snippets}/retrospect/v2/find-result/http-request.adoc[]
-include::{snippets}/retrospect/v2/find-result/path-parameters.adoc[]
+include::{snippets}/retrospect-v2/complete-attachment-upload/http-request.adoc[]
+include::{snippets}/retrospect-v2/complete-attachment-upload/path-parameters.adoc[]
 
 ==== Response
 
-include::{snippets}/retrospect/v2/find-result/http-response.adoc[]
-include::{snippets}/retrospect/v2/find-result/response-fields.adoc[]
+include::{snippets}/retrospect-v2/complete-attachment-upload/http-response.adoc[]
+include::{snippets}/retrospect-v2/complete-attachment-upload/response-fields.adoc[]
 
-== 회고 메모
+=== 첨부파일 삭제
 
-회고별로 한국 서비스 날짜 기준 하루 한 개의 메모를 작성할 수 있습니다.
-메모는 회고 결과와 분리되어 저장되며, 해당 회고를 삭제하면 메모도 함께 삭제됩니다.
-
-=== 메모 작성
+전송 전에는 모든 첨부파일을 삭제할 수 있습니다. 전송 후에는 답변 편집 정책상 일반 첨부파일을 삭제할 수 없지만, 서버가 민감정보를 감지해 삭제를 권고한 첨부파일은 삭제할 수 있습니다.
 
 ==== Request
 
-include::{snippets}/retrospect-v2/memo/create/http-request.adoc[]
-include::{snippets}/retrospect-v2/memo/create/path-parameters.adoc[]
-include::{snippets}/retrospect-v2/memo/create/request-fields.adoc[]
+include::{snippets}/retrospect-v2/delete-attachment/http-request.adoc[]
+include::{snippets}/retrospect-v2/delete-attachment/path-parameters.adoc[]
 
 ==== Response
 
-include::{snippets}/retrospect-v2/memo/create/http-response.adoc[]
-include::{snippets}/retrospect-v2/memo/create/response-fields.adoc[]
+include::{snippets}/retrospect-v2/delete-attachment/http-response.adoc[]
 
-=== 메모 목록 조회
-
-최신 메모 작성 기준일 순으로 반환합니다.
+=== 첨부파일 상세보기 URL 생성
 
 ==== Request
 
-include::{snippets}/retrospect-v2/memo/list/http-request.adoc[]
-include::{snippets}/retrospect-v2/memo/list/path-parameters.adoc[]
+include::{snippets}/retrospect-v2/create-attachment-download/http-request.adoc[]
+include::{snippets}/retrospect-v2/create-attachment-download/path-parameters.adoc[]
 
 ==== Response
 
-include::{snippets}/retrospect-v2/memo/list/http-response.adoc[]
-include::{snippets}/retrospect-v2/memo/list/response-fields.adoc[]
+include::{snippets}/retrospect-v2/create-attachment-download/http-response.adoc[]
+include::{snippets}/retrospect-v2/create-attachment-download/response-fields.adoc[]
 
-=== 메모 수정
+=== 첨부파일 분석 재시도
 
 ==== Request
 
-include::{snippets}/retrospect-v2/memo/update/http-request.adoc[]
-include::{snippets}/retrospect-v2/memo/update/path-parameters.adoc[]
-include::{snippets}/retrospect-v2/memo/update/request-fields.adoc[]
+include::{snippets}/retrospect-v2/retry-attachment-analysis/http-request.adoc[]
+include::{snippets}/retrospect-v2/retry-attachment-analysis/path-parameters.adoc[]
 
 ==== Response
 
-include::{snippets}/retrospect-v2/memo/update/http-response.adoc[]
-include::{snippets}/retrospect-v2/memo/update/response-fields.adoc[]
-
-=== 메모 삭제
-
-==== Request
-
-include::{snippets}/retrospect-v2/memo/delete/http-request.adoc[]
-include::{snippets}/retrospect-v2/memo/delete/path-parameters.adoc[]
-
-==== Response
-
-include::{snippets}/retrospect-v2/memo/delete/http-response.adoc[]
+include::{snippets}/retrospect-v2/retry-attachment-analysis/http-response.adoc[]
+include::{snippets}/retrospect-v2/retry-attachment-analysis/response-fields.adoc[]
