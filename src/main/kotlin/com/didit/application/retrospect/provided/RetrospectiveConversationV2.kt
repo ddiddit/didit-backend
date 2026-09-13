@@ -23,6 +23,15 @@ interface RetrospectiveConversationV2 {
         clientMessageId: UUID,
         content: String,
         inputType: InputType,
+    ): SubmitConversationMessageResult = submitMessage(retrospectiveId, userId, clientMessageId, content, inputType, emptyList())
+
+    fun submitMessage(
+        retrospectiveId: UUID,
+        userId: UUID,
+        clientMessageId: UUID,
+        content: String,
+        inputType: InputType,
+        attachmentIds: List<UUID>,
     ): SubmitConversationMessageResult
 
     fun getConversation(

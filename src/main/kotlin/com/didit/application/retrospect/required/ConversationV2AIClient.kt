@@ -1,6 +1,7 @@
 package com.didit.application.retrospect.required
 
 import com.didit.domain.auth.UserExperience
+import com.didit.domain.retrospect.AttachmentFileType
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -25,6 +26,15 @@ data class ConversationContextMessage(
     val id: UUID,
     val sender: Sender,
     val content: String,
+    val attachments: List<ConversationAttachmentContext> = emptyList(),
+)
+
+data class ConversationAttachmentContext(
+    val id: UUID,
+    val filename: String,
+    val fileType: AttachmentFileType,
+    val extractedContent: String,
+    val containsSensitiveData: Boolean = false,
 )
 
 data class ConversationAnalysisItem(

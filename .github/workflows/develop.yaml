@@ -93,7 +93,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Copy deploy scripts to NCP dev server
+      - name: Copy deploy scripts to AWS dev server
         uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.DEV_HOST }}
@@ -136,10 +136,11 @@ jobs:
             OAUTH_KAKAO_ALLOWED_REDIRECT_URIS=${{ secrets.DEV_OAUTH_KAKAO_ALLOWED_REDIRECT_URIS }}
             OAUTH_APPLE_ENABLED=false
             OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
-            CLOVA_API_KEY=${{ secrets.CLOVA_API_KEY }}
-            CLOVA_SPEECH_INVOKE_URL=${{ secrets.CLOVA_SPEECH_INVOKE_URL }}
-            CLOVA_SPEECH_SECRET_KEY=${{ secrets.CLOVA_SPEECH_SECRET_KEY }}
             RETROSPECTIVE_WHITELIST_EMAILS=${{secrets.RETROSPECTIVE_WHITELIST_EMAILS}}
+            AWS_REGION=${{ vars.AWS_REGION || 'ap-northeast-2' }}
+            RETROSPECTIVE_ATTACHMENT_BUCKET=${{ vars.DEV_RETROSPECTIVE_ATTACHMENT_BUCKET || 'didit-retrospective-attachments-dev' }}
+            AWS_ACCESS_KEY_ID=${{ secrets.DEV_AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY=${{ secrets.DEV_AWS_SECRET_ACCESS_KEY }}
             ENVEOF
 
             echo "DEPLOYER=${{ github.actor }}" >> deploy/dev/.env

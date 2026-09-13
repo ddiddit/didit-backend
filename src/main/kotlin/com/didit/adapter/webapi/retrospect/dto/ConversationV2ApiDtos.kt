@@ -1,5 +1,6 @@
 package com.didit.adapter.webapi.retrospect.dto
 
+import com.didit.application.retrospect.dto.ConversationMessageAttachmentResult
 import com.didit.application.retrospect.dto.ConversationMessageResult
 import com.didit.application.retrospect.dto.ConversationTurnResult
 import com.didit.application.retrospect.dto.ConversationV2Result
@@ -12,16 +13,24 @@ import com.didit.domain.retrospect.ConversationTurnStatus
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.retrospect.SummaryGenerationStatus
-import jakarta.validation.constraints.NotBlank
+import com.fasterxml.jackson.annotation.JsonIgnore
+import jakarta.validation.constraints.AssertTrue
+import jakarta.validation.constraints.Size
 import java.time.LocalDateTime
 import java.util.UUID
 
 data class SubmitConversationMessageV2Request(
     val clientMessageId: UUID,
-    @field:NotBlank
-    val content: String,
+    val content: String = "",
     val inputType: InputType = InputType.TEXT,
-)
+    @field:Size(max = 3)
+    val attachmentIds: List<UUID> = emptyList(),
+) {
+    @get:AssertTrue(message = "회고 내용 또는 첨부파일이 필요합니다.")
+    @get:JsonIgnore
+    val hasContentOrAttachment: Boolean
+        get() = content.isNotBlank() || attachmentIds.isNotEmpty()
+}
 
 data class StartConversationV2Response(
     val retrospectiveId: UUID,
@@ -43,7 +52,7 @@ data class StartConversationV2Response(
 data class SubmitConversationMessageV2Response(
     val turnId: UUID,
     val userMessageId: UUID,
-    val assistantMessage: ConversationMessageV2Response,
+    val assistantMessage: ConversationMessageV2Response?,
     val readyToComplete: Boolean,
 ) {
     companion object {
@@ -51,7 +60,7 @@ data class SubmitConversationMessageV2Response(
             SubmitConversationMessageV2Response(
                 turnId = result.turnId,
                 userMessageId = result.userMessageId,
-                assistantMessage = ConversationMessageV2Response.from(result.assistantMessage),
+                assistantMessage = result.assistantMessage?.let(ConversationMessageV2Response::from),
                 readyToComplete = result.readyToComplete,
             )
     }
@@ -84,6 +93,7 @@ data class ConversationMessageV2Response(
     val body: String?,
     val content: String?,
     val createdAt: LocalDateTime?,
+    val attachments: List<ConversationMessageAttachmentV2Response>,
 ) {
     companion object {
         fun from(result: ConversationMessageResult) =
@@ -95,6 +105,32 @@ data class ConversationMessageV2Response(
                 body = result.body,
                 content = result.content,
                 createdAt = result.createdAt,
+                attachments = result.attachments.map(ConversationMessageAttachmentV2Response::from),
+            )
+    }
+}
+
+data class ConversationMessageAttachmentV2Response(
+    val id: UUID,
+    val filename: String,
+    val fileType: com.didit.domain.retrospect.AttachmentFileType,
+    val contentType: String,
+    val size: Long,
+    val uploadStatus: com.didit.domain.retrospect.AttachmentUploadStatus,
+    val analysisStatus: com.didit.domain.retrospect.AttachmentAnalysisStatus,
+    val analysisErrorCode: String?,
+) {
+    companion object {
+        fun from(result: ConversationMessageAttachmentResult) =
+            ConversationMessageAttachmentV2Response(
+                result.id,
+                result.filename,
+                result.fileType,
+                result.contentType,
+                result.size,
+                result.uploadStatus,
+                result.analysisStatus,
+                result.analysisErrorCode,
             )
     }
 }
