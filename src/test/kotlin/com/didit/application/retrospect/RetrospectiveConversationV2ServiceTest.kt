@@ -463,8 +463,8 @@ class RetrospectiveConversationV2ServiceTest {
         val second = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "근처 카페도 알려줘")
         service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "오늘 업무 이야기를 할게")
 
-        assertThat(first.assistantMessage.messageType).isEqualTo(ConversationMessageType.SYSTEM_GUIDE)
-        assertThat(second.assistantMessage.messageType).isEqualTo(ConversationMessageType.SYSTEM_GUIDE)
+        assertThat(first.assistantMessage!!.messageType).isEqualTo(ConversationMessageType.SYSTEM_GUIDE)
+        assertThat(second.assistantMessage!!.messageType).isEqualTo(ConversationMessageType.SYSTEM_GUIDE)
         verify(aiClient, times(3)).generateConversationTurn(any())
     }
 
