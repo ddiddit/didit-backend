@@ -35,3 +35,18 @@ include::{snippets}/admin/prompts/update/request-fields.adoc[]
 
 include::{snippets}/admin/prompts/update/http-response.adoc[]
 include::{snippets}/admin/prompts/update/response-fields.adoc[]
+
+== V2 회고 프롬프트 미리보기
+
+저장된 직업별 프롬프트를 사용하거나 저장 전 프롬프트를 직접 입력해 V2 회고를 테스트한다.
+후속 요청에서는 직전 응답의 `nextState`를 `priorState`로 전달한다.
+
+=== Request
+
+include::{snippets}/admin/prompts/preview-v2/http-request.adoc[]
+include::{snippets}/admin/prompts/preview-v2/request-fields.adoc[]
+
+=== Response
+
+include::{snippets}/admin/prompts/preview-v2/http-response.adoc[]
+include::{snippets}/admin/prompts/preview-v2/response-fields.adoc[]

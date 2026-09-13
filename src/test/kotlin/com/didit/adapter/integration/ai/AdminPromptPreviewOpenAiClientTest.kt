@@ -41,11 +41,10 @@ class AdminPromptPreviewOpenAiClientTest {
                 detach(appender)
             }
 
-        assertThat(result.renderedPrompt).contains("초안 입력").doesNotContain("{{context}}")
-        assertThat(result.generatedTurn.question).isEqualTo("SENTINEL_PREVIEW_RESPONSE")
-        assertThat(result.generatedTurn.questionTarget).isEqualTo(RetrospectiveItemType.FACT)
-        assertThat(result.generatedTurn.inputTokens).isEqualTo(12)
-        assertThat(result.generatedTurn.outputTokens).isEqualTo(34)
+        assertThat(result.question).isEqualTo("SENTINEL_PREVIEW_RESPONSE")
+        assertThat(result.questionTarget).isEqualTo(RetrospectiveItemType.FACT)
+        assertThat(result.inputTokens).isEqualTo(12)
+        assertThat(result.outputTokens).isEqualTo(34)
         assertThat(registry.find("didit.openai.request.duration").tag("operation", "conversation_v2_preview").timer()).isNotNull
         assertThat(appender.events).noneMatch { it.contains("SENTINEL_PREVIEW_RESPONSE") }
         server.verify()

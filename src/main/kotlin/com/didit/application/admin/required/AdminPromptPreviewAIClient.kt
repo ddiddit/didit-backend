@@ -7,10 +7,5 @@ interface AdminPromptPreviewAIClient {
     fun preview(
         template: String,
         request: ConversationTurnAIRequest,
-    ): AdminPromptPreviewAIResult
+    ): GeneratedConversationTurn
 }
-
-data class AdminPromptPreviewAIResult(
-    val renderedPrompt: String,
-    val generatedTurn: GeneratedConversationTurn,
-)

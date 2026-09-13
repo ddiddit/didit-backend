@@ -1,7 +1,6 @@
 package com.didit.adapter.integration.ai
 
 import com.didit.application.admin.required.AdminPromptPreviewAIClient
-import com.didit.application.admin.required.AdminPromptPreviewAIResult
 import com.didit.application.retrospect.dto.AISummaryResponse
 import com.didit.application.retrospect.required.AIClient
 import com.didit.application.retrospect.required.ConversationAnalysisUpdate
@@ -84,10 +83,10 @@ class OpenAiClient(
     override fun preview(
         template: String,
         request: ConversationTurnAIRequest,
-    ): AdminPromptPreviewAIResult {
+    ): GeneratedConversationTurn {
         val renderedPrompt = conversationV2Prompts.render(template, request)
         val response = callWithResult(renderedPrompt, "conversation_v2_preview", "retrospective_conversation_turn", conversationV2Schema())
-        return AdminPromptPreviewAIResult(renderedPrompt, parseConversationTurn(response))
+        return parseConversationTurn(response)
     }
 
     override fun generateResult(request: RetrospectiveResultV2AIRequest): GeneratedRetrospectiveResultV2 {
