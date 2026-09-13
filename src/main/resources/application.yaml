@@ -61,15 +61,6 @@ social-login:
 achievement:
   feature-launched-at: ${ACHIEVEMENT_FEATURE_LAUNCHED_AT:2026-06-30T00:00:00}
 
-clova:
-  api:
-    url: https://clovastudio.stream.ntruss.com/v3/chat-completions/HCX-005
-    api-key: ${CLOVA_API_KEY}
-
-  speech:
-    invoke-url: ${CLOVA_SPEECH_INVOKE_URL}
-    secret-key: ${CLOVA_SPEECH_SECRET_KEY}
-
 openai:
   api-key: ${OPENAI_API_KEY}
   chat:
@@ -86,3 +77,6 @@ admin:
 
 retrospective:
   whitelist-emails: ${RETROSPECTIVE_WHITELIST_EMAILS}
+  attachments:
+    bucket: ${RETROSPECTIVE_ATTACHMENT_BUCKET:didit-retrospective-attachments-dev}
+    region: ${AWS_REGION:ap-northeast-2}

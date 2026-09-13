@@ -13,6 +13,7 @@ import com.didit.application.retrospect.required.ConversationAnalysisItem
 import com.didit.application.retrospect.required.ConversationContextMessage
 import com.didit.application.retrospect.required.GeneratedRetrospectiveResultV2
 import com.didit.application.retrospect.required.RetrospectiveAnalysisItemRepository
+import com.didit.application.retrospect.required.RetrospectiveAttachmentRepository
 import com.didit.application.retrospect.required.RetrospectiveConversationTurnRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.RetrospectiveResultV2AIClient
@@ -37,6 +38,7 @@ import java.util.UUID
 class RetrospectiveResultV2CompletionCoordinator(
     private val retrospectiveRepository: RetrospectiveRepository,
     private val chatMessageRepository: ChatMessageRepository,
+    private val attachmentRepository: RetrospectiveAttachmentRepository,
     private val analysisItemRepository: RetrospectiveAnalysisItemRepository,
     private val turnRepository: RetrospectiveConversationTurnRepository,
     private val userFinder: UserFinder,
@@ -108,7 +110,19 @@ class RetrospectiveResultV2CompletionCoordinator(
                             trimContext(
                                 chatMessageRepository
                                     .findAllResultEvidenceByRetrospectiveId(retrospectiveId)
-                                    .map { ConversationContextMessage(it.id, it.sender, it.content) },
+                                    .map { message ->
+                                        ConversationContextMessage(
+                                            message.id,
+                                            message.sender,
+                                            message.content,
+                                            attachmentRepository
+                                                .findAllByChatMessageIdAndDeletedAtIsNullOrderByCreatedAtAsc(message.id)
+                                                .filter {
+                                                    it.analysisStatus ==
+                                                        com.didit.domain.retrospect.AttachmentAnalysisStatus.COMPLETED
+                                                }.map(AttachmentConversationContextMapper::from),
+                                        )
+                                    },
                             ),
                         analysisItems =
                             analysisItemRepository
@@ -119,15 +133,8 @@ class RetrospectiveResultV2CompletionCoordinator(
             )
         }!!
 
-    private fun trimContext(messages: List<ConversationContextMessage>): List<ConversationContextMessage> {
-        var used = 0
-        return messages
-            .asReversed()
-            .takeWhile {
-                used += it.content.length
-                used <= maxContextCharacters
-            }.asReversed()
-    }
+    private fun trimContext(messages: List<ConversationContextMessage>): List<ConversationContextMessage> =
+        ConversationContextTrimmer.trim(messages, maxContextCharacters)
 
     private fun save(
         retrospectiveId: UUID,

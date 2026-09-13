@@ -20,3 +20,7 @@ logging:
   level:
     root: INFO
     org.springframework.test.context: DEBUG
+
+retrospective:
+  attachments:
+    bucket: didit-retrospective-attachments-test

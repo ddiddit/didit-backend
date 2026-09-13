@@ -113,3 +113,34 @@ class RetrospectiveResultGenerationFailedException(
         if (cause != null) initCause(cause)
     }
 }
+
+class AttachmentNotFoundException(
+    attachmentId: UUID,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_NOT_FOUND, "attachmentId: $attachmentId")
+
+class AttachmentUnsupportedFileException : BusinessException(RetrospectErrorCode.ATTACHMENT_UNSUPPORTED_FILE)
+
+class AttachmentSizeExceededException : BusinessException(RetrospectErrorCode.ATTACHMENT_SIZE_EXCEEDED)
+
+class AttachmentInvalidFileException(
+    attachmentId: UUID,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_INVALID_FILE, "attachmentId: $attachmentId")
+
+class AttachmentAlreadyBoundException(
+    attachmentId: UUID,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_ALREADY_BOUND, "attachmentId: $attachmentId")
+
+class AttachmentNotUploadedException(
+    attachmentId: UUID,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_NOT_UPLOADED, "attachmentId: $attachmentId")
+
+class AttachmentLimitExceededException : BusinessException(RetrospectErrorCode.ATTACHMENT_LIMIT_EXCEEDED)
+
+class AttachmentAnalysisFailedException(
+    attachmentId: UUID,
+    cause: Throwable? = null,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_ANALYSIS_FAILED, "attachmentId: $attachmentId") {
+    init {
+        if (cause != null) initCause(cause)
+    }
+}

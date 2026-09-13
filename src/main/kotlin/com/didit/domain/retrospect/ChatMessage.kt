@@ -134,6 +134,21 @@ class ChatMessage(
             )
         }
 
+        fun v2UserMessageWithAttachments(
+            retrospective: Retrospective,
+            content: String,
+            inputType: InputType,
+        ): ChatMessage =
+            ChatMessage(
+                retrospective = retrospective,
+                sender = Sender.USER,
+                content = content.trim(),
+                questionType = QuestionType.V2_CHAT,
+                inputType = inputType,
+                messageType = ConversationMessageType.CONVERSATION,
+                includedInResult = false,
+            )
+
         fun v2AssistantMessage(
             retrospective: Retrospective,
             content: String,

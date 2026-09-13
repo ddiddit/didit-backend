@@ -42,7 +42,14 @@ class RetrospectConversationV2Api(
     ): SuccessResponse<SubmitConversationMessageV2Response> =
         SuccessResponse.of(
             SubmitConversationMessageV2Response.from(
-                conversation.submitMessage(retrospectiveId, userId, request.clientMessageId, request.content, request.inputType),
+                conversation.submitMessage(
+                    retrospectiveId,
+                    userId,
+                    request.clientMessageId,
+                    request.content,
+                    request.inputType,
+                    request.attachmentIds,
+                ),
             ),
         )
 

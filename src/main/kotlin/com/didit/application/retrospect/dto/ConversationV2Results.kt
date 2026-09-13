@@ -1,5 +1,8 @@
 package com.didit.application.retrospect.dto
 
+import com.didit.domain.retrospect.AttachmentAnalysisStatus
+import com.didit.domain.retrospect.AttachmentFileType
+import com.didit.domain.retrospect.AttachmentUploadStatus
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnStatus
@@ -19,7 +22,7 @@ data class StartConversationV2Result(
 data class SubmitConversationMessageResult(
     val turnId: UUID,
     val userMessageId: UUID,
-    val assistantMessage: ConversationMessageResult,
+    val assistantMessage: ConversationMessageResult?,
     val readyToComplete: Boolean,
 )
 
@@ -39,6 +42,18 @@ data class ConversationMessageResult(
     val body: String? = null,
     val content: String? = null,
     val createdAt: LocalDateTime? = null,
+    val attachments: List<ConversationMessageAttachmentResult> = emptyList(),
+)
+
+data class ConversationMessageAttachmentResult(
+    val id: UUID,
+    val filename: String,
+    val fileType: AttachmentFileType,
+    val contentType: String,
+    val size: Long,
+    val uploadStatus: AttachmentUploadStatus,
+    val analysisStatus: AttachmentAnalysisStatus,
+    val analysisErrorCode: String?,
 )
 
 data class ConversationTurnResult(

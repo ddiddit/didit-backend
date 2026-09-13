@@ -4,6 +4,7 @@ import com.didit.application.auth.provided.UserFinder
 import com.didit.application.retrospect.required.ChatMessageRepository
 import com.didit.application.retrospect.required.GeneratedRetrospectiveResultV2
 import com.didit.application.retrospect.required.RetrospectiveAnalysisItemRepository
+import com.didit.application.retrospect.required.RetrospectiveAttachmentRepository
 import com.didit.application.retrospect.required.RetrospectiveConversationTurnRepository
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.RetrospectiveResultV2AIClient
@@ -40,6 +41,7 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
             )
         val repository = mock<RetrospectiveRepository>()
         val chatMessageRepository = mock<ChatMessageRepository>()
+        val attachmentRepository = mock<RetrospectiveAttachmentRepository>()
         val analysisItemRepository = mock<RetrospectiveAnalysisItemRepository>()
         val turnRepository = mock<RetrospectiveConversationTurnRepository>()
         val userFinder = mock<UserFinder>()
@@ -64,6 +66,7 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
             RetrospectiveResultV2CompletionCoordinator(
                 repository,
                 chatMessageRepository,
+                attachmentRepository,
                 analysisItemRepository,
                 turnRepository,
                 userFinder,

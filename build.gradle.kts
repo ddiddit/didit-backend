@@ -45,6 +45,10 @@ dependencies {
     implementation("com.google.firebase:firebase-admin:9.4.3")
     implementation("io.jsonwebtoken:jjwt-api:0.12.6")
     implementation("me.paulschwarz:spring-dotenv:4.0.0")
+    implementation(platform("software.amazon.awssdk:bom:2.25.60"))
+    implementation("software.amazon.awssdk:s3")
+    implementation("software.amazon.awssdk:url-connection-client")
+    implementation("org.apache.pdfbox:pdfbox:3.0.4")
 
     implementation("org.flywaydb:flyway-core")
     implementation("org.flywaydb:flyway-mysql")
