@@ -5,6 +5,15 @@
 구버전 앱 호환용 회고 API입니다. 신규 회고는 회고 V2 API를 사용해주세요.
 ====
 
+[NOTE]
+====
+표기 기준입니다.
+
+* `[Legacy]`: V1 플로우에서만 사용하는 API입니다.
+* `[V1·V2 공통]`: 경로는 V1을 유지하지만 V2 회고의 결과·관리 화면에서도 사용하는 API입니다.
+* `[Deprecated]`: 신규 연동에서는 V2 대체 API를 사용해야 하는 API입니다.
+====
+
 == 회고 시작
 
 === Request
@@ -107,6 +116,11 @@ include::{snippets}/retrospect/save/http-response.adoc[]
 include::{snippets}/retrospect/save/response-fields.adoc[]
 
 == 회고 제목 수정
+
+[NOTE]
+====
+[V1·V2 공통] V2 회고 결과의 제목을 수정할 때에도 이 API를 사용합니다.
+====
 
 === Request
 
@@ -229,6 +243,11 @@ include::{snippets}/retrospect/search-info/response-fields.adoc[]
 
 == 회고 프로젝트 등록
 
+[NOTE]
+====
+[V1·V2 공통] V2 회고 결과에 프로젝트를 연결할 때에도 이 API를 사용합니다.
+====
+
 === Request
 
 include::{snippets}/retrospect/register-project/http-request.adoc[]
@@ -246,6 +265,11 @@ include::{snippets}/retrospect/register-project/http-response.adoc[]
 
 == 회고에 프로젝트 제거
 
+[NOTE]
+====
+[V1·V2 공통] V2 회고 결과에서 연결된 프로젝트를 해제할 때에도 이 API를 사용합니다.
+====
+
 === Request
 
 include::{snippets}/retrospect/detach-project/http-request.adoc[]
@@ -256,6 +280,11 @@ include::{snippets}/retrospect/detach-project/path-parameters.adoc[]
 include::{snippets}/retrospect/detach-project/http-response.adoc[]
 
 == 회고에 태그 추가
+
+[NOTE]
+====
+[V1·V2 공통] V2 회고 결과에 태그를 추가할 때에도 이 API를 사용합니다.
+====
 
 === Request
 
@@ -273,6 +302,11 @@ include::{snippets}/retrospect/add-tag/request-fields.adoc[]
 include::{snippets}/retrospect/add-tag/http-response.adoc[]
 
 == 회고에 태그 삭제
+
+[NOTE]
+====
+[V1·V2 공통] V2 회고 결과에서 태그를 삭제할 때에도 이 API를 사용합니다.
+====
 
 === Request
 
