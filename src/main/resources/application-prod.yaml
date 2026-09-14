@@ -58,3 +58,7 @@ admin:
     allowed-origins: ${ADMIN_CORS_ALLOWED_ORIGINS}
   invite:
     base-url: ${ADMIN_INVITE_BASE_URL}
+
+retrospective:
+  attachments:
+    bucket: ${RETROSPECTIVE_ATTACHMENT_BUCKET:didit-retrospective-attachments-prod}

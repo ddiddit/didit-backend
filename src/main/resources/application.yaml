@@ -38,7 +38,7 @@ oauth:
     token-info-url: https://kapi.kakao.com/v1/user/access_token_info
     rest-api-key: ${OAUTH_KAKAO_REST_API_KEY:}
     client-secret: ${OAUTH_KAKAO_CLIENT_SECRET:}
-    redirect-uri: ${OAUTH_KAKAO_REDIRECT_URI:https://app.didit.io.kr/auth/kakao/callback}
+    allowed-redirect-uris: ${OAUTH_KAKAO_ALLOWED_REDIRECT_URIS:https://app.didit.io.kr/auth/kakao/callback}
     app-id: ${OAUTH_KAKAO_APP_ID:}
   google:
     token-info-url: https://oauth2.googleapis.com/tokeninfo
@@ -61,15 +61,6 @@ social-login:
 achievement:
   feature-launched-at: ${ACHIEVEMENT_FEATURE_LAUNCHED_AT:2026-06-30T00:00:00}
 
-clova:
-  api:
-    url: https://clovastudio.stream.ntruss.com/v3/chat-completions/HCX-005
-    api-key: ${CLOVA_API_KEY}
-
-  speech:
-    invoke-url: ${CLOVA_SPEECH_INVOKE_URL}
-    secret-key: ${CLOVA_SPEECH_SECRET_KEY}
-
 openai:
   api-key: ${OPENAI_API_KEY}
   chat:
@@ -86,3 +77,6 @@ admin:
 
 retrospective:
   whitelist-emails: ${RETROSPECTIVE_WHITELIST_EMAILS}
+  attachments:
+    bucket: ${RETROSPECTIVE_ATTACHMENT_BUCKET:didit-retrospective-attachments-dev}
+    region: ${AWS_REGION:ap-northeast-2}

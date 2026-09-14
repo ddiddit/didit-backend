@@ -11,6 +11,7 @@ import jakarta.persistence.FetchType
 import jakarta.persistence.Id
 import jakarta.persistence.OneToMany
 import jakarta.persistence.Table
+import java.time.Duration
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -35,6 +36,8 @@ class Retrospective(
     var outputTokens: Int = 0,
     @Embedded
     var summary: RetrospectiveSummary? = null,
+    @Embedded
+    var resultV2: RetrospectiveResultV2? = null,
     @Column
     var deletedAt: LocalDateTime? = null,
     @OneToMany(mappedBy = "retrospective", cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
@@ -52,6 +55,10 @@ class Retrospective(
     var conversationStatus: ConversationStatus? = null,
     @Column
     var conversationFinishedAt: LocalDateTime? = null,
+    @Column
+    var resultGenerationStartedAt: LocalDateTime? = null,
+    @Column(columnDefinition = "BINARY(16)")
+    var resultGenerationAttemptId: UUID? = null,
 ) : BaseEntity() {
     fun isCompleted(): Boolean = status == RetroStatus.COMPLETED
 
@@ -110,6 +117,36 @@ class Retrospective(
         this.summaryGenerationStatus = SummaryGenerationStatus.GENERATED
     }
 
+    fun saveV2Result(
+        title: String,
+        result: RetrospectiveResultV2,
+    ) {
+        check(isV2()) { "V2 회고만 구조화 결과를 저장할 수 있습니다." }
+        this.resultV2 = result
+        this.summaryGenerationStatus = SummaryGenerationStatus.GENERATED
+        this.resultGenerationStartedAt = null
+        this.resultGenerationAttemptId = null
+        complete(title.trim())
+    }
+
+    fun startV2ResultGeneration(
+        now: LocalDateTime = LocalDateTime.now(),
+        attemptId: UUID = UUID.randomUUID(),
+    ) {
+        check(isV2()) { "V2 회고만 구조화 결과 생성을 시작할 수 있습니다." }
+        check(summaryGenerationStatus != SummaryGenerationStatus.GENERATED) { "이미 구조화 결과를 생성했습니다." }
+        summaryGenerationStatus = SummaryGenerationStatus.GENERATING
+        resultGenerationStartedAt = now
+        resultGenerationAttemptId = attemptId
+    }
+
+    fun isV2ResultGenerationStale(
+        now: LocalDateTime,
+        timeout: Duration,
+    ): Boolean =
+        summaryGenerationStatus == SummaryGenerationStatus.GENERATING &&
+            (resultGenerationStartedAt == null || !resultGenerationStartedAt!!.isAfter(now.minus(timeout)))
+
     fun startSummaryGeneration() {
         check(summaryGenerationStatus == SummaryGenerationStatus.NOT_STARTED) { "이미 AI 요약을 생성 중이거나 생성했습니다." }
         summaryGenerationStatus = SummaryGenerationStatus.GENERATING
@@ -118,6 +155,8 @@ class Retrospective(
     fun resetSummaryGeneration() {
         if (summaryGenerationStatus == SummaryGenerationStatus.GENERATING) {
             summaryGenerationStatus = SummaryGenerationStatus.NOT_STARTED
+            resultGenerationStartedAt = null
+            resultGenerationAttemptId = null
         }
     }
 

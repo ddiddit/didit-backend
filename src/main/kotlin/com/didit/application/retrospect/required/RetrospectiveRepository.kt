@@ -28,6 +28,13 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         @Param("userId") userId: UUID,
     ): Retrospective?
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT r FROM Retrospective r WHERE r.id = :id AND r.userId = :userId AND r.deletedAt IS NULL")
+    fun findByIdAndUserIdAndDeletedAtIsNullForUpdate(
+        @Param("id") id: UUID,
+        @Param("userId") userId: UUID,
+    ): Retrospective?
+
     fun findByIdAndDeletedAtIsNull(retrospectiveId: UUID): Retrospective?
 
     @Query(
@@ -67,7 +74,7 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
     @Query(
         """
         SELECT new com.didit.application.retrospect.dto.RetrospectiveListItemResult(
-            r.id, r.title, r.summary.summary, r.completedAt
+            r.id, r.title, COALESCE(r.resultV2.summary, r.summary.summary), r.completedAt
         )
         FROM Retrospective r
         WHERE r.userId = :userId

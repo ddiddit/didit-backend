@@ -6,6 +6,7 @@ import com.didit.application.organization.required.ProjectRepository
 import com.didit.application.organization.required.RetrospectTagRepository
 import com.didit.application.organization.required.TagRepository
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
+import com.didit.application.retrospect.exception.SummaryNotGeneratedException
 import com.didit.application.retrospect.provided.SearchHistoryRegister
 import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.domain.organization.Project
@@ -266,6 +267,16 @@ class RetrospectQueryServiceTest {
         val result = retrospectQueryService.findRetrospectWithProjectAndTags(retrospectiveId, userId)
 
         assertThat(result.project).isNull()
+    }
+
+    @Test
+    fun `findStructuredResult - 결과가 생성되지 않은 회고는 조회하지 않는다`() {
+        whenever(retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospectiveId, userId))
+            .thenReturn(Retrospective.createV2(userId))
+
+        assertThrows<SummaryNotGeneratedException> {
+            retrospectQueryService.findStructuredResult(retrospectiveId, userId)
+        }
     }
 
     @Test

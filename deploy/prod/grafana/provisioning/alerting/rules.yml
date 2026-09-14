@@ -152,7 +152,7 @@ groups:
             - API 서버 로그
             - 최근 배포 여부
             - 특정 API 및 외부 서비스 장애 여부
-          explore_url: https://monitoring.didit.ai.kr/explore?schemaVersion=1&panes=%7B%22ttc%22:%7B%22datasource%22:%22loki%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bcontainer%3D~%5C%22didit-api-%28blue%7Cgreen%29%5C%22%7D%20%7C%3D%20%5C%22ERROR%5C%22%22,%22queryType%22:%22range%22,%22datasource%22:%7B%22type%22:%22loki%22,%22uid%22:%22loki%22%7D,%22editorMode%22:%22code%22%7D%5D,%22range%22:%7B%22from%22:%22now-15m%22,%22to%22:%22now%22%7D,%22panelsState%22:%7B%22logs%22:%7B%22columns%22:%7B%220%22:%22Time%22,%221%22:%22Line%22%7D,%22visualisationType%22:%22table%22,%22labelFieldName%22:%22labels%22%7D%7D%7D%7D&orgId=1
+          explore_url: https://monitoring.didit.io.kr/explore?schemaVersion=1&panes=%7B%22ttc%22:%7B%22datasource%22:%22loki%22,%22queries%22:%5B%7B%22refId%22:%22A%22,%22expr%22:%22%7Bcontainer%3D~%5C%22didit-api-%28blue%7Cgreen%29%5C%22%7D%20%7C%3D%20%5C%22ERROR%5C%22%22,%22queryType%22:%22range%22,%22datasource%22:%7B%22type%22:%22loki%22,%22uid%22:%22loki%22%7D,%22editorMode%22:%22code%22%7D%5D,%22range%22:%7B%22from%22:%22now-15m%22,%22to%22:%22now%22%7D,%22panelsState%22:%7B%22logs%22:%7B%22columns%22:%7B%220%22:%22Time%22,%221%22:%22Line%22%7D,%22visualisationType%22:%22table%22,%22labelFieldName%22:%22labels%22%7D%7D%7D%7D&orgId=1
 
       - uid: didit-hikaricp-usage-critical
         title: '[CRITICAL] HikariCP 커넥션 풀 사용률 90% 초과'

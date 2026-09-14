@@ -68,6 +68,7 @@ class FeedbackPrompts(
             PromptType.DEEP_QUESTION -> "deep-question"
             PromptType.SUMMARY -> "summary"
             PromptType.CONVERSATION_V2 -> "conversation-v2"
+            PromptType.RESULT_V2 -> "result-v2"
         }
 
     private fun Job.toPromptJobType() =

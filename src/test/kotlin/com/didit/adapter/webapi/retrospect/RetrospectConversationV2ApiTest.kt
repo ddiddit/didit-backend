@@ -5,6 +5,7 @@ import com.didit.application.retrospect.dto.ConversationMessageResult
 import com.didit.application.retrospect.dto.ConversationTurnResult
 import com.didit.application.retrospect.dto.ConversationV2Result
 import com.didit.application.retrospect.dto.FinishConversationV2Result
+import com.didit.application.retrospect.dto.RetrospectiveResultV2Result
 import com.didit.application.retrospect.dto.StartConversationV2Result
 import com.didit.application.retrospect.dto.SubmitConversationMessageResult
 import com.didit.application.retrospect.provided.RetrospectiveConversationV2
@@ -14,6 +15,7 @@ import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnStatus
 import com.didit.domain.retrospect.InputType
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.retrospect.SummaryGenerationStatus
 import org.junit.jupiter.api.Test
@@ -76,7 +78,9 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
     @Test
     fun `V2 대화 메시지 전송`() {
         val request = SubmitConversationMessageV2Request(clientMessageId, "배포 자동화 작업을 완료했습니다.")
-        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, request.content, request.inputType)).thenReturn(
+        whenever(
+            conversation.submitMessage(retrospectiveId, userId, clientMessageId, request.content, request.inputType, emptyList()),
+        ).thenReturn(
             SubmitConversationMessageResult(
                 turnId = turnId,
                 userMessageId = userMessageId,
@@ -104,6 +108,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("clientMessageId").type(JsonFieldType.STRING).description("중복 전송 방지용 클라이언트 메시지 ID"),
                         fieldWithPath("content").type(JsonFieldType.STRING).description("사용자가 입력한 회고 내용"),
                         fieldWithPath("inputType").type(JsonFieldType.STRING).description("입력 출처. 생략 시 TEXT").optional(),
+                        fieldWithPath("attachmentIds").type(JsonFieldType.ARRAY).description("첨부파일 ID, 최대 3개").optional(),
                     ),
                     responseFields(
                         fieldWithPath("data.turnId").type(JsonFieldType.STRING).description("대화 턴 ID"),
@@ -116,8 +121,68 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
     }
 
     @Test
+    fun `V2 파일 메시지는 텍스트 없이 전송하고 비동기 처리 상태를 반환한다`() {
+        val attachmentId = UUID.randomUUID()
+        whenever(
+            conversation.submitMessage(
+                retrospectiveId,
+                userId,
+                clientMessageId,
+                "",
+                InputType.TEXT,
+                listOf(attachmentId),
+            ),
+        ).thenReturn(
+            SubmitConversationMessageResult(
+                turnId = turnId,
+                userMessageId = userMessageId,
+                assistantMessage = null,
+                readyToComplete = false,
+            ),
+        )
+
+        mockMvc
+            .perform(
+                post("/api/v2/retrospectives/{retrospectiveId}/messages", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"clientMessageId":"$clientMessageId","attachmentIds":["$attachmentId"]}""",
+                    ),
+            ).andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.assistantMessage").isEmpty)
+            .andDo(
+                document(
+                    "retrospect-v2/submit-attachment-message",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(parameterWithName("retrospectiveId").description("회고 ID")),
+                    requestFields(
+                        fieldWithPath("clientMessageId").type(JsonFieldType.STRING).description("중복 전송 방지용 ID"),
+                        fieldWithPath("attachmentIds").type(JsonFieldType.ARRAY).description("업로드 완료된 첨부파일 ID, 최대 3개"),
+                    ),
+                    responseFields(
+                        fieldWithPath("data.turnId").type(JsonFieldType.STRING).description("비동기 처리 턴 ID"),
+                        fieldWithPath("data.userMessageId").type(JsonFieldType.STRING).description("사용자 메시지 ID"),
+                        fieldWithPath("data.assistantMessage").type(JsonFieldType.NULL).description("분석 중에는 null"),
+                        fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("완료 준비도"),
+                    ),
+                ),
+            )
+    }
+
+    @Test
+    fun `V2 메시지는 텍스트와 첨부파일이 모두 없으면 거절한다`() {
+        mockMvc
+            .perform(
+                post("/api/v2/retrospectives/{retrospectiveId}/messages", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"clientMessageId":"$clientMessageId"}"""),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
     fun `V2 메시지 입력 타입을 생략하면 TEXT로 전달한다`() {
-        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, "직접 입력했습니다.", InputType.TEXT))
+        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, "직접 입력했습니다.", InputType.TEXT, emptyList()))
             .thenReturn(submitMessageResult())
 
         mockMvc
@@ -129,13 +194,13 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                     ),
             ).andExpect(status().isOk)
 
-        verify(conversation).submitMessage(retrospectiveId, userId, clientMessageId, "직접 입력했습니다.", InputType.TEXT)
+        verify(conversation).submitMessage(retrospectiveId, userId, clientMessageId, "직접 입력했습니다.", InputType.TEXT, emptyList())
     }
 
     @Test
     fun `V2 STT 메시지는 입력 타입을 STT로 전달한다`() {
         val request = SubmitConversationMessageV2Request(clientMessageId, "음성 결과를 수정했습니다.", InputType.STT)
-        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, request.content, InputType.STT))
+        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, request.content, InputType.STT, emptyList()))
             .thenReturn(submitMessageResult())
 
         mockMvc
@@ -145,7 +210,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isOk)
 
-        verify(conversation).submitMessage(retrospectiveId, userId, clientMessageId, request.content, InputType.STT)
+        verify(conversation).submitMessage(retrospectiveId, userId, clientMessageId, request.content, InputType.STT, emptyList())
     }
 
     @Test
@@ -215,13 +280,31 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             FinishConversationV2Result(
                 retrospectiveId = retrospectiveId,
                 conversationStatus = ConversationStatus.FINISHED,
-                resultGenerationStatus = SummaryGenerationStatus.NOT_STARTED,
+                resultGenerationStatus = SummaryGenerationStatus.GENERATED,
+                title = "배포 오류 롤백 회고",
+                result =
+                    RetrospectiveResultV2Result(
+                        summary = "배포 오류를 발견하고 롤백했다.",
+                        strengths = null,
+                        improvements = listOf("배포 전 확인이 부족했다."),
+                        processes = listOf("로그를 확인해 원인을 좁혔다."),
+                        learnings = listOf("배포 체크리스트가 필요하다."),
+                        insight = null,
+                        nextActions =
+                            listOf(
+                                RetrospectiveResultDetail(
+                                    title = "배포 체크리스트 작성",
+                                    description = "배포 전 확인 항목을 정리한다.",
+                                ),
+                            ),
+                    ),
             ),
         )
 
         mockMvc
             .perform(post("/api/v2/retrospectives/{retrospectiveId}/finish", retrospectiveId))
             .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.result.strengths[0]").value("오늘 잘한 점은 대화에서 확인되지 않았어요."))
             .andDo(
                 document(
                     "retrospect-v2/finish",
@@ -233,7 +316,19 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.conversationStatus").type(JsonFieldType.STRING).description("종료된 대화 상태"),
                         fieldWithPath("data.resultGenerationStatus")
                             .type(JsonFieldType.STRING)
-                            .description("별도 결과 생성 상태. 대화 종료 시에는 NOT_STARTED"),
+                            .description("구조화 결과 생성 상태. 성공 시 GENERATED"),
+                        fieldWithPath("data.title").type(JsonFieldType.STRING).description("자동 생성된 구체적인 회고 제목"),
+                        fieldWithPath("data.result.summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
+                        fieldWithPath("data.result.strengths").type(JsonFieldType.ARRAY).description("오늘 잘한 점, 최대 2개"),
+                        fieldWithPath("data.result.improvements").type(JsonFieldType.ARRAY).description("아쉬웠던 점, 최대 2개"),
+                        fieldWithPath("data.result.processes").type(JsonFieldType.ARRAY).description("해결 과정, 최대 2개"),
+                        fieldWithPath("data.result.learnings").type(JsonFieldType.ARRAY).description("배운 점, 최대 2개"),
+                        fieldWithPath("data.result.insight").type(JsonFieldType.OBJECT).description("디딧의 인사이트"),
+                        fieldWithPath("data.result.insight.title").type(JsonFieldType.STRING).description("인사이트 제목"),
+                        fieldWithPath("data.result.insight.description").type(JsonFieldType.STRING).description("인사이트 설명"),
+                        fieldWithPath("data.result.nextActions").type(JsonFieldType.ARRAY).description("다음 행동, 최대 2개"),
+                        fieldWithPath("data.result.nextActions[].title").type(JsonFieldType.STRING).description("다음 행동 제목"),
+                        fieldWithPath("data.result.nextActions[].description").type(JsonFieldType.STRING).description("다음 행동 설명"),
                     ),
                 ),
             )
@@ -285,5 +380,14 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
         fieldWithPath("$path.body").type(JsonFieldType.STRING).description("INTRO 보조 문구").optional(),
         fieldWithPath("$path.content").type(JsonFieldType.STRING).description("INTRO 이후 대화 내용").optional(),
         fieldWithPath("$path.createdAt").type(JsonFieldType.STRING).description("생성 시각").optional(),
+        fieldWithPath("$path.attachments").type(JsonFieldType.ARRAY).description("메시지 첨부파일"),
+        fieldWithPath("$path.attachments[].id").type(JsonFieldType.STRING).description("첨부파일 ID").optional(),
+        fieldWithPath("$path.attachments[].filename").type(JsonFieldType.STRING).description("원본 파일명").optional(),
+        fieldWithPath("$path.attachments[].fileType").type(JsonFieldType.STRING).description("파일 형식").optional(),
+        fieldWithPath("$path.attachments[].contentType").type(JsonFieldType.STRING).description("MIME 타입").optional(),
+        fieldWithPath("$path.attachments[].size").type(JsonFieldType.NUMBER).description("파일 크기").optional(),
+        fieldWithPath("$path.attachments[].uploadStatus").type(JsonFieldType.STRING).description("업로드 상태").optional(),
+        fieldWithPath("$path.attachments[].analysisStatus").type(JsonFieldType.STRING).description("분석 상태").optional(),
+        fieldWithPath("$path.attachments[].analysisErrorCode").type(JsonFieldType.STRING).description("분석 오류 코드").optional(),
     )
 }

@@ -15,6 +15,7 @@ import com.didit.adapter.webapi.retrospect.dto.RetrospectiveSearchResponse
 import com.didit.adapter.webapi.retrospect.dto.SaveRetrospectiveRequest
 import com.didit.adapter.webapi.retrospect.dto.SearchHistoryResponse
 import com.didit.adapter.webapi.retrospect.dto.StartRetrospectiveResponse
+import com.didit.adapter.webapi.retrospect.dto.StructuredRetrospectiveResultResponse
 import com.didit.adapter.webapi.retrospect.dto.SubmitAnswerRequest
 import com.didit.adapter.webapi.retrospect.dto.TranscribeVoiceAnswerResponse
 import com.didit.adapter.webapi.retrospect.dto.UpdateTitleRequest
@@ -245,6 +246,16 @@ class RetrospectApi(
         return SuccessResponse.of(
             RetrospectWithProjectAndTagResponse.from(result),
         )
+    }
+
+    @RequireAuth
+    @GetMapping("/api/v2/retrospectives/{retrospectiveId}/result")
+    fun findStructuredResult(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ): SuccessResponse<StructuredRetrospectiveResultResponse> {
+        val result = retrospectiveFinder.findStructuredResult(retrospectiveId, userId)
+        return SuccessResponse.of(StructuredRetrospectiveResultResponse.from(result))
     }
 
     @RequireAuth

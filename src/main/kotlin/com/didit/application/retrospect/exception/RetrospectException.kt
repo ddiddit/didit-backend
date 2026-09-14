@@ -1,6 +1,7 @@
 package com.didit.application.retrospect.exception
 
 import com.didit.application.common.exception.BusinessException
+import java.time.LocalDate
 import java.util.UUID
 
 class RetrospectiveNotFoundException(
@@ -30,6 +31,20 @@ class SummaryAlreadyGeneratedException(
         RetrospectErrorCode.SUMMARY_ALREADY_GENERATED,
         "retrospectiveId: $retrospectiveId",
     )
+
+class RetrospectiveMemoNotFoundException(
+    memoId: UUID,
+) : BusinessException(RetrospectErrorCode.RETROSPECTIVE_MEMO_NOT_FOUND, "memoId: $memoId")
+
+class DuplicateRetrospectiveMemoException(
+    retrospectiveId: UUID,
+    memoDate: LocalDate,
+) : BusinessException(
+        RetrospectErrorCode.DUPLICATE_RETROSPECTIVE_MEMO,
+        "retrospectiveId: $retrospectiveId, memoDate: $memoDate",
+    )
+
+class InvalidRetrospectiveMemoContentException : BusinessException(RetrospectErrorCode.INVALID_RETROSPECTIVE_MEMO_CONTENT)
 
 class RetrospectiveAlreadyCompletedException(
     retrospectiveId: UUID,
@@ -100,6 +115,46 @@ class ConversationAiFailedException(
     retrospectiveId: UUID,
     cause: Throwable? = null,
 ) : BusinessException(RetrospectErrorCode.CONVERSATION_AI_FAILED, "retrospectiveId: $retrospectiveId") {
+    init {
+        if (cause != null) initCause(cause)
+    }
+}
+
+class RetrospectiveResultGenerationFailedException(
+    retrospectiveId: UUID,
+    cause: Throwable? = null,
+) : BusinessException(RetrospectErrorCode.RESULT_GENERATION_FAILED, "retrospectiveId: $retrospectiveId") {
+    init {
+        if (cause != null) initCause(cause)
+    }
+}
+
+class AttachmentNotFoundException(
+    attachmentId: UUID,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_NOT_FOUND, "attachmentId: $attachmentId")
+
+class AttachmentUnsupportedFileException : BusinessException(RetrospectErrorCode.ATTACHMENT_UNSUPPORTED_FILE)
+
+class AttachmentSizeExceededException : BusinessException(RetrospectErrorCode.ATTACHMENT_SIZE_EXCEEDED)
+
+class AttachmentInvalidFileException(
+    attachmentId: UUID,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_INVALID_FILE, "attachmentId: $attachmentId")
+
+class AttachmentAlreadyBoundException(
+    attachmentId: UUID,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_ALREADY_BOUND, "attachmentId: $attachmentId")
+
+class AttachmentNotUploadedException(
+    attachmentId: UUID,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_NOT_UPLOADED, "attachmentId: $attachmentId")
+
+class AttachmentLimitExceededException : BusinessException(RetrospectErrorCode.ATTACHMENT_LIMIT_EXCEEDED)
+
+class AttachmentAnalysisFailedException(
+    attachmentId: UUID,
+    cause: Throwable? = null,
+) : BusinessException(RetrospectErrorCode.ATTACHMENT_ANALYSIS_FAILED, "attachmentId: $attachmentId") {
     init {
         if (cause != null) initCause(cause)
     }

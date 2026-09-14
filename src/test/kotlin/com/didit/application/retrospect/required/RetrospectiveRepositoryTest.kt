@@ -4,8 +4,11 @@ import com.didit.application.organization.required.RetrospectTagRepository
 import com.didit.domain.organization.RetrospectiveTag
 import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveResultDetail
+import com.didit.domain.retrospect.RetrospectiveResultV2
 import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.support.RepositoryTestSupport
+import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
@@ -19,6 +22,9 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
 
     @Autowired
     lateinit var retrospectiveTagRepository: RetrospectTagRepository
+
+    @Autowired
+    lateinit var entityManager: EntityManager
 
     private val userId = UUID.randomUUID()
 
@@ -103,6 +109,67 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         assertThat(found.single().title).isEqualTo("완료된 회고")
         assertThat(found.single().summary).isEqualTo("...")
         assertThat(found.single().completedAt).isNotNull()
+    }
+
+    @Test
+    fun `V2 구조화 결과를 저장하고 목록 요약으로 조회한다`() {
+        val retrospective =
+            Retrospective.createV2(userId).apply {
+                startProgress()
+                finishConversation()
+                saveV2Result(
+                    title = "배포 장애 대응 회고",
+                    result =
+                        RetrospectiveResultV2(
+                            summary = "배포 직후 장애를 발견하고 롤백했다.",
+                            strengths = null,
+                            improvements = listOf("배포 전 확인이 부족했다."),
+                            processes = listOf("로그를 확인해 원인을 좁혔다."),
+                            learnings = listOf("체크리스트가 필요하다."),
+                            insight = null,
+                            nextActions =
+                                listOf(
+                                    RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리한다."),
+                                    RetrospectiveResultDetail("알림 기준 점검", "장애 알림 임계값을 확인한다."),
+                                ),
+                        ),
+                )
+            }
+        retrospectiveRepository.save(retrospective)
+        entityManager.flush()
+        entityManager.clear()
+
+        val saved = retrospectiveRepository.findByIdAndUserId(retrospective.id, userId)!!
+        val listItem = retrospectiveRepository.findListItemsByUserId(userId).single()
+
+        assertThat(saved.resultV2?.strengths).isNull()
+        assertThat(saved.resultV2?.nextActions)
+            .containsExactly(
+                RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리한다."),
+                RetrospectiveResultDetail("알림 기준 점검", "장애 알림 임계값을 확인한다."),
+            )
+        assertThat(listItem.summary).isEqualTo("배포 직후 장애를 발견하고 롤백했다.")
+    }
+
+    @Test
+    fun `V2 결과 항목이 모두 비어 있어도 생성된 결과 객체를 보존한다`() {
+        val retrospective =
+            Retrospective.createV2(userId).apply {
+                startProgress()
+                finishConversation()
+                saveV2Result(
+                    title = "확인된 내용이 적은 회고",
+                    result = RetrospectiveResultV2(null, null, null, null, null, null, null),
+                )
+            }
+        retrospectiveRepository.save(retrospective)
+        entityManager.flush()
+        entityManager.clear()
+
+        val saved = retrospectiveRepository.findByIdAndUserId(retrospective.id, userId)!!
+
+        assertThat(saved.resultV2).isNotNull
+        assertThat(saved.resultV2?.schemaVersion).isEqualTo(3)
     }
 
     @Test
