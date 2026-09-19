@@ -1,0 +1,5 @@
+package com.didit.application.retrospect.exception
+
+import com.didit.application.common.exception.BusinessException
+
+class InvalidRetrospectiveFeedbackException : BusinessException(RetrospectErrorCode.INVALID_RETROSPECTIVE_FEEDBACK)
