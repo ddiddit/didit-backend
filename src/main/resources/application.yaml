@@ -45,6 +45,13 @@ oauth:
     allowed-client-ids: ${OAUTH_GOOGLE_ALLOWED_CLIENT_IDS:}
   apple:
     jwks-url: https://appleid.apple.com/auth/keys
+    token-url: https://appleid.apple.com/auth/token
+    client-id: ${OAUTH_APPLE_CLIENT_ID:}
+    team-id: ${OAUTH_APPLE_TEAM_ID:}
+    key-id: ${OAUTH_APPLE_KEY_ID:}
+    private-key-pem-base64: ${OAUTH_APPLE_PRIVATE_KEY_PEM_BASE64:}
+    allowed-redirect-uris: ${OAUTH_APPLE_ALLOWED_REDIRECT_URIS:}
+    allowed-client-ids: ${OAUTH_APPLE_ALLOWED_CLIENT_IDS:}
 
 jwt:
   access-token-expiry-ms: 3600000

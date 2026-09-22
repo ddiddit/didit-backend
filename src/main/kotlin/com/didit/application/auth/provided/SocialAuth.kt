@@ -11,6 +11,7 @@ interface SocialAuth {
         credentialType: SocialCredentialType,
         credential: String,
         redirectUri: String?,
+        nonce: String?,
     ): SocialLoginResult
 
     fun startEmailVerification(

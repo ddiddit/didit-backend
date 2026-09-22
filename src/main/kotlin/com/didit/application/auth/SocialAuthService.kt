@@ -25,7 +25,9 @@ import com.didit.domain.auth.UserRegisterRequest
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
+import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import java.time.LocalDateTime
 
 @Service
@@ -39,41 +41,46 @@ class SocialAuthService(
     private val loginCompletionService: LoginCompletionService,
     private val emailSender: EmailSender,
     private val passwordEncoder: PasswordEncoder,
+    transactionManager: PlatformTransactionManager,
     @param:Value("\${social-login.session-expiry-minutes:15}") private val sessionExpiryMinutes: Long,
     @param:Value("\${social-login.email-verification.max-attempts:5}") private val maxAttempts: Int,
     @param:Value("\${social-login.apple-enabled:false}") private val appleEnabled: Boolean,
 ) : SocialAuth {
-    @Transactional
+    private val loginTransaction = TransactionTemplate(transactionManager)
+
     override fun login(
         provider: Provider,
         credentialType: SocialCredentialType,
         credential: String,
         redirectUri: String?,
+        nonce: String?,
     ): SocialLoginResult {
         if (provider == Provider.APPLE && !appleEnabled) throw UnsupportedOAuthProviderException()
 
-        val userInfo = oAuthClientFactory.getClient(provider).getUserInfo(credentialType, credential, redirectUri)
+        val userInfo = oAuthClientFactory.getClient(provider).getUserInfo(credentialType, credential, redirectUri, nonce)
 
-        findActiveUser(provider, userInfo.providerId)?.let { user ->
-            return authenticated(user, provider, false)
-        }
+        return loginTransaction.execute {
+            findActiveUser(provider, userInfo.providerId)?.let { user ->
+                return@execute authenticated(user, provider, false)
+            }
 
-        val rawSessionToken = SocialTokenCodec.generate()
-        sessionRepository.save(
-            SocialLoginSession(
-                tokenHash = SocialTokenCodec.hash(rawSessionToken),
-                provider = provider,
-                providerId = userInfo.providerId,
-                providerEmail = userInfo.email?.trim()?.lowercase(),
-                expiresAt = LocalDateTime.now().plusMinutes(sessionExpiryMinutes),
-            ),
-        )
+            val rawSessionToken = SocialTokenCodec.generate()
+            sessionRepository.save(
+                SocialLoginSession(
+                    tokenHash = SocialTokenCodec.hash(rawSessionToken),
+                    provider = provider,
+                    providerId = userInfo.providerId,
+                    providerEmail = userInfo.email?.trim()?.lowercase(),
+                    expiresAt = LocalDateTime.now().plusMinutes(sessionExpiryMinutes),
+                ),
+            )
 
-        return SocialLoginResult(
-            status = SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED,
-            loginSessionToken = rawSessionToken,
-            emailHint = userInfo.email?.let(::maskEmail),
-        )
+            SocialLoginResult(
+                status = SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED,
+                loginSessionToken = rawSessionToken,
+                emailHint = userInfo.email?.let(::maskEmail),
+            )
+        } ?: error("소셜 로그인 트랜잭션이 결과를 반환하지 않았습니다.")
     }
 
     override fun startEmailVerification(
