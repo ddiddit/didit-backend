@@ -38,6 +38,7 @@ class KakaoOAuthClient(
         credentialType: SocialCredentialType,
         credential: String,
         redirectUri: String?,
+        expectedNonce: String?,
     ): UserInfo =
         when (credentialType) {
             SocialCredentialType.ACCESS_TOKEN -> getUserInfoWithAccessToken(credential)

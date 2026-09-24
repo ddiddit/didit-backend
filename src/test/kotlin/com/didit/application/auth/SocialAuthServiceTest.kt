@@ -29,6 +29,8 @@ import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.security.crypto.password.PasswordEncoder
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.support.SimpleTransactionStatus
 import java.time.LocalDateTime
 
 @ExtendWith(MockitoExtension::class)
@@ -57,13 +59,34 @@ class SocialAuthServiceTest {
     @Mock
     lateinit var passwordEncoder: PasswordEncoder
 
+    @Mock(lenient = true)
+    lateinit var transactionManager: PlatformTransactionManager
+
+    private val loginEvents = mutableListOf<String>()
     private lateinit var service: SocialAuthService
 
     @BeforeEach
     fun setUp() {
+        whenever(transactionManager.getTransaction(any())).thenAnswer {
+            loginEvents += "transaction"
+            SimpleTransactionStatus()
+        }
         val kakaoClient =
             object : OAuthClient {
                 override fun getUserInfo(oauthToken: String) = UserInfo("new-kakao-id", "member@example.com")
+
+                override fun getUserInfo(
+                    credentialType: SocialCredentialType,
+                    credential: String,
+                ) = getUserInfo(credential)
+            }
+
+        val appleClient =
+            object : OAuthClient {
+                override fun getUserInfo(oauthToken: String): UserInfo {
+                    loginEvents += "oauth"
+                    return UserInfo("existing-apple-sub", "relay@privaterelay.appleid.com")
+                }
 
                 override fun getUserInfo(
                     credentialType: SocialCredentialType,
@@ -77,15 +100,33 @@ class SocialAuthServiceTest {
                 identityRepository = identityRepository,
                 sessionRepository = sessionRepository,
                 challengeRepository = challengeRepository,
-                oAuthClientFactory = OAuthClientFactory(mapOf(Provider.KAKAO to kakaoClient)),
+                oAuthClientFactory = OAuthClientFactory(mapOf(Provider.KAKAO to kakaoClient, Provider.APPLE to appleClient)),
                 challengeManager = challengeManager,
                 loginCompletionService = loginCompletionService,
                 emailSender = emailSender,
                 passwordEncoder = passwordEncoder,
+                transactionManager = transactionManager,
                 sessionExpiryMinutes = 15,
                 maxAttempts = 5,
-                appleEnabled = false,
+                appleEnabled = true,
             )
+    }
+
+    @Test
+    fun `기존 Apple 식별자로 로그인하면 같은 회원과 데이터를 사용한다`() {
+        val user = UserFixture.create(provider = Provider.APPLE, providerId = "existing-apple-sub")
+        val identity = SocialIdentity.create(user.id, Provider.APPLE, "existing-apple-sub")
+        whenever(identityRepository.findByProviderAndProviderId(Provider.APPLE, "existing-apple-sub")).thenReturn(identity)
+        whenever(userRepository.findById(user.id)).thenReturn(user)
+        whenever(loginCompletionService.complete(user, Provider.APPLE, false)).thenReturn(tokenResponse(isNewUser = false))
+
+        val result = service.login(Provider.APPLE, SocialCredentialType.ID_TOKEN, "id-token", null, null)
+
+        assertThat(loginEvents).containsExactly("oauth", "transaction")
+
+        assertThat(result.status).isEqualTo(SocialLoginStatus.AUTHENTICATED)
+        assertThat(result.token?.isNewUser).isFalse()
+        verify(sessionRepository, never()).save(any())
     }
 
     @Test
@@ -96,7 +137,7 @@ class SocialAuthServiceTest {
         whenever(userRepository.findById(user.id)).thenReturn(user)
         whenever(loginCompletionService.complete(user, Provider.KAKAO, false)).thenReturn(tokenResponse(isNewUser = false))
 
-        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code", null)
+        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code", null, null)
 
         assertThat(result.status).isEqualTo(SocialLoginStatus.AUTHENTICATED)
         assertThat(result.token?.isNewUser).isFalse()
@@ -109,7 +150,7 @@ class SocialAuthServiceTest {
         whenever(userRepository.findByProviderAndProviderId(Provider.KAKAO, "new-kakao-id")).thenReturn(null)
         whenever(sessionRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code", null)
+        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code", null, null)
 
         assertThat(result.status).isEqualTo(SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED)
         assertThat(result.loginSessionToken).isNotBlank()

@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
@@ -30,7 +32,7 @@ class SocialAuthApiTest : RestDocsSupport() {
 
     @Test
     fun `소셜 로그인 v2`() {
-        whenever(socialAuth.login(any(), any(), any(), anyOrNull())).thenReturn(
+        whenever(socialAuth.login(any(), any(), any(), anyOrNull(), anyOrNull())).thenReturn(
             SocialLoginResult(
                 status = SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED,
                 loginSessionToken = "login-session-token",
@@ -63,7 +65,7 @@ class SocialAuthApiTest : RestDocsSupport() {
                         requestFields(
                             fieldWithPath(
                                 "provider",
-                            ).type(JsonFieldType.STRING).description("소셜 로그인 제공자 (현재 KAKAO, GOOGLE 지원; APPLE 기능 게이트 비활성)"),
+                            ).type(JsonFieldType.STRING).description("소셜 로그인 제공자 (KAKAO, GOOGLE 및 기능 게이트 활성화 시 APPLE)"),
                             fieldWithPath(
                                 "credentialType",
                             ).type(JsonFieldType.STRING).description("제공자에 맞는 인증값 유형 (ID_TOKEN, ACCESS_TOKEN, AUTHORIZATION_CODE)"),
@@ -71,6 +73,7 @@ class SocialAuthApiTest : RestDocsSupport() {
                             fieldWithPath(
                                 "redirectUri",
                             ).type(JsonFieldType.STRING).description("인가 코드 교환에 사용할 callback URI (필요한 제공자에 한함)").optional(),
+                            fieldWithPath("nonce").type(JsonFieldType.STRING).description("Apple 인가 코드와 함께 검증할 일회용 nonce").optional(),
                         ),
                         responseFields(
                             fieldWithPath(
@@ -88,6 +91,40 @@ class SocialAuthApiTest : RestDocsSupport() {
                     ),
                 )
             }
+
+        verify(socialAuth).login(Provider.GOOGLE, SocialCredentialType.ID_TOKEN, "id-token", null, null)
+    }
+
+    @Test
+    fun `Apple 인가 코드 로그인은 nonce를 전달한다`() {
+        whenever(socialAuth.login(any(), any(), any(), anyOrNull(), anyOrNull())).thenReturn(
+            SocialLoginResult(status = SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED, loginSessionToken = "login-session-token"),
+        )
+
+        mockMvc
+            .post("/api/v2/auth/social/login") {
+                contentType = MediaType.APPLICATION_JSON
+                content =
+                    objectMapper.writeValueAsString(
+                        mapOf(
+                            "provider" to Provider.APPLE,
+                            "credentialType" to SocialCredentialType.AUTHORIZATION_CODE,
+                            "credential" to "authorization-code",
+                            "redirectUri" to "https://dev-app.didit.io.kr/auth/apple/callback",
+                            "nonce" to "apple-nonce",
+                        ),
+                    )
+            }.andExpect {
+                status { isOk() }
+            }
+
+        verify(socialAuth).login(
+            eq(Provider.APPLE),
+            eq(SocialCredentialType.AUTHORIZATION_CODE),
+            eq("authorization-code"),
+            eq("https://dev-app.didit.io.kr/auth/apple/callback"),
+            eq("apple-nonce"),
+        )
     }
 
     @Test

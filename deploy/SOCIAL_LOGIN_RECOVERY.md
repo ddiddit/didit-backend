@@ -35,7 +35,13 @@
 | `OAUTH_KAKAO_REST_API_KEY` | Kakao 인가코드 교환용 REST API 키 | 프런트에도 동일 값 사용 가능 |
 | `OAUTH_KAKAO_CLIENT_SECRET` | Kakao 토큰 교환 Client Secret | 백엔드 전용 비밀값 |
 | `OAUTH_KAKAO_ALLOWED_REDIRECT_URIS` | 카카오 인가 코드 교환에 허용할 callback URI 목록(쉼표 구분) | 공개 가능 |
-| `OAUTH_APPLE_ENABLED` | Apple 준비 전 `false`, 설정 완료 뒤 검증 후 `true` | 백엔드 설정 |
+| `OAUTH_APPLE_CLIENT_ID` | 웹 Services ID. Apple 코드 교환 시 `client_id` | 공개 식별자 |
+| `OAUTH_APPLE_TEAM_ID` | Sign in with Apple 키가 속한 Team ID | 백엔드 설정 |
+| `OAUTH_APPLE_KEY_ID` | Sign in with Apple 키의 Key ID | 백엔드 설정 |
+| `OAUTH_APPLE_PRIVATE_KEY_PEM_BASE64` | 내려받은 `.p8` PEM 파일 전체를 Base64로 인코딩한 값 | 백엔드 전용 비밀값 |
+| `OAUTH_APPLE_ALLOWED_CLIENT_IDS` | 허용할 웹 Services ID와 iOS Bundle ID 목록(쉼표 구분) | 공개 식별자 |
+| `OAUTH_APPLE_ALLOWED_REDIRECT_URIS` | Apple Developer에 등록한 웹 Return URL 목록(쉼표 구분) | 공개 가능 |
+| `OAUTH_APPLE_ENABLED` | Apple 실계정 검증 전 `false`, 검증 후 `true` | 백엔드 설정 |
 | `GMAIL_USERNAME` | OTP 발송 Gmail 계정 | 백엔드 전용 |
 | `GMAIL_APP_PASSWORD` | Gmail 앱 비밀번호 | 백엔드 전용 비밀값 |
 
@@ -96,3 +102,12 @@ V47 적용 후에는 DB 스키마를 즉시 되돌리기보다 프런트를 이�
 새 테이블은 기존 `users` 데이터를 파괴하지 않으므로 원인 분석 동안 유지한다. 이미 생성되거나 연결된
 식별자를 삭제·수정해야 할 경우에는 `social_identities.user_id`와 실제 회원 데이터를 대조한 뒤 수동으로
 처리한다.
+
+## Apple 로그인 활성화 전 확인
+
+1. Apple Developer의 동일 Team에서 기존 App ID에 Sign in with Apple을 설정하고, 웹 Services ID를 해당 App ID에 연결한다. 도메인과 Return URL을 등록한다.
+2. Sign in with Apple 전용 Key를 생성하고 Team ID, Key ID, Services ID를 기록한다. `.p8`는 생성 시 한 번만 다운로드할 수 있으므로 안전한 비밀 저장소에서 관리한다. 파일 내용이나 Base64 값은 이 저장소와 채팅에 남기지 않는다.
+3. GitHub Actions 환경별 secret에 위 Apple 변수 값을 입력한다. 웹 Services ID를 `OAUTH_APPLE_CLIENT_ID`와 `OAUTH_APPLE_ALLOWED_CLIENT_IDS` 양쪽에 포함한다. 네이티브 iOS 로그인을 지원할 경우 Bundle ID도 허용 목록에 포함한다.
+4. 프런트 웹 로그인은 Apple 인가 코드를 받아 `credentialType=AUTHORIZATION_CODE`, `credential=code`, `redirectUri=등록된 Return URL`, `nonce=Apple 요청에 사용한 nonce`로 v2 API에 전달해야 한다. 프런트는 Apple에 보낼 state와 nonce를 생성하고 callback에서 state를 먼저 검증해야 한다. 현재 웹 프런트는 `ID_TOKEN`을 보내므로 별도 수정이 필요하다. iOS 네이티브의 `ID_TOKEN` 경로는 유지한다.
+5. 비공개 릴레이 OTP 수신, 탈퇴 시 Apple 토큰 취소, 기존 Apple 계정의 `sub`와 저장된 `provider_id` 일치를 스테이징에서 확인한다. 기존 Kakao/Google 계정은 각 제공자로 로그인한 뒤 같은 `users.id`와 데이터가 보이는지 확인한다.
+6. 검증이 끝난 환경에서만 `OAUTH_APPLE_ENABLED=true`로 전환한다. 장애 시 `false`로 되돌린다. 이메일만으로 다른 제공자 계정을 연결하지 않는다.
