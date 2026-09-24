@@ -24,7 +24,7 @@ class SocialAuthApi(
     ): SuccessResponse<SocialLoginResponse> =
         SuccessResponse.of(
             SocialLoginResponse.from(
-                socialAuth.login(request.provider, request.credentialType, request.credential, request.redirectUri),
+                socialAuth.login(request.provider, request.credentialType, request.credential, request.redirectUri, request.nonce),
             ),
         )
 

@@ -16,5 +16,6 @@ interface OAuthClient {
         credentialType: SocialCredentialType,
         credential: String,
         redirectUri: String?,
+        expectedNonce: String? = null,
     ): UserInfo = getUserInfo(credentialType, credential)
 }

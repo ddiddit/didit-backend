@@ -8,6 +8,7 @@ import com.didit.application.auth.dto.TokenResponse
 import com.didit.application.auth.exception.AccountVerificationRequiredException
 import com.didit.application.auth.exception.ExpiredRefreshTokenException
 import com.didit.application.auth.exception.InvalidRefreshTokenException
+import com.didit.application.auth.exception.UnsupportedOAuthProviderException
 import com.didit.application.auth.provided.Auth
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.required.OAuthClientFactory
@@ -23,8 +24,12 @@ import com.didit.domain.auth.User
 import com.didit.domain.auth.WithdrawalReason
 import com.didit.domain.auth.WithdrawalRecord
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.annotation.Propagation
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.support.TransactionTemplate
 import java.util.UUID
 
 @Transactional(readOnly = true)
@@ -40,25 +45,29 @@ class AuthService(
     private val auditLogger: AuditLogger,
     private val deviceTokenRepository: DeviceTokenRepository,
     private val loginCompletionService: LoginCompletionService,
+    @param:Value("\${social-login.apple-enabled:false}") private val appleEnabled: Boolean,
+    transactionManager: PlatformTransactionManager,
 ) : Auth {
+    private val loginTransaction = TransactionTemplate(transactionManager)
+
     companion object {
         private val logger = LoggerFactory.getLogger(AuthService::class.java)
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     override fun login(
         provider: Provider,
         oauthToken: String,
     ): TokenResponse {
-        val client = oAuthClientFactory.getClient(provider)
+        if (provider == Provider.APPLE && !appleEnabled) throw UnsupportedOAuthProviderException()
 
-        val userInfo = client.getUserInfo(oauthToken)
+        val userInfo = oAuthClientFactory.getClient(provider).getUserInfo(oauthToken)
 
-        val (user, isNewUser) = resolveUser(provider, userInfo.providerId)
-
-        logger.info("로그인 성공 - userId: ${user.id}, provider: $provider, isNewUser: $isNewUser")
-
-        return loginCompletionService.complete(user, provider, isNewUser)
+        return loginTransaction.execute {
+            val (user, isNewUser) = resolveUser(provider, userInfo.providerId)
+            logger.info("로그인 성공 - userId: ${user.id}, provider: $provider, isNewUser: $isNewUser")
+            loginCompletionService.complete(user, provider, isNewUser)
+        } ?: error("소셜 로그인 트랜잭션이 결과를 반환하지 않았습니다.")
     }
 
     @Transactional

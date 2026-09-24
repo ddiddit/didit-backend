@@ -269,3 +269,5 @@ include::{snippets}/retrospect-v2/memo/delete/path-parameters.adoc[]
 ===== Response
 
 include::{snippets}/retrospect-v2/memo/delete/http-response.adoc[]
+
+include::retrospect-feedback.adoc[]

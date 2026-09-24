@@ -33,6 +33,7 @@ enum class RetrospectErrorCode(
     RETROSPECTIVE_MEMO_NOT_FOUND(HttpStatus.NOT_FOUND, "메모를 찾을 수 없습니다."),
     DUPLICATE_RETROSPECTIVE_MEMO(HttpStatus.CONFLICT, "오늘은 이미 이 회고의 메모를 작성했습니다."),
     INVALID_RETROSPECTIVE_MEMO_CONTENT(HttpStatus.BAD_REQUEST, "메모 내용은 비어 있을 수 없습니다."),
+    INVALID_RETROSPECTIVE_FEEDBACK(HttpStatus.BAD_REQUEST, "평가에 맞는 사유를 직접 입력 포함 최대 3개 선택해주세요. 직접 입력은 비공백 500자 이하로 작성해주세요."),
 
     SPEECH_EMPTY_FILE(HttpStatus.BAD_REQUEST, "음성 파일이 비어 있습니다."),
     SPEECH_UNSUPPORTED_FILE(HttpStatus.BAD_REQUEST, "지원하지 않는 음성 파일 형식입니다."),

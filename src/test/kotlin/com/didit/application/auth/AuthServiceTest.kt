@@ -1,8 +1,10 @@
 package com.didit.application.auth
 
 import com.didit.application.audit.AuditLogger
+import com.didit.application.auth.dto.TokenResponse
 import com.didit.application.auth.dto.UserInfo
 import com.didit.application.auth.exception.AccountVerificationRequiredException
+import com.didit.application.auth.exception.UnsupportedOAuthProviderException
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.required.OAuthClient
 import com.didit.application.auth.required.OAuthClientFactory
@@ -26,6 +28,8 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.springframework.transaction.PlatformTransactionManager
+import org.springframework.transaction.support.SimpleTransactionStatus
 
 @ExtendWith(MockitoExtension::class)
 class AuthServiceTest {
@@ -56,13 +60,24 @@ class AuthServiceTest {
     @Mock
     lateinit var loginCompletionService: LoginCompletionService
 
+    @Mock(lenient = true)
+    lateinit var transactionManager: PlatformTransactionManager
+
+    private val loginEvents = mutableListOf<String>()
     private lateinit var service: AuthService
 
     @BeforeEach
     fun setUp() {
+        whenever(transactionManager.getTransaction(any())).thenAnswer {
+            loginEvents += "transaction"
+            SimpleTransactionStatus()
+        }
         val client =
             object : OAuthClient {
-                override fun getUserInfo(oauthToken: String) = UserInfo("new-provider-id", "member@example.com")
+                override fun getUserInfo(oauthToken: String): UserInfo {
+                    loginEvents += "oauth"
+                    return UserInfo("new-provider-id", "member@example.com")
+                }
             }
         service =
             AuthService(
@@ -70,12 +85,14 @@ class AuthServiceTest {
                 socialIdentityRepository = identityRepository,
                 refreshTokenRepository = refreshTokenRepository,
                 userFinder = userFinder,
-                oAuthClientFactory = OAuthClientFactory(mapOf(Provider.KAKAO to client)),
+                oAuthClientFactory = OAuthClientFactory(mapOf(Provider.KAKAO to client, Provider.APPLE to client)),
                 tokenProvider = tokenProvider,
                 withdrawalRecordRepository = withdrawalRecordRepository,
                 auditLogger = auditLogger,
                 deviceTokenRepository = deviceTokenRepository,
                 loginCompletionService = loginCompletionService,
+                appleEnabled = false,
+                transactionManager = transactionManager,
             )
     }
 
@@ -98,11 +115,22 @@ class AuthServiceTest {
         val user = UserFixture.create(provider = Provider.KAKAO, providerId = "new-provider-id")
         whenever(identityRepository.findByProviderAndProviderId(Provider.KAKAO, "new-provider-id")).thenReturn(null)
         whenever(userRepository.findByProviderAndProviderId(Provider.KAKAO, "new-provider-id")).thenReturn(user)
+        whenever(loginCompletionService.complete(user, Provider.KAKAO, false))
+            .thenReturn(TokenResponse("access-token", "refresh-token", false, false))
 
         service.login(Provider.KAKAO, "access-token")
+        org.assertj.core.api.Assertions
+            .assertThat(loginEvents)
+            .containsExactly("oauth", "transaction")
 
         val identityCaptor = argumentCaptor<SocialIdentity>()
         verify(identityRepository).save(identityCaptor.capture())
         verify(loginCompletionService).complete(user, Provider.KAKAO, false)
+    }
+
+    @Test
+    fun `v1 Apple 로그인은 기능 게이트가 꺼져 있으면 거절한다`() {
+        assertThatThrownBy { service.login(Provider.APPLE, "id-token") }
+            .isInstanceOf(UnsupportedOAuthProviderException::class.java)
     }
 }
