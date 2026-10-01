@@ -39,6 +39,10 @@ class ConversationV2PromptsTest {
                     },
                 currentMessageId = currentMessageId,
                 consecutiveIrrelevantCount = 2,
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.FACT, RetrospectiveItemType.LEARN),
+                recentQuestionTargets = listOf(RetrospectiveItemType.PROCESS),
+                completionRecommended = true,
+                completionPreviouslyOffered = false,
             )
 
         val rendered = prompts.render("입력: {{context}}", request)
@@ -49,6 +53,9 @@ class ConversationV2PromptsTest {
             .contains("배포 오류를 해결했어요.")
             .contains(currentMessageId.toString())
             .contains("\"analysisItems\"")
+            .contains("\"eligibleQuestionTargets\":[\"FACT\",\"LEARN\"]")
+            .contains("\"recentQuestionTargets\":[\"PROCESS\"]")
+            .contains("\"completionRecommended\":true")
             .doesNotContain("{{context}}")
     }
 
@@ -59,6 +66,14 @@ class ConversationV2PromptsTest {
         val rendered = prompts.render(draft, request())
 
         assertThat(rendered).isEqualTo(draft)
+    }
+
+    @Test
+    fun `build - default prompt requires REFLECT to include visible content`() {
+        // Break caught: the default prompt permits a question-free REFLECT with no visible assistant content.
+        val rendered = prompts.build(request())
+
+        assertThat(rendered).contains("REFLECT일 때는 acknowledgement와 interpretation 중 하나 이상을 반드시 작성하세요.")
     }
 
     private fun request() =

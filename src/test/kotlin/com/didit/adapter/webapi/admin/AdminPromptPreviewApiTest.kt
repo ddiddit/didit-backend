@@ -115,6 +115,18 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath(
                             "data.nextState.analysisItems[].summary",
                         ).type(JsonFieldType.STRING).optional().description("구조화된 요약"),
+                        fieldWithPath("data.nextState.analysisItems[].questionAllowed")
+                            .type(JsonFieldType.BOOLEAN)
+                            .description("해당 항목에 대한 후속 질문 허용 여부"),
+                        fieldWithPath("data.nextState.recentQuestionTargets")
+                            .type(JsonFieldType.ARRAY)
+                            .description("최근 질문한 회고 항목. 다음 요청의 priorState로 그대로 전달"),
+                        fieldWithPath("data.nextState.completedQuestionCount")
+                            .type(JsonFieldType.NUMBER)
+                            .description("완료된 질문 턴 수. 다음 요청의 priorState로 그대로 전달"),
+                        fieldWithPath("data.nextState.completionPreviouslyOffered")
+                            .type(JsonFieldType.BOOLEAN)
+                            .description("회고 종료 제안 이력. 다음 요청의 priorState로 그대로 전달"),
                     ),
                 ),
             )

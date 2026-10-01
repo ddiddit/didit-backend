@@ -6,6 +6,7 @@ import ch.qos.logback.classic.spi.ILoggingEvent
 import ch.qos.logback.core.read.ListAppender
 import com.didit.application.admin.required.AdminPromptPreviewAIClient
 import com.didit.application.retrospect.required.ConversationTurnAIRequest
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.shared.Job
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
@@ -43,6 +44,8 @@ class AdminPromptPreviewOpenAiClientTest {
 
         assertThat(result.question).isEqualTo("SENTINEL_PREVIEW_RESPONSE")
         assertThat(result.questionTarget).isEqualTo(RetrospectiveItemType.FACT)
+        assertThat(result.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(result.declinedItemTypes).containsExactly(RetrospectiveItemType.BLOCK)
         assertThat(result.inputTokens).isEqualTo(12)
         assertThat(result.outputTokens).isEqualTo(34)
         assertThat(registry.find("didit.openai.request.duration").tag("operation", "conversation_v2_preview").timer()).isNotNull
@@ -104,7 +107,7 @@ class AdminPromptPreviewOpenAiClientTest {
         )
 
     private fun response() =
-        """{"output":[{"content":[{"type":"output_text","text":"{\"acknowledgement\":\"알겠습니다.\",\"interpretation\":\"상황을 이해했어요.\",\"question\":\"SENTINEL_PREVIEW_RESPONSE\",\"questionTarget\":\"FACT\",\"relevance\":\"RETROSPECTIVE\",\"analysisUpdates\":[]}"}]}],"usage":{"input_tokens":12,"output_tokens":34}}"""
+        """{"output":[{"content":[{"type":"output_text","text":"{\"action\":\"ASK\",\"acknowledgement\":\"알겠습니다.\",\"interpretation\":\"상황을 이해했어요.\",\"question\":\"SENTINEL_PREVIEW_RESPONSE\",\"questionTarget\":\"FACT\",\"relevance\":\"RETROSPECTIVE\",\"declinedItemTypes\":[\"BLOCK\"],\"analysisUpdates\":[]}"}]}],"usage":{"input_tokens":12,"output_tokens":34}}"""
 
     private fun previewLogAppender(): CapturedLogAppender {
         val logger = logger()

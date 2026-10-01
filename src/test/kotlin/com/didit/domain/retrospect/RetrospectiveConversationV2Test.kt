@@ -68,6 +68,67 @@ class RetrospectiveConversationV2Test {
     }
 
     @Test
+    fun `거부한 분석 항목은 질문 대상에서 제외하고 새 근거가 생기면 다시 허용한다`() {
+        val item =
+            RetrospectiveAnalysisItem(
+                retrospectiveId = UUID.randomUUID(),
+                itemType = RetrospectiveItemType.BLOCK,
+            )
+
+        item.declineQuestion()
+
+        assertThat(item.questionAllowed).isFalse()
+        assertThat(item.status).isEqualTo(RetrospectiveItemStatus.EMPTY)
+
+        item.update(RetrospectiveItemStatus.PARTIAL, "직접 어려웠던 점을 이야기함")
+
+        assertThat(item.questionAllowed).isTrue()
+    }
+
+    @Test
+    fun `완료된 턴은 대화 액션과 질문 대상을 함께 보존한다`() {
+        val turn =
+            RetrospectiveConversationTurn(
+                retrospectiveId = UUID.randomUUID(),
+                clientMessageId = UUID.randomUUID(),
+                userMessageId = UUID.randomUUID(),
+                turnNumber = 1,
+            )
+
+        turn.complete(
+            assistantMessageId = UUID.randomUUID(),
+            action = ConversationTurnAction.ASK,
+            questionTarget = RetrospectiveItemType.PROCESS,
+            inputTokens = 10,
+            outputTokens = 5,
+        )
+
+        assertThat(turn.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(turn.questionTarget).isEqualTo(RetrospectiveItemType.PROCESS)
+    }
+
+    @Test
+    fun `질문이 아닌 액션에는 질문 대상을 저장할 수 없다`() {
+        val turn =
+            RetrospectiveConversationTurn(
+                retrospectiveId = UUID.randomUUID(),
+                clientMessageId = UUID.randomUUID(),
+                userMessageId = UUID.randomUUID(),
+                turnNumber = 1,
+            )
+
+        assertThrows<IllegalArgumentException> {
+            turn.complete(
+                assistantMessageId = UUID.randomUUID(),
+                action = ConversationTurnAction.CONFIRM_COMPLETION,
+                questionTarget = RetrospectiveItemType.ACTION,
+                inputTokens = 0,
+                outputTokens = 0,
+            )
+        }
+    }
+
+    @Test
     fun `실패한 턴은 재시도 횟수를 올리고 처리 중 상태로 전환한다`() {
         val turn =
             RetrospectiveConversationTurn(
