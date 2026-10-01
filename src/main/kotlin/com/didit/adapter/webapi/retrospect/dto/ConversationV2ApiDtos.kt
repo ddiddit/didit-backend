@@ -9,6 +9,7 @@ import com.didit.application.retrospect.dto.StartConversationV2Result
 import com.didit.application.retrospect.dto.SubmitConversationMessageResult
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.ConversationTurnStatus
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.Sender
@@ -54,6 +55,7 @@ data class SubmitConversationMessageV2Response(
     val userMessageId: UUID,
     val assistantMessage: ConversationMessageV2Response?,
     val readyToComplete: Boolean,
+    val action: ConversationTurnAction?,
 ) {
     companion object {
         fun from(result: SubmitConversationMessageResult) =
@@ -62,6 +64,7 @@ data class SubmitConversationMessageV2Response(
                 userMessageId = result.userMessageId,
                 assistantMessage = result.assistantMessage?.let(ConversationMessageV2Response::from),
                 readyToComplete = result.readyToComplete,
+                action = result.action,
             )
     }
 }
@@ -142,6 +145,7 @@ data class ConversationTurnV2Response(
     val status: ConversationTurnStatus,
     val attemptCount: Int,
     val errorCode: String?,
+    val action: ConversationTurnAction?,
 ) {
     companion object {
         fun from(result: ConversationTurnResult) =
@@ -152,6 +156,7 @@ data class ConversationTurnV2Response(
                 status = result.status,
                 attemptCount = result.attemptCount,
                 errorCode = result.errorCode,
+                action = result.action,
             )
     }
 }

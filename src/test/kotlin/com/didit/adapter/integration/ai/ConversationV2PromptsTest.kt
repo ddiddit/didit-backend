@@ -39,6 +39,10 @@ class ConversationV2PromptsTest {
                     },
                 currentMessageId = currentMessageId,
                 consecutiveIrrelevantCount = 2,
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.FACT, RetrospectiveItemType.LEARN),
+                recentQuestionTargets = listOf(RetrospectiveItemType.PROCESS),
+                completionRecommended = true,
+                completionPreviouslyOffered = false,
             )
 
         val rendered = prompts.render("입력: {{context}}", request)
@@ -49,6 +53,9 @@ class ConversationV2PromptsTest {
             .contains("배포 오류를 해결했어요.")
             .contains(currentMessageId.toString())
             .contains("\"analysisItems\"")
+            .contains("\"eligibleQuestionTargets\":[\"FACT\",\"LEARN\"]")
+            .contains("\"recentQuestionTargets\":[\"PROCESS\"]")
+            .contains("\"completionRecommended\":true")
             .doesNotContain("{{context}}")
     }
 

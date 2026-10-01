@@ -4,6 +4,7 @@ import com.didit.application.retrospect.required.ConversationAnalysisUpdate
 import com.didit.application.retrospect.required.ConversationContextMessage
 import com.didit.application.retrospect.required.GeneratedConversationTurn
 import com.didit.domain.retrospect.ConversationMessageType
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -117,6 +118,99 @@ class ConversationV2TurnPolicyTest {
         }
     }
 
+    @Test
+    fun `질문 후보는 충분한 항목과 거부 항목과 직전 질문 대상을 제외한다`() {
+        val candidates =
+            policy.eligibleQuestionTargets(
+                items =
+                    listOf(
+                        analysisItem(RetrospectiveItemType.FACT, RetrospectiveItemStatus.ENOUGH, "완료"),
+                        analysisItem(RetrospectiveItemType.BLOCK, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                        analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "진행 중"),
+                        analysisItem(RetrospectiveItemType.LEARN, RetrospectiveItemStatus.EMPTY, null),
+                    ),
+                recentQuestionTargets = listOf(RetrospectiveItemType.PROCESS),
+            )
+
+        assertThat(candidates).containsExactly(RetrospectiveItemType.LEARN)
+    }
+
+    @Test
+    fun `직전 질문 대상이 유일한 후보여도 즉시 반복하지 않는다`() {
+        val candidates =
+            policy.eligibleQuestionTargets(
+                items = listOf(analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "진행 중")),
+                recentQuestionTargets = listOf(RetrospectiveItemType.PROCESS),
+            )
+
+        assertThat(candidates).isEmpty()
+    }
+
+    @Test
+    fun `준비도가 충족되면 아직 제안하지 않은 회고에 종료 제안을 우선한다`() {
+        val decided =
+            policy.decideTurn(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.FACT),
+                completionRecommended = true,
+                completionPreviouslyOffered = false,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.OFFER_COMPLETION)
+        assertThat(decided.question).isNull()
+        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.content()).contains("회고를 마칠까요")
+    }
+
+    @Test
+    fun `질문 턴이 여섯 번 누적되면 완료를 권장한다`() {
+        assertThat(policy.shouldRecommendCompletion(readyToComplete = false, completedQuestionCount = 5)).isFalse()
+        assertThat(policy.shouldRecommendCompletion(readyToComplete = false, completedQuestionCount = 6)).isTrue()
+    }
+
+    @Test
+    fun `이미 종료를 제안한 회고에는 같은 제안을 반복하지 않는다`() {
+        val decided =
+            policy.decideTurn(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.PROCESS),
+                completionRecommended = true,
+                completionPreviouslyOffered = true,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
+    }
+
+    @Test
+    fun `종료 확인 액션은 모델이 만든 추가 질문을 제거한다`() {
+        val decided =
+            policy.decideTurn(
+                generated = generated(MessageRelevance.RETROSPECTIVE).copy(action = ConversationTurnAction.CONFIRM_COMPLETION),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.FACT),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
+        assertThat(decided.question).isNull()
+        assertThat(decided.questionTarget).isNull()
+    }
+
+    @Test
+    fun `허용되지 않은 질문 대상은 질문 없는 응답으로 낮춘다`() {
+        val decided =
+            policy.decideTurn(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.LEARN),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.question).isNull()
+        assertThat(decided.questionTarget).isNull()
+    }
+
     private fun contextMessage(content: String) = ConversationContextMessage(UUID.randomUUID(), Sender.USER, content)
 
     private fun message(
@@ -127,7 +221,14 @@ class ConversationV2TurnPolicyTest {
     private fun analysisItem(
         status: RetrospectiveItemStatus,
         summary: String?,
-    ) = ConversationV2AnalysisItemSnapshot(RetrospectiveItemType.FACT, status, summary)
+    ) = analysisItem(RetrospectiveItemType.FACT, status, summary)
+
+    private fun analysisItem(
+        itemType: RetrospectiveItemType,
+        status: RetrospectiveItemStatus,
+        summary: String?,
+        questionAllowed: Boolean = true,
+    ) = ConversationV2AnalysisItemSnapshot(itemType, status, summary, questionAllowed)
 
     private fun update(
         itemType: RetrospectiveItemType,
@@ -138,11 +239,13 @@ class ConversationV2TurnPolicyTest {
 
     private fun generated(relevance: MessageRelevance) =
         GeneratedConversationTurn(
+            action = ConversationTurnAction.ASK,
             acknowledgement = "확인했어요.",
             interpretation = "",
             question = "다음 질문이에요.",
-            questionTarget = null,
+            questionTarget = RetrospectiveItemType.PROCESS,
             relevance = relevance,
+            declinedItemTypes = emptyList(),
             analysisUpdates = emptyList(),
             inputTokens = 0,
             outputTokens = 0,

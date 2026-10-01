@@ -4,6 +4,7 @@ import com.didit.application.retrospect.required.ConversationAnalysisUpdate
 import com.didit.application.retrospect.required.ConversationContextMessage
 import com.didit.application.retrospect.required.GeneratedConversationTurn
 import com.didit.domain.retrospect.ConversationMessageType
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -13,6 +14,10 @@ import java.util.UUID
 
 @Component
 class ConversationV2TurnPolicy {
+    companion object {
+        private const val MAX_QUESTION_TURNS = 6
+    }
+
     fun initialIntro(): ConversationV2MessageSnapshot =
         ConversationV2MessageSnapshot(
             content = "오늘 어떤 일을 하셨나요?",
@@ -70,6 +75,58 @@ class ConversationV2TurnPolicy {
                 },
         )
 
+    fun eligibleQuestionTargets(
+        items: List<ConversationV2AnalysisItemSnapshot>,
+        recentQuestionTargets: List<RetrospectiveItemType>,
+    ): List<RetrospectiveItemType> {
+        val candidates =
+            items
+                .filter { it.questionAllowed && it.status != RetrospectiveItemStatus.ENOUGH }
+                .map { it.itemType }
+        val lastQuestionTarget = recentQuestionTargets.lastOrNull()
+        return candidates.filterNot { it == lastQuestionTarget }
+    }
+
+    fun shouldRecommendCompletion(
+        readyToComplete: Boolean,
+        completedQuestionCount: Int,
+    ): Boolean = readyToComplete || completedQuestionCount >= MAX_QUESTION_TURNS
+
+    fun decideTurn(
+        generated: GeneratedConversationTurn,
+        eligibleQuestionTargets: List<RetrospectiveItemType>,
+        completionRecommended: Boolean,
+        completionPreviouslyOffered: Boolean,
+    ): GeneratedConversationTurn {
+        if (generated.action == ConversationTurnAction.CONFIRM_COMPLETION) {
+            return generated.copy(question = null, questionTarget = null)
+        }
+        if (
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            completionRecommended &&
+            !completionPreviouslyOffered
+        ) {
+            return generated.copy(
+                action = ConversationTurnAction.OFFER_COMPLETION,
+                interpretation = "충분히 돌아본 것 같아요. 지금까지의 내용으로 회고를 마칠까요?",
+                question = null,
+                questionTarget = null,
+            )
+        }
+        if (
+            generated.action != ConversationTurnAction.ASK ||
+            generated.question.isNullOrBlank() ||
+            generated.questionTarget !in eligibleQuestionTargets
+        ) {
+            return generated.copy(
+                action = ConversationTurnAction.REFLECT,
+                question = null,
+                questionTarget = null,
+            )
+        }
+        return generated
+    }
+
     fun applyAnalysisUpdates(
         items: List<ConversationV2AnalysisItemSnapshot>,
         updates: List<ConversationAnalysisUpdate>,
@@ -117,6 +174,7 @@ data class ConversationV2AnalysisItemSnapshot(
     val itemType: RetrospectiveItemType,
     val status: RetrospectiveItemStatus,
     val summary: String?,
+    val questionAllowed: Boolean = true,
 )
 
 data class ConversationV2EvidenceDecision(

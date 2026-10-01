@@ -16,6 +16,7 @@ import com.didit.domain.prompt.Prompt
 import com.didit.domain.prompt.PromptJobType
 import com.didit.domain.prompt.PromptType
 import com.didit.domain.retrospect.ConversationMessageType
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -242,6 +243,7 @@ class AdminPromptPreviewServiceTest {
         relevance: MessageRelevance = MessageRelevance.RETROSPECTIVE,
         updates: List<ConversationAnalysisUpdate> = emptyList(),
     ) = GeneratedConversationTurn(
+        action = ConversationTurnAction.ASK,
         acknowledgement = "확인했어요.",
         interpretation = "",
         question = "다음은 무엇인가요?",

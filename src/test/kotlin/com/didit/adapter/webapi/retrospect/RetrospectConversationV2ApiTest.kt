@@ -13,6 +13,7 @@ import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.ConversationTurnStatus
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.RetrospectiveResultDetail
@@ -86,6 +87,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                 userMessageId = userMessageId,
                 assistantMessage = assistantMessage(),
                 readyToComplete = false,
+                action = ConversationTurnAction.ASK,
             ),
         )
 
@@ -98,6 +100,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             .andExpect(jsonPath("$.data.assistantMessage.content").value("자동화로 가장 크게 줄어든 작업은 무엇인가요?"))
             .andExpect(jsonPath("$.data.assistantMessage.title").isEmpty)
             .andExpect(jsonPath("$.data.assistantMessage.body").isEmpty)
+            .andExpect(jsonPath("$.data.action").value("ASK"))
             .andDo(
                 document(
                     "retrospect-v2/submit-message",
@@ -115,6 +118,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.userMessageId").type(JsonFieldType.STRING).description("저장된 사용자 메시지 ID"),
                         *messageFields("data.assistantMessage", "AI 후속 대화"),
                         fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("내부 회고 항목 기준 완료 준비도"),
+                        fieldWithPath("data.action").type(JsonFieldType.STRING).description("프론트가 처리할 다음 대화 액션"),
                     ),
                 ),
             )
@@ -138,6 +142,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                 userMessageId = userMessageId,
                 assistantMessage = null,
                 readyToComplete = false,
+                action = null,
             ),
         )
 
@@ -165,6 +170,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.userMessageId").type(JsonFieldType.STRING).description("사용자 메시지 ID"),
                         fieldWithPath("data.assistantMessage").type(JsonFieldType.NULL).description("분석 중에는 null"),
                         fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("완료 준비도"),
+                        fieldWithPath("data.action").type(JsonFieldType.NULL).description("비동기 처리 중에는 null"),
                     ),
                 ),
             )
@@ -241,6 +247,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                             status = ConversationTurnStatus.COMPLETED,
                             attemptCount = 1,
                             errorCode = null,
+                            action = ConversationTurnAction.OFFER_COMPLETION,
                         ),
                     ),
                 readyToComplete = false,
@@ -268,6 +275,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.turns[].status").type(JsonFieldType.STRING).description("처리 상태"),
                         fieldWithPath("data.turns[].attemptCount").type(JsonFieldType.NUMBER).description("처리 시도 횟수"),
                         fieldWithPath("data.turns[].errorCode").type(JsonFieldType.STRING).description("실패 코드").optional(),
+                        fieldWithPath("data.turns[].action").type(JsonFieldType.STRING).description("완료된 턴의 대화 액션").optional(),
                         fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("내부 회고 항목 기준 완료 준비도"),
                     ),
                 ),
@@ -359,6 +367,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             userMessageId = userMessageId,
             assistantMessage = assistantMessage(),
             readyToComplete = false,
+            action = ConversationTurnAction.ASK,
         )
 
     private fun startResponseFields() =

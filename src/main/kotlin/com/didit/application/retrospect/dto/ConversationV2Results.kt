@@ -5,6 +5,7 @@ import com.didit.domain.retrospect.AttachmentFileType
 import com.didit.domain.retrospect.AttachmentUploadStatus
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.ConversationTurnStatus
 import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.Sender
@@ -24,6 +25,7 @@ data class SubmitConversationMessageResult(
     val userMessageId: UUID,
     val assistantMessage: ConversationMessageResult?,
     val readyToComplete: Boolean,
+    val action: ConversationTurnAction?,
 )
 
 data class ConversationV2Result(
@@ -63,6 +65,7 @@ data class ConversationTurnResult(
     val status: ConversationTurnStatus,
     val attemptCount: Int,
     val errorCode: String?,
+    val action: ConversationTurnAction?,
 )
 
 data class FinishConversationV2Result(
