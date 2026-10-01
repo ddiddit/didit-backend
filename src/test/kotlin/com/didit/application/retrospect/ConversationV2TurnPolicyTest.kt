@@ -211,6 +211,30 @@ class ConversationV2TurnPolicyTest {
         assertThat(decided.questionTarget).isNull()
     }
 
+    @Test
+    fun `질문 없는 REFLECT 응답이 비어 있으면 안전한 인정 문구를 채운다`() {
+        // Break caught: an empty model REFLECT survives question removal and creates a blank assistant message.
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.REFLECT,
+                        acknowledgement = " ",
+                        interpretation = "",
+                        question = null,
+                        questionTarget = null,
+                    ),
+                eligibleQuestionTargets = emptyList(),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.content()).isEqualTo("알겠어요.")
+        assertThat(decided.question).isNull()
+        assertThat(decided.questionTarget).isNull()
+    }
+
     private fun contextMessage(content: String) = ConversationContextMessage(UUID.randomUUID(), Sender.USER, content)
 
     private fun message(

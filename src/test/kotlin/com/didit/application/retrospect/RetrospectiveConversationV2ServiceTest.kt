@@ -218,6 +218,47 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `연결 가능한 응답에서 직전 질문을 거부해도 해당 항목을 이후 질문 대상에서 제외한다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any()))
+            .thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "확인했어요.",
+                    interpretation = "",
+                    question = "어려웠던 점은 무엇인가요?",
+                    questionTarget = RetrospectiveItemType.BLOCK,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "그 주제는 더 묻지 않을게요.",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.BRIDGEABLE,
+                    declinedItemTypes = listOf(RetrospectiveItemType.BLOCK),
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            )
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어요")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "그 얘기는 하고 싶지 않아요")
+
+        val block =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.BLOCK }
+        assertThat(block.questionAllowed).isFalse()
+    }
+
+    @Test
     fun `직전 질문 대상은 대안이 있으면 다음 AI 요청 후보에서 제외한다`() {
         val started = service.start(userId)
         whenever(aiClient.generateConversationTurn(any()))

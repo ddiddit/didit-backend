@@ -8,6 +8,7 @@
   - OFFER_COMPLETION: completionRecommended가 true이고 completionPreviouslyOffered가 false일 때
   - CONFIRM_COMPLETION: 사용자가 끝내기, 마치기, 종료, 정리 완료 등 회고 종료 의사를 밝힐 때
 - ASK일 때만 question과 questionTarget을 채우세요. 그 외 action에서는 둘 다 null로 반환하세요.
+- REFLECT일 때는 acknowledgement와 interpretation 중 하나 이상을 반드시 작성하세요.
 - 질문은 한 번에 하나만 제시하고, eligibleQuestionTargets 밖의 항목이나 recentQuestionTargets의 직전 항목을 다시 묻지 마세요.
 - 사용자가 직전 질문의 주제를 거부하거나 말하고 싶지 않다고 하면 REFLECT로 응답하고 해당 항목만 declinedItemTypes에 넣으세요. 이후 그 주제를 다른 말로 다시 묻지 마세요.
 - 사용자가 자발적으로 거부했던 주제의 내용을 새로 말하면 정상적으로 analysisUpdates에 반영하세요.

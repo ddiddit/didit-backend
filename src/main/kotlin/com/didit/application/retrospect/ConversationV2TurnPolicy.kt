@@ -16,6 +16,7 @@ import java.util.UUID
 class ConversationV2TurnPolicy {
     companion object {
         private const val MAX_QUESTION_TURNS = 6
+        private const val DEFAULT_REFLECT_ACKNOWLEDGEMENT = "알겠어요."
     }
 
     fun initialIntro(): ConversationV2MessageSnapshot =
@@ -92,6 +93,16 @@ class ConversationV2TurnPolicy {
         completedQuestionCount: Int,
     ): Boolean = readyToComplete || completedQuestionCount >= MAX_QUESTION_TURNS
 
+    fun readyToComplete(items: List<ConversationV2AnalysisItemSnapshot>): Boolean {
+        val statuses = items.associate { it.itemType to it.status }
+
+        fun collected(type: RetrospectiveItemType) = statuses[type] != null && statuses[type] != RetrospectiveItemStatus.EMPTY
+        return collected(RetrospectiveItemType.FACT) &&
+            statuses.values.count { it != RetrospectiveItemStatus.EMPTY } >= 4 &&
+            listOf(RetrospectiveItemType.STRENGTH, RetrospectiveItemType.BLOCK, RetrospectiveItemType.PROCESS).any(::collected) &&
+            listOf(RetrospectiveItemType.LEARN, RetrospectiveItemType.ACTION).any(::collected)
+    }
+
     fun decideTurn(
         generated: GeneratedConversationTurn,
         eligibleQuestionTargets: List<RetrospectiveItemType>,
@@ -118,11 +129,17 @@ class ConversationV2TurnPolicy {
             generated.question.isNullOrBlank() ||
             generated.questionTarget !in eligibleQuestionTargets
         ) {
-            return generated.copy(
-                action = ConversationTurnAction.REFLECT,
-                question = null,
-                questionTarget = null,
-            )
+            val reflected =
+                generated.copy(
+                    action = ConversationTurnAction.REFLECT,
+                    question = null,
+                    questionTarget = null,
+                )
+            return if (reflected.content().isBlank()) {
+                reflected.copy(acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT)
+            } else {
+                reflected
+            }
         }
         return generated
     }

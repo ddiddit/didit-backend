@@ -44,7 +44,6 @@ import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveAnalysisEvidence
 import com.didit.domain.retrospect.RetrospectiveAnalysisItem
 import com.didit.domain.retrospect.RetrospectiveConversationTurn
-import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.shared.ServiceTime
 import org.slf4j.LoggerFactory
@@ -494,8 +493,8 @@ class RetrospectiveConversationV2Service(
             val conversationState = findConversationPolicyState(preparation.retrospectiveId)
             if (generated.relevance == MessageRelevance.RETROSPECTIVE) {
                 applyAnalysisUpdates(items, preparation.retrospectiveId, generated)
-                applyDeclinedItems(items, conversationState.recentQuestionTargets.lastOrNull(), generated)
             }
+            applyDeclinedItems(items, conversationState.recentQuestionTargets.lastOrNull(), generated)
             val eligibleQuestionTargets =
                 turnPolicy.eligibleQuestionTargets(
                     items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary, it.questionAllowed) },
@@ -649,15 +648,10 @@ class RetrospectiveConversationV2Service(
         return existing + analysisItemRepository.saveAll(created)
     }
 
-    private fun calculateReadyToComplete(items: List<RetrospectiveAnalysisItem>): Boolean {
-        val statuses = items.associate { it.itemType to it.status }
-
-        fun collected(type: RetrospectiveItemType) = statuses[type] != null && statuses[type] != RetrospectiveItemStatus.EMPTY
-        return collected(RetrospectiveItemType.FACT) &&
-            statuses.values.count { it != RetrospectiveItemStatus.EMPTY } >= 4 &&
-            listOf(RetrospectiveItemType.STRENGTH, RetrospectiveItemType.BLOCK, RetrospectiveItemType.PROCESS).any(::collected) &&
-            listOf(RetrospectiveItemType.LEARN, RetrospectiveItemType.ACTION).any(::collected)
-    }
+    private fun calculateReadyToComplete(items: List<RetrospectiveAnalysisItem>): Boolean =
+        turnPolicy.readyToComplete(
+            items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary, it.questionAllowed) },
+        )
 
     private fun findConversationPolicyState(retrospectiveId: UUID): ConversationPolicyState =
         ConversationPolicyState(

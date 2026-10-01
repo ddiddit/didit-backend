@@ -68,6 +68,14 @@ class ConversationV2PromptsTest {
         assertThat(rendered).isEqualTo(draft)
     }
 
+    @Test
+    fun `build - default prompt requires REFLECT to include visible content`() {
+        // Break caught: the default prompt permits a question-free REFLECT with no visible assistant content.
+        val rendered = prompts.build(request())
+
+        assertThat(rendered).contains("REFLECT일 때는 acknowledgement와 interpretation 중 하나 이상을 반드시 작성하세요.")
+    }
+
     private fun request() =
         ConversationTurnAIRequest(
             job = null,
