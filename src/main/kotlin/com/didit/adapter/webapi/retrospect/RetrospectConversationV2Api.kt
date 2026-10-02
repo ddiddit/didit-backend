@@ -49,6 +49,7 @@ class RetrospectConversationV2Api(
                     request.content,
                     request.inputType,
                     request.attachmentIds,
+                    request.conversationIntent,
                 ),
             ),
         )

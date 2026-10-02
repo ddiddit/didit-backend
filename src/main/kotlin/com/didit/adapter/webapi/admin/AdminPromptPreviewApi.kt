@@ -8,6 +8,7 @@ import com.didit.application.admin.provided.AdminPromptPreviewResult
 import com.didit.application.admin.provided.AdminPromptPreviewState
 import com.didit.application.admin.provided.AdminPromptSource
 import com.didit.domain.auth.UserExperience
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.shared.Job
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -35,6 +36,7 @@ class AdminPromptPreviewApi(
                     priorState = request.priorState,
                     userMessageId = request.userMessageId,
                     message = request.message,
+                    conversationIntent = request.conversationIntent,
                 ),
             ),
         )
@@ -48,4 +50,5 @@ data class AdminPromptPreviewRequest(
     val priorState: AdminPromptPreviewState?,
     val userMessageId: UUID,
     val message: String,
+    val conversationIntent: ConversationUserIntent = ConversationUserIntent.NORMAL,
 )

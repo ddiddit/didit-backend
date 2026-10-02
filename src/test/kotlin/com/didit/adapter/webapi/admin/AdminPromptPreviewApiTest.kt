@@ -9,6 +9,7 @@ import com.didit.application.admin.provided.AdminPromptPreviewState
 import com.didit.docs.AdminAuthenticatedRestDocsSupport
 import com.didit.docs.ApiDocumentUtils
 import com.didit.domain.retrospect.ConversationMessageType
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
@@ -69,6 +70,7 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                 "priorState" to null,
                 "userMessageId" to userMessageId,
                 "message" to "배포 오류를 해결했어요.",
+                "conversationIntent" to "CONTINUE_AFTER_COMPLETION",
             )
 
         mockMvc
@@ -92,6 +94,10 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("priorState").type(JsonFieldType.OBJECT).optional().description("직전 응답의 nextState. 첫 턴은 null"),
                         fieldWithPath("userMessageId").type(JsonFieldType.STRING).description("이번 사용자 메시지 ID"),
                         fieldWithPath("message").type(JsonFieldType.STRING).description("이번 회고 답변"),
+                        fieldWithPath("conversationIntent")
+                            .type(JsonFieldType.STRING)
+                            .description("대화 의도. 종료 제안 뒤 계속하기는 CONTINUE_AFTER_COMPLETION")
+                            .optional(),
                     ),
                     responseFields(
                         fieldWithPath("data.assistantMessage.id").type(JsonFieldType.STRING).description("AI 메시지 ID"),
@@ -134,5 +140,6 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
         val command = argumentCaptor<com.didit.application.admin.provided.AdminPromptPreviewCommand>()
         verify(adminPromptPreview).preview(command.capture())
         assertThat(command.firstValue.draftPrompt).isEqualTo("저장 전 프롬프트")
+        assertThat(command.firstValue.conversationIntent).isEqualTo(ConversationUserIntent.CONTINUE_AFTER_COMPLETION)
     }
 }

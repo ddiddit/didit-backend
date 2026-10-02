@@ -11,6 +11,7 @@ import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.ConversationTurnStatus
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.retrospect.SummaryGenerationStatus
@@ -26,11 +27,19 @@ data class SubmitConversationMessageV2Request(
     val inputType: InputType = InputType.TEXT,
     @field:Size(max = 3)
     val attachmentIds: List<UUID> = emptyList(),
+    val conversationIntent: ConversationUserIntent = ConversationUserIntent.NORMAL,
 ) {
     @get:AssertTrue(message = "회고 내용 또는 첨부파일이 필요합니다.")
     @get:JsonIgnore
     val hasContentOrAttachment: Boolean
         get() = content.isNotBlank() || attachmentIds.isNotEmpty()
+
+    @get:AssertTrue(message = "계속하기는 텍스트 입력으로만 요청할 수 있습니다.")
+    @get:JsonIgnore
+    val hasValidConversationIntent: Boolean
+        get() =
+            conversationIntent != ConversationUserIntent.CONTINUE_AFTER_COMPLETION ||
+                (content.isNotBlank() && inputType == InputType.TEXT && attachmentIds.isEmpty())
 }
 
 data class StartConversationV2Response(

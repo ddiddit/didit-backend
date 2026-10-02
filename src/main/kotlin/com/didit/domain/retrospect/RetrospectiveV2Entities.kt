@@ -27,6 +27,11 @@ enum class ConversationTurnAction {
     CONFIRM_COMPLETION,
 }
 
+enum class ConversationUserIntent {
+    NORMAL,
+    CONTINUE_AFTER_COMPLETION,
+}
+
 @Table(
     name = "retrospective_analysis_items",
     uniqueConstraints = [UniqueConstraint(columnNames = ["retrospective_id", "item_type"])],

@@ -16,7 +16,7 @@
 |값 |클라이언트 처리
 |`ASK` |AI 질문을 표시하고 사용자 입력을 계속 받습니다.
 |`REFLECT` |질문 없는 AI 반응을 표시하고 사용자 입력을 계속 받습니다.
-|`OFFER_COMPLETION` |회고 종료를 제안합니다. 사용자가 종료를 선택하면 대화 종료 API를 호출하고, 계속하기를 선택하면 입력을 유지합니다.
+|`OFFER_COMPLETION` |회고 종료를 제안합니다. 사용자가 종료를 선택하면 대화 종료 API를 호출하고, 계속하기를 선택하면 `conversationIntent=CONTINUE_AFTER_COMPLETION`으로 메시지를 전송합니다.
 |`CONFIRM_COMPLETION` |사용자가 종료 의사를 표현한 상태입니다. 종료 여부를 한 번 확인하고, 동의하면 대화 종료 API를 호출합니다.
 |===
 
@@ -39,6 +39,9 @@ include::{snippets}/retrospect-v2/start/response-fields.adoc[]
 동일한 `clientMessageId` 와 내용으로 재전송하면 이미 완료된 응답을 반환합니다.
 `inputType` 은 `TEXT` 또는 `STT`이며 생략하면 `TEXT`로 저장됩니다. STT 변환 텍스트를 사용자가 수정한 뒤 전송할 때는 `STT`를 전달합니다.
 `attachmentIds`에는 업로드 완료된 파일 ID를 최대 3개까지 전달할 수 있으며, 첨부파일이 있으면 `content`는 비어 있어도 됩니다.
+`conversationIntent`를 생략하면 `NORMAL`로 처리합니다. `OFFER_COMPLETION`에서 사용자가 계속하기를 선택한 경우에만 사용자 선택 문구와 함께 `CONTINUE_AFTER_COMPLETION`을 전달합니다.
+`CONTINUE_AFTER_COMPLETION`은 `TEXT` 입력으로만 사용할 수 있으며 첨부파일과 함께 보낼 수 없습니다. 서버는 종료 제안을 반복하지 않고 질문 가능한 다른 회고 항목을 이어서 질문합니다.
+계속하기 선택은 이전 메시지의 `clientMessageId`를 재사용하지 않고 새로운 ID로 전송합니다.
 
 첨부파일이 있는 메시지는 파일 분석을 비동기로 시작하고 `assistantMessage`를 `null`로 반환합니다.
 클라이언트는 대화 조회 API를 호출해 해당 턴이 `PROCESSING`에서 `COMPLETED` 또는 `FAILED`로 바뀌는지 확인합니다.
@@ -99,6 +102,7 @@ include::{snippets}/retrospect-v2/get-conversation/response-fields.adoc[]
 
 대화 종료 요청 한 번으로 확인된 대화 내용을 바탕으로 구조화 회고 결과를 생성하고 저장합니다.
 회고 내용이 충분하지 않아도 종료할 수 있으며, 대화에서 확인되지 않은 결과 항목은 확인되지 않았다는 안내 문구로 반환합니다.
+내용이 부족한 상태에서 사용자가 직접 종료를 누르면 클라이언트는 한 번의 안내에서 `계속 작성하기`와 `이대로 마치기`를 함께 제공합니다. `이대로 마치기`를 선택하면 추가 확인 없이 이 API를 호출합니다.
 
 완료된 회고에 같은 요청을 다시 보내면 저장된 결과를 반환하며, 생성 실패 시에는 다시 시도할 수 있도록 생성 상태를 복구합니다.
 
