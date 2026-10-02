@@ -314,7 +314,8 @@ class RetrospectiveConversationV2Service(
                     attachmentRepository.findAllByChatMessageIdAndDeletedAtIsNullOrderByCreatedAtAsc(userMessage.id).map { it.id }.sorted()
                 if (userMessage.content != content.trim() ||
                     userMessage.inputType != inputType ||
-                    existingAttachmentIds != distinctAttachmentIds.sorted()
+                    existingAttachmentIds != distinctAttachmentIds.sorted() ||
+                    existing.conversationIntent != conversationIntent
                 ) {
                     throw DuplicateMessageContentMismatchException(clientMessageId)
                 }
@@ -398,6 +399,7 @@ class RetrospectiveConversationV2Service(
                         retrospectiveId = retrospectiveId,
                         clientMessageId = clientMessageId,
                         userMessageId = userMessage.id,
+                        conversationIntent = conversationIntent,
                         turnNumber = turnRepository.countByRetrospectiveId(retrospectiveId) + 1,
                     ),
                 )

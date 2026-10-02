@@ -112,6 +112,9 @@ class RetrospectiveConversationTurn(
     val clientMessageId: UUID,
     @Column(nullable = false, columnDefinition = "BINARY(16)")
     val userMessageId: UUID,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    val conversationIntent: ConversationUserIntent = ConversationUserIntent.NORMAL,
     @Column(columnDefinition = "BINARY(16)")
     var assistantMessageId: UUID? = null,
     @Enumerated(EnumType.STRING)

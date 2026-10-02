@@ -426,6 +426,55 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `완료된 메시지 ID의 대화 의도가 달라지면 중복 요청을 거절한다`() {
+        val started = service.start(userId)
+        val clientMessageId = UUID.randomUUID()
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            retrospectiveResponse(invocation.getArgument(0))
+        }
+        service.submitMessage(started.retrospectiveId, userId, clientMessageId, "같은 내용")
+
+        assertThrows<DuplicateMessageContentMismatchException> {
+            service.submitMessage(
+                started.retrospectiveId,
+                userId,
+                clientMessageId,
+                "같은 내용",
+                InputType.TEXT,
+                emptyList(),
+                ConversationUserIntent.CONTINUE_AFTER_COMPLETION,
+            )
+        }
+
+        verify(aiClient, times(1)).generateConversationTurn(any())
+    }
+
+    @Test
+    fun `실패한 메시지 ID의 대화 의도가 달라지면 재시도하지 않는다`() {
+        val started = service.start(userId)
+        val clientMessageId = UUID.randomUUID()
+        whenever(aiClient.generateConversationTurn(any())).thenThrow(IllegalStateException("temporary failure"))
+
+        assertThrows<ConversationAiFailedException> {
+            service.submitMessage(started.retrospectiveId, userId, clientMessageId, "같은 내용")
+        }
+
+        assertThrows<DuplicateMessageContentMismatchException> {
+            service.submitMessage(
+                started.retrospectiveId,
+                userId,
+                clientMessageId,
+                "같은 내용",
+                InputType.TEXT,
+                emptyList(),
+                ConversationUserIntent.CONTINUE_AFTER_COMPLETION,
+            )
+        }
+
+        verify(aiClient, times(1)).generateConversationTurn(any())
+    }
+
+    @Test
     fun `파일만 전송하면 첨부파일을 메시지에 연결하고 비동기 분석을 요청한다`() {
         val started = service.start(userId)
         val attachment = uploadedAttachment(started.retrospectiveId)
