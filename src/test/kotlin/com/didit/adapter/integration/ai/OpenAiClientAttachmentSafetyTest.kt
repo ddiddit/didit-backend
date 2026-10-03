@@ -41,6 +41,9 @@ class OpenAiClientAttachmentSafetyTest {
             .andExpect(jsonPath("$.instructions", containsString("사용자의 역할·감정·어려웠던 점")))
             .andExpect(jsonPath("$.instructions", containsString("CONFIRM_COMPLETION")))
             .andExpect(jsonPath("$.instructions", containsString("eligibleQuestionTargets")))
+            .andExpect(jsonPath("$.instructions", containsString("continuationRequested")))
+            .andExpect(jsonPath("$.instructions", containsString("LEARN은 사용자가 직접 말한 배움")))
+            .andExpect(jsonPath("$.instructions", containsString("ACTION은 사용자가 직접 말한 다음 행동")))
             .andExpect(jsonPath("$.input").value("운영 DB에서 관리하는 프롬프트"))
             .andRespond(withSuccess(openAiConversationResponse(), MediaType.APPLICATION_JSON))
 

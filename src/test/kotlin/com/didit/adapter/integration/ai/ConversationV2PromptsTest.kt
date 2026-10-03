@@ -43,6 +43,7 @@ class ConversationV2PromptsTest {
                 recentQuestionTargets = listOf(RetrospectiveItemType.PROCESS),
                 completionRecommended = true,
                 completionPreviouslyOffered = false,
+                continuationRequested = true,
             )
 
         val rendered = prompts.render("입력: {{context}}", request)
@@ -56,6 +57,7 @@ class ConversationV2PromptsTest {
             .contains("\"eligibleQuestionTargets\":[\"FACT\",\"LEARN\"]")
             .contains("\"recentQuestionTargets\":[\"PROCESS\"]")
             .contains("\"completionRecommended\":true")
+            .contains("\"continuationRequested\":true")
             .doesNotContain("{{context}}")
     }
 
@@ -74,6 +76,26 @@ class ConversationV2PromptsTest {
         val rendered = prompts.build(request())
 
         assertThat(rendered).contains("REFLECT일 때는 acknowledgement와 interpretation 중 하나 이상을 반드시 작성하세요.")
+    }
+
+    @Test
+    fun `build - default prompt only collects explicit learning and next action`() {
+        val rendered = prompts.build(request())
+
+        assertThat(rendered)
+            .contains("LEARN은 사용자가 직접 말한 배움")
+            .contains("ACTION은 사용자가 직접 말한 다음 행동")
+    }
+
+    @Test
+    fun `build - default prompt continues with another item after completion is declined`() {
+        val rendered = prompts.build(request())
+
+        assertThat(rendered)
+            .contains("continuationRequested가 true이면")
+            .contains("질문 가능한 다른 항목")
+            .contains("'모르겠어' 또는 '생각나지 않아'")
+            .contains("말을 이어가려는 표현")
     }
 
     private fun request() =

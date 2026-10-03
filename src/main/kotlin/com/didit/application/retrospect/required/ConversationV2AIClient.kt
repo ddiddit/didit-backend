@@ -25,6 +25,7 @@ data class ConversationTurnAIRequest(
     val recentQuestionTargets: List<RetrospectiveItemType> = emptyList(),
     val completionRecommended: Boolean = false,
     val completionPreviouslyOffered: Boolean = false,
+    val continuationRequested: Boolean = false,
 )
 
 data class ConversationContextMessage(

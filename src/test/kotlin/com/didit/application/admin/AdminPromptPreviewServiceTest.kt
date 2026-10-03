@@ -17,6 +17,7 @@ import com.didit.domain.prompt.PromptJobType
 import com.didit.domain.prompt.PromptType
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationTurnAction
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -144,6 +145,35 @@ class AdminPromptPreviewServiceTest {
     }
 
     @Test
+    fun `종료 제안 뒤 계속하기 preview는 완료 권장을 끄고 다음 질문을 이어간다`() {
+        val requestCaptor = argumentCaptor<com.didit.application.retrospect.required.ConversationTurnAIRequest>()
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.EMPTY, null)
+                    },
+                recentQuestionTargets = listOf(RetrospectiveItemType.FACT),
+                completedQuestionCount = 6,
+                completionPreviouslyOffered = true,
+            )
+
+        val result =
+            service.preview(
+                command(
+                    priorState = priorState,
+                    conversationIntent = ConversationUserIntent.CONTINUE_AFTER_COMPLETION,
+                ),
+            )
+
+        verify(aiClient).preview(any(), requestCaptor.capture())
+        assertThat(requestCaptor.firstValue.continuationRequested).isTrue()
+        assertThat(requestCaptor.firstValue.completionRecommended).isFalse()
+        assertThat(result.assistantMessage.content).doesNotContain("마칠까요")
+    }
+
+    @Test
     fun `거부한 직전 질문 항목은 후속 preview 질문 대상에서 제외한다`() {
         val requestCaptor = argumentCaptor<com.didit.application.retrospect.required.ConversationTurnAIRequest>()
         val priorState =
@@ -209,7 +239,13 @@ class AdminPromptPreviewServiceTest {
     @Test
     fun `내용이 없는 AI 응답은 안전한 인정 문구로 보완한다`() {
         whenever(aiClient.preview(any(), any())).thenReturn(
-            generatedTurn().copy(acknowledgement = " ", interpretation = "", question = ""),
+            generatedTurn(relevance = MessageRelevance.BRIDGEABLE).copy(
+                action = ConversationTurnAction.REFLECT,
+                acknowledgement = " ",
+                interpretation = "",
+                question = "",
+                questionTarget = null,
+            ),
         )
 
         val result = service.preview(command())
@@ -283,6 +319,7 @@ class AdminPromptPreviewServiceTest {
         draftPrompt: String? = "초안",
         priorState: AdminPromptPreviewState? = null,
         message: String = "첫 업무 회고",
+        conversationIntent: ConversationUserIntent = ConversationUserIntent.NORMAL,
     ) = AdminPromptPreviewCommand(
         job = Job.DEVELOPER,
         experience = UserExperience.YEARS_1_TO_2,
@@ -291,6 +328,7 @@ class AdminPromptPreviewServiceTest {
         priorState = priorState,
         userMessageId = UUID.randomUUID(),
         message = message,
+        conversationIntent = conversationIntent,
     )
 
     private fun message(id: UUID) =

@@ -38,6 +38,7 @@ import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.ConversationTurnStatus
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.Retrospective
@@ -119,10 +120,11 @@ class RetrospectiveConversationV2Service(
         content: String,
         inputType: InputType,
         attachmentIds: List<UUID>,
+        conversationIntent: ConversationUserIntent,
     ): SubmitConversationMessageResult {
         val preparation =
             metrics.recordStage("conversation_v2", "prepare") {
-                prepareTurn(retrospectiveId, userId, clientMessageId, content, inputType, attachmentIds)
+                prepareTurn(retrospectiveId, userId, clientMessageId, content, inputType, attachmentIds, conversationIntent)
             }
         preparation.cachedResult?.let {
             metrics.incrementConversationDuplicate()
@@ -294,6 +296,7 @@ class RetrospectiveConversationV2Service(
         content: String,
         inputType: InputType,
         attachmentIds: List<UUID>,
+        conversationIntent: ConversationUserIntent,
     ): TurnPreparation =
         transactionTemplate.execute {
             val distinctAttachmentIds = attachmentIds.distinct()
@@ -311,7 +314,8 @@ class RetrospectiveConversationV2Service(
                     attachmentRepository.findAllByChatMessageIdAndDeletedAtIsNullOrderByCreatedAtAsc(userMessage.id).map { it.id }.sorted()
                 if (userMessage.content != content.trim() ||
                     userMessage.inputType != inputType ||
-                    existingAttachmentIds != distinctAttachmentIds.sorted()
+                    existingAttachmentIds != distinctAttachmentIds.sorted() ||
+                    existing.conversationIntent != conversationIntent
                 ) {
                     throw DuplicateMessageContentMismatchException(clientMessageId)
                 }
@@ -341,7 +345,13 @@ class RetrospectiveConversationV2Service(
                         existing.retry()
                         turnRepository.save(existing)
                         metrics.incrementConversationRetry()
-                        return@execute createPreparation(retrospective, existing, userMessage, existingAttachmentIds)
+                        return@execute createPreparation(
+                            retrospective,
+                            existing,
+                            userMessage,
+                            existingAttachmentIds,
+                            conversationIntent = conversationIntent,
+                        )
                     }
                 }
             }
@@ -389,10 +399,17 @@ class RetrospectiveConversationV2Service(
                         retrospectiveId = retrospectiveId,
                         clientMessageId = clientMessageId,
                         userMessageId = userMessage.id,
+                        conversationIntent = conversationIntent,
                         turnNumber = turnRepository.countByRetrospectiveId(retrospectiveId) + 1,
                     ),
                 )
-            createPreparation(retrospective, turn, userMessage, distinctAttachmentIds)
+            createPreparation(
+                retrospective,
+                turn,
+                userMessage,
+                distinctAttachmentIds,
+                conversationIntent = conversationIntent,
+            )
         }!!
 
     private fun createPreparation(
@@ -401,11 +418,15 @@ class RetrospectiveConversationV2Service(
         userMessage: ChatMessage,
         attachmentIds: List<UUID> = emptyList(),
         includeAttachmentContext: Boolean = false,
+        conversationIntent: ConversationUserIntent = ConversationUserIntent.NORMAL,
     ): TurnPreparation {
         val user = userFinder.findByIdOrThrow(retrospective.userId)
         val messages = chatMessageRepository.findAllByRetrospectiveIdOrderByCreatedAtAsc(retrospective.id)
         val items = findOrInitializeItems(retrospective.id)
         val conversationState = findConversationPolicyState(retrospective.id)
+        val continuationRequested =
+            conversationIntent == ConversationUserIntent.CONTINUE_AFTER_COMPLETION &&
+                conversationState.completionPreviouslyOffered
         val itemSnapshots = items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary, it.questionAllowed) }
         val eligibleQuestionTargets = turnPolicy.eligibleQuestionTargets(itemSnapshots, conversationState.recentQuestionTargets)
         val currentAttachments =
@@ -456,16 +477,19 @@ class RetrospectiveConversationV2Service(
                         eligibleQuestionTargets = eligibleQuestionTargets,
                         recentQuestionTargets = conversationState.recentQuestionTargets,
                         completionRecommended =
-                            turnPolicy.shouldRecommendCompletion(
-                                calculateReadyToComplete(items),
-                                conversationState.completedQuestionCount,
-                            ),
+                            !continuationRequested &&
+                                turnPolicy.shouldRecommendCompletion(
+                                    calculateReadyToComplete(items),
+                                    conversationState.completedQuestionCount,
+                                ),
                         completionPreviouslyOffered = conversationState.completionPreviouslyOffered,
+                        continuationRequested = continuationRequested,
                     )
                 } else {
                     null
                 },
             attachmentIds = attachmentIds,
+            continuationRequested = continuationRequested,
             sensitiveDataDetected = attachmentIds.isNotEmpty() && currentAttachmentContexts.any { it.containsSensitiveData },
             unreadableAttachmentDetected =
                 attachmentIds.isNotEmpty() &&
@@ -506,11 +530,13 @@ class RetrospectiveConversationV2Service(
                     generated = generated,
                     eligibleQuestionTargets = eligibleQuestionTargets,
                     completionRecommended =
-                        turnPolicy.shouldRecommendCompletion(
-                            ready,
-                            conversationState.completedQuestionCount,
-                        ),
+                        !preparation.continuationRequested &&
+                            turnPolicy.shouldRecommendCompletion(
+                                ready,
+                                conversationState.completedQuestionCount,
+                            ),
                     completionPreviouslyOffered = conversationState.completionPreviouslyOffered,
+                    continuationRequested = preparation.continuationRequested,
                 )
 
             val generatedContent =
@@ -731,6 +757,7 @@ private data class TurnPreparation(
     val userMessageId: UUID,
     val aiRequest: ConversationTurnAIRequest?,
     val attachmentIds: List<UUID> = emptyList(),
+    val continuationRequested: Boolean = false,
     val sensitiveDataDetected: Boolean = false,
     val unreadableAttachmentDetected: Boolean = false,
     val cachedResult: SubmitConversationMessageResult? = null,

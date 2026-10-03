@@ -2,6 +2,7 @@ package com.didit.application.admin.provided
 
 import com.didit.domain.auth.UserExperience
 import com.didit.domain.retrospect.ConversationMessageType
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -26,6 +27,7 @@ data class AdminPromptPreviewCommand(
     val priorState: AdminPromptPreviewState?,
     val userMessageId: UUID,
     val message: String,
+    val conversationIntent: ConversationUserIntent = ConversationUserIntent.NORMAL,
 )
 
 data class AdminPromptPreviewState(

@@ -22,6 +22,7 @@ import com.didit.domain.prompt.PromptJobType
 import com.didit.domain.prompt.PromptType
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationTurnAction
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -54,6 +55,9 @@ class AdminPromptPreviewService(
         val messagesBeforeGeneration = priorState.messages + userMessage
         val priorItemSnapshots = priorState.analysisItems.map { it.toSnapshot() }
         val eligibleQuestionTargets = turnPolicy.eligibleQuestionTargets(priorItemSnapshots, priorState.recentQuestionTargets)
+        val continuationRequested =
+            command.conversationIntent == ConversationUserIntent.CONTINUE_AFTER_COMPLETION &&
+                priorState.completionPreviouslyOffered
         val aiRequest =
             ConversationTurnAIRequest(
                 job = command.job,
@@ -73,11 +77,13 @@ class AdminPromptPreviewService(
                 eligibleQuestionTargets = eligibleQuestionTargets,
                 recentQuestionTargets = priorState.recentQuestionTargets,
                 completionRecommended =
-                    turnPolicy.shouldRecommendCompletion(
-                        turnPolicy.readyToComplete(priorItemSnapshots),
-                        priorState.completedQuestionCount,
-                    ),
+                    !continuationRequested &&
+                        turnPolicy.shouldRecommendCompletion(
+                            turnPolicy.readyToComplete(priorItemSnapshots),
+                            priorState.completedQuestionCount,
+                        ),
                 completionPreviouslyOffered = priorState.completionPreviouslyOffered,
+                continuationRequested = continuationRequested,
             )
         val generated = aiClient.preview(template, aiRequest)
         val classifiedMessages =
@@ -94,11 +100,13 @@ class AdminPromptPreviewService(
                 eligibleQuestionTargets =
                     turnPolicy.eligibleQuestionTargets(updatedItemSnapshots, priorState.recentQuestionTargets),
                 completionRecommended =
-                    turnPolicy.shouldRecommendCompletion(
-                        turnPolicy.readyToComplete(updatedItemSnapshots),
-                        priorState.completedQuestionCount,
-                    ),
+                    !continuationRequested &&
+                        turnPolicy.shouldRecommendCompletion(
+                            turnPolicy.readyToComplete(updatedItemSnapshots),
+                            priorState.completedQuestionCount,
+                        ),
                 completionPreviouslyOffered = priorState.completionPreviouslyOffered,
+                continuationRequested = continuationRequested,
             )
         val assistantSnapshot = turnPolicy.assistantSnapshot(decided)
         check(assistantSnapshot.content.isNotBlank()) { "AI 응답이 비어 있습니다." }

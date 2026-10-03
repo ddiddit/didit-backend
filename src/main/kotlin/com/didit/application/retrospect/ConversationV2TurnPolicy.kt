@@ -15,6 +15,7 @@ import java.util.UUID
 @Component
 class ConversationV2TurnPolicy {
     companion object {
+        private const val MIN_QUESTION_TURNS_FOR_READY_COMPLETION = 3
         private const val MAX_QUESTION_TURNS = 6
         private const val DEFAULT_REFLECT_ACKNOWLEDGEMENT = "알겠어요."
     }
@@ -91,7 +92,9 @@ class ConversationV2TurnPolicy {
     fun shouldRecommendCompletion(
         readyToComplete: Boolean,
         completedQuestionCount: Int,
-    ): Boolean = readyToComplete || completedQuestionCount >= MAX_QUESTION_TURNS
+    ): Boolean =
+        (readyToComplete && completedQuestionCount >= MIN_QUESTION_TURNS_FOR_READY_COMPLETION) ||
+            completedQuestionCount >= MAX_QUESTION_TURNS
 
     fun readyToComplete(items: List<ConversationV2AnalysisItemSnapshot>): Boolean {
         val statuses = items.associate { it.itemType to it.status }
@@ -108,7 +111,37 @@ class ConversationV2TurnPolicy {
         eligibleQuestionTargets: List<RetrospectiveItemType>,
         completionRecommended: Boolean,
         completionPreviouslyOffered: Boolean,
+        continuationRequested: Boolean = false,
     ): GeneratedConversationTurn {
+        if (continuationRequested) {
+            val target =
+                generated.questionTarget
+                    ?.takeIf { generated.action == ConversationTurnAction.ASK && !generated.question.isNullOrBlank() }
+                    ?.takeIf { it in eligibleQuestionTargets }
+                    ?: eligibleQuestionTargets.firstOrNull()
+            return if (target == null) {
+                generated.copy(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "좋아요. 더 남기고 싶은 내용을 이어서 말씀해주세요.",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                )
+            } else {
+                generated.copy(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "좋아요.",
+                    interpretation = "",
+                    question =
+                        generated.question?.takeIf {
+                            generated.action == ConversationTurnAction.ASK &&
+                                generated.questionTarget == target &&
+                                it.isNotBlank()
+                        } ?: fallbackQuestion(target),
+                    questionTarget = target,
+                )
+            }
+        }
         if (generated.action == ConversationTurnAction.CONFIRM_COMPLETION) {
             return generated.copy(question = null, questionTarget = null)
         }
@@ -124,14 +157,28 @@ class ConversationV2TurnPolicy {
                 questionTarget = null,
             )
         }
+        val fallbackTarget = eligibleQuestionTargets.firstOrNull()
+        val shouldContinueWithQuestion =
+            fallbackTarget != null &&
+                generated.relevance == MessageRelevance.RETROSPECTIVE
         if (
             generated.action != ConversationTurnAction.ASK ||
             generated.question.isNullOrBlank() ||
             generated.questionTarget !in eligibleQuestionTargets
         ) {
+            if (shouldContinueWithQuestion) {
+                return generated.copy(
+                    action = ConversationTurnAction.ASK,
+                    question = fallbackQuestion(checkNotNull(fallbackTarget)),
+                    questionTarget = fallbackTarget,
+                )
+            }
             val reflected =
                 generated.copy(
                     action = ConversationTurnAction.REFLECT,
+                    acknowledgement =
+                        generated.acknowledgement,
+                    interpretation = generated.interpretation,
                     question = null,
                     questionTarget = null,
                 )
@@ -143,6 +190,17 @@ class ConversationV2TurnPolicy {
         }
         return generated
     }
+
+    private fun fallbackQuestion(target: RetrospectiveItemType): String =
+        when (target) {
+            RetrospectiveItemType.FACT -> "오늘 진행한 일에서 더 남기고 싶은 내용은 무엇인가요?"
+            RetrospectiveItemType.FEEL -> "그 일을 진행하면서 어떤 느낌이 들었나요?"
+            RetrospectiveItemType.STRENGTH -> "이번 일에서 스스로 잘했다고 생각하는 점은 무엇인가요?"
+            RetrospectiveItemType.BLOCK -> "진행하면서 어려웠거나 막혔던 점은 무엇이었나요?"
+            RetrospectiveItemType.PROCESS -> "그 일을 어떤 방식으로 진행했나요?"
+            RetrospectiveItemType.LEARN -> "이번 경험을 통해 새롭게 알게 된 점은 무엇인가요?"
+            RetrospectiveItemType.ACTION -> "다음에는 무엇을 다르게 해보고 싶나요?"
+        }
 
     fun applyAnalysisUpdates(
         items: List<ConversationV2AnalysisItemSnapshot>,
