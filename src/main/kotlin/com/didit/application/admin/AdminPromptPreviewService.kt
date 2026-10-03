@@ -21,6 +21,8 @@ import com.didit.application.retrospect.required.ConversationTurnAIRequest
 import com.didit.domain.prompt.PromptJobType
 import com.didit.domain.prompt.PromptType
 import com.didit.domain.retrospect.ConversationMessageType
+import com.didit.domain.retrospect.ConversationTurnAction
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -51,6 +53,11 @@ class AdminPromptPreviewService(
                 messageType = ConversationMessageType.CONVERSATION,
             )
         val messagesBeforeGeneration = priorState.messages + userMessage
+        val priorItemSnapshots = priorState.analysisItems.map { it.toSnapshot() }
+        val eligibleQuestionTargets = turnPolicy.eligibleQuestionTargets(priorItemSnapshots, priorState.recentQuestionTargets)
+        val continuationRequested =
+            command.conversationIntent == ConversationUserIntent.CONTINUE_AFTER_COMPLETION &&
+                priorState.completionPreviouslyOffered
         val aiRequest =
             ConversationTurnAIRequest(
                 job = command.job,
@@ -67,16 +74,42 @@ class AdminPromptPreviewService(
                         messagesBeforeGeneration.map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance) },
                         command.userMessageId,
                     ),
+                eligibleQuestionTargets = eligibleQuestionTargets,
+                recentQuestionTargets = priorState.recentQuestionTargets,
+                completionRecommended =
+                    !continuationRequested &&
+                        turnPolicy.shouldRecommendCompletion(
+                            turnPolicy.readyToComplete(priorItemSnapshots),
+                            priorState.completedQuestionCount,
+                        ),
+                completionPreviouslyOffered = priorState.completionPreviouslyOffered,
+                continuationRequested = continuationRequested,
             )
         val generated = aiClient.preview(template, aiRequest)
-        val assistantSnapshot = turnPolicy.assistantSnapshot(generated)
-        check(assistantSnapshot.content.isNotBlank()) { "AI 응답이 비어 있습니다." }
         val classifiedMessages =
             messagesBeforeGeneration.map { message ->
                 if (message.id == command.userMessageId) message.copy(relevance = generated.relevance) else message
             }
         val analysisItems =
             applyAnalysisUpdates(priorState.analysisItems, generated.relevance, generated.analysisUpdates, classifiedMessages)
+                .applyDeclinedQuestion(priorState.recentQuestionTargets.lastOrNull(), generated.declinedItemTypes)
+        val updatedItemSnapshots = analysisItems.map { it.toSnapshot() }
+        val decided =
+            turnPolicy.decideTurn(
+                generated = generated,
+                eligibleQuestionTargets =
+                    turnPolicy.eligibleQuestionTargets(updatedItemSnapshots, priorState.recentQuestionTargets),
+                completionRecommended =
+                    !continuationRequested &&
+                        turnPolicy.shouldRecommendCompletion(
+                            turnPolicy.readyToComplete(updatedItemSnapshots),
+                            priorState.completedQuestionCount,
+                        ),
+                completionPreviouslyOffered = priorState.completionPreviouslyOffered,
+                continuationRequested = continuationRequested,
+            )
+        val assistantSnapshot = turnPolicy.assistantSnapshot(decided)
+        check(assistantSnapshot.content.isNotBlank()) { "AI 응답이 비어 있습니다." }
         val assistantMessage =
             AdminPromptPreviewMessage(
                 id = UUID.randomUUID(),
@@ -85,7 +118,21 @@ class AdminPromptPreviewService(
                 messageType = assistantSnapshot.messageType,
                 supportingContent = assistantSnapshot.supportingContent,
             )
-        val nextState = AdminPromptPreviewState(classifiedMessages + assistantMessage, analysisItems)
+        val nextState =
+            AdminPromptPreviewState(
+                messages = classifiedMessages + assistantMessage,
+                analysisItems = analysisItems,
+                recentQuestionTargets =
+                    if (decided.action == ConversationTurnAction.ASK) {
+                        (priorState.recentQuestionTargets + checkNotNull(decided.questionTarget)).takeLast(3)
+                    } else {
+                        priorState.recentQuestionTargets
+                    },
+                completedQuestionCount =
+                    priorState.completedQuestionCount + if (decided.action == ConversationTurnAction.ASK) 1 else 0,
+                completionPreviouslyOffered =
+                    priorState.completionPreviouslyOffered || decided.action == ConversationTurnAction.OFFER_COMPLETION,
+            )
 
         return AdminPromptPreviewResult(
             assistantMessage = assistantMessage,
@@ -148,6 +195,9 @@ class AdminPromptPreviewService(
         ) {
             throw BusinessException(ErrorCode.INVALID_REQUEST, "분석 항목은 일곱 개 항목을 각각 하나씩 포함해야 합니다.")
         }
+        if (state.completedQuestionCount < 0 || state.recentQuestionTargets.size > 3) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST, "대화 정책 상태가 올바르지 않습니다.")
+        }
     }
 
     private fun applyAnalysisUpdates(
@@ -166,8 +216,21 @@ class AdminPromptPreviewService(
             ).filter { it.applied }
             .forEach { decision ->
                 val after = checkNotNull(decision.after)
-                currentItems[after.itemType] = AdminPromptPreviewAnalysisItem(after.itemType, after.status, after.summary)
+                currentItems[after.itemType] =
+                    AdminPromptPreviewAnalysisItem(after.itemType, after.status, after.summary, questionAllowed = true)
             }
         return items.map { checkNotNull(currentItems[it.itemType]) }
+    }
+
+    private fun AdminPromptPreviewAnalysisItem.toSnapshot() = ConversationV2AnalysisItemSnapshot(itemType, status, summary, questionAllowed)
+
+    private fun List<AdminPromptPreviewAnalysisItem>.applyDeclinedQuestion(
+        lastQuestionTarget: RetrospectiveItemType?,
+        declinedItemTypes: List<RetrospectiveItemType>,
+    ): List<AdminPromptPreviewAnalysisItem> {
+        if (lastQuestionTarget == null || lastQuestionTarget !in declinedItemTypes) return this
+        return map { item ->
+            if (item.itemType == lastQuestionTarget) item.copy(questionAllowed = false) else item
+        }
     }
 }

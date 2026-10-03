@@ -1,6 +1,7 @@
 package com.didit.application.retrospect.required
 
 import com.didit.domain.retrospect.ChatMessage
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.ConversationTurnStatus
 import com.didit.domain.retrospect.RetrospectiveAnalysisEvidence
 import com.didit.domain.retrospect.RetrospectiveAnalysisItem
@@ -71,6 +72,24 @@ interface RetrospectiveConversationTurnRepository : Repository<RetrospectiveConv
     ): RetrospectiveConversationTurn?
 
     fun findAllByRetrospectiveIdOrderByTurnNumberAsc(retrospectiveId: UUID): List<RetrospectiveConversationTurn>
+
+    fun findById(id: UUID): RetrospectiveConversationTurn?
+
+    fun findTop3ByRetrospectiveIdAndStatusAndQuestionTargetIsNotNullOrderByTurnNumberDesc(
+        retrospectiveId: UUID,
+        status: ConversationTurnStatus,
+    ): List<RetrospectiveConversationTurn>
+
+    fun countByRetrospectiveIdAndStatusAndAction(
+        retrospectiveId: UUID,
+        status: ConversationTurnStatus,
+        action: ConversationTurnAction,
+    ): Int
+
+    fun existsByRetrospectiveIdAndAction(
+        retrospectiveId: UUID,
+        action: ConversationTurnAction,
+    ): Boolean
 
     fun countByRetrospectiveId(retrospectiveId: UUID): Int
 

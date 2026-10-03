@@ -4,6 +4,7 @@ import com.didit.application.retrospect.dto.ConversationV2Result
 import com.didit.application.retrospect.dto.FinishConversationV2Result
 import com.didit.application.retrospect.dto.StartConversationV2Result
 import com.didit.application.retrospect.dto.SubmitConversationMessageResult
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.InputType
 import java.util.UUID
 
@@ -32,6 +33,25 @@ interface RetrospectiveConversationV2 {
         content: String,
         inputType: InputType,
         attachmentIds: List<UUID>,
+    ): SubmitConversationMessageResult =
+        submitMessage(
+            retrospectiveId,
+            userId,
+            clientMessageId,
+            content,
+            inputType,
+            attachmentIds,
+            ConversationUserIntent.NORMAL,
+        )
+
+    fun submitMessage(
+        retrospectiveId: UUID,
+        userId: UUID,
+        clientMessageId: UUID,
+        content: String,
+        inputType: InputType,
+        attachmentIds: List<UUID>,
+        conversationIntent: ConversationUserIntent,
     ): SubmitConversationMessageResult
 
     fun getConversation(

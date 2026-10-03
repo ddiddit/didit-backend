@@ -2,6 +2,7 @@ package com.didit.application.retrospect.required
 
 import com.didit.domain.auth.UserExperience
 import com.didit.domain.retrospect.AttachmentFileType
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -20,6 +21,11 @@ data class ConversationTurnAIRequest(
     val analysisItems: List<ConversationAnalysisItem>,
     val currentMessageId: UUID,
     val consecutiveIrrelevantCount: Int,
+    val eligibleQuestionTargets: List<RetrospectiveItemType> = emptyList(),
+    val recentQuestionTargets: List<RetrospectiveItemType> = emptyList(),
+    val completionRecommended: Boolean = false,
+    val completionPreviouslyOffered: Boolean = false,
+    val continuationRequested: Boolean = false,
 )
 
 data class ConversationContextMessage(
@@ -44,17 +50,19 @@ data class ConversationAnalysisItem(
 )
 
 data class GeneratedConversationTurn(
+    val action: ConversationTurnAction,
     val acknowledgement: String,
     val interpretation: String,
-    val question: String,
+    val question: String?,
     val questionTarget: RetrospectiveItemType?,
     val relevance: MessageRelevance,
+    val declinedItemTypes: List<RetrospectiveItemType> = emptyList(),
     val analysisUpdates: List<ConversationAnalysisUpdate>,
     val inputTokens: Int,
     val outputTokens: Int,
 ) {
     fun content(): String =
-        listOf(acknowledgement, interpretation, question).map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n")
+        listOfNotNull(acknowledgement, interpretation, question).map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n")
 }
 
 data class ConversationAnalysisUpdate(

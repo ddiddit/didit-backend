@@ -16,6 +16,8 @@ import com.didit.domain.prompt.Prompt
 import com.didit.domain.prompt.PromptJobType
 import com.didit.domain.prompt.PromptType
 import com.didit.domain.retrospect.ConversationMessageType
+import com.didit.domain.retrospect.ConversationTurnAction
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
@@ -116,6 +118,95 @@ class AdminPromptPreviewServiceTest {
     }
 
     @Test
+    fun `후속 preview는 운영 대화 정책 상태를 AI 요청과 최종 응답에 적용한다`() {
+        val requestCaptor = argumentCaptor<com.didit.application.retrospect.required.ConversationTurnAIRequest>()
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.EMPTY, null)
+                    },
+                recentQuestionTargets = listOf(RetrospectiveItemType.FACT),
+                completedQuestionCount = 6,
+                completionPreviouslyOffered = false,
+            )
+
+        val result = service.preview(command(priorState = priorState))
+
+        verify(aiClient).preview(any(), requestCaptor.capture())
+        assertThat(requestCaptor.firstValue.recentQuestionTargets).containsExactly(RetrospectiveItemType.FACT)
+        assertThat(requestCaptor.firstValue.eligibleQuestionTargets).doesNotContain(RetrospectiveItemType.FACT)
+        assertThat(requestCaptor.firstValue.completionRecommended).isTrue()
+        assertThat(requestCaptor.firstValue.completionPreviouslyOffered).isFalse()
+        assertThat(result.assistantMessage.content).contains("회고를 마칠까요?")
+        assertThat(result.nextState.completedQuestionCount).isEqualTo(6)
+        assertThat(result.nextState.completionPreviouslyOffered).isTrue()
+    }
+
+    @Test
+    fun `종료 제안 뒤 계속하기 preview는 완료 권장을 끄고 다음 질문을 이어간다`() {
+        val requestCaptor = argumentCaptor<com.didit.application.retrospect.required.ConversationTurnAIRequest>()
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.EMPTY, null)
+                    },
+                recentQuestionTargets = listOf(RetrospectiveItemType.FACT),
+                completedQuestionCount = 6,
+                completionPreviouslyOffered = true,
+            )
+
+        val result =
+            service.preview(
+                command(
+                    priorState = priorState,
+                    conversationIntent = ConversationUserIntent.CONTINUE_AFTER_COMPLETION,
+                ),
+            )
+
+        verify(aiClient).preview(any(), requestCaptor.capture())
+        assertThat(requestCaptor.firstValue.continuationRequested).isTrue()
+        assertThat(requestCaptor.firstValue.completionRecommended).isFalse()
+        assertThat(result.assistantMessage.content).doesNotContain("마칠까요")
+    }
+
+    @Test
+    fun `거부한 직전 질문 항목은 후속 preview 질문 대상에서 제외한다`() {
+        val requestCaptor = argumentCaptor<com.didit.application.retrospect.required.ConversationTurnAIRequest>()
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.EMPTY, null)
+                    },
+                recentQuestionTargets = listOf(RetrospectiveItemType.FACT),
+            )
+        whenever(aiClient.preview(any(), any())).thenReturn(
+            generatedTurn().copy(
+                action = ConversationTurnAction.REFLECT,
+                question = null,
+                questionTarget = null,
+                declinedItemTypes = listOf(RetrospectiveItemType.FACT),
+            ),
+        )
+
+        val first = service.preview(command(priorState = priorState))
+        service.preview(command(priorState = first.nextState, message = "다른 이야기"))
+
+        verify(aiClient, org.mockito.kotlin.times(2)).preview(any(), requestCaptor.capture())
+        assertThat(
+            first.nextState.analysisItems
+                .single { it.itemType == RetrospectiveItemType.FACT }
+                .questionAllowed,
+        ).isFalse()
+        assertThat(requestCaptor.secondValue.eligibleQuestionTargets).doesNotContain(RetrospectiveItemType.FACT)
+    }
+
+    @Test
     fun `채워진 분석 항목 수를 진행도로 반환한다`() {
         whenever(aiClient.preview(any(), any())).thenAnswer { invocation ->
             val request = invocation.getArgument<com.didit.application.retrospect.required.ConversationTurnAIRequest>(1)
@@ -146,14 +237,25 @@ class AdminPromptPreviewServiceTest {
     }
 
     @Test
-    fun `내용이 없는 AI 응답은 상태에 추가하지 않고 실패한다`() {
+    fun `내용이 없는 AI 응답은 안전한 인정 문구로 보완한다`() {
         whenever(aiClient.preview(any(), any())).thenReturn(
-            generatedTurn().copy(acknowledgement = " ", interpretation = "", question = ""),
+            generatedTurn(relevance = MessageRelevance.BRIDGEABLE).copy(
+                action = ConversationTurnAction.REFLECT,
+                acknowledgement = " ",
+                interpretation = "",
+                question = "",
+                questionTarget = null,
+            ),
         )
 
-        assertThatThrownBy { service.preview(command()) }
-            .isInstanceOf(IllegalStateException::class.java)
-            .hasMessage("AI 응답이 비어 있습니다.")
+        val result = service.preview(command())
+
+        assertThat(result.assistantMessage.content).isEqualTo("알겠어요.")
+        assertThat(
+            result.nextState.messages
+                .last()
+                .content,
+        ).isEqualTo("알겠어요.")
     }
 
     @Test
@@ -217,6 +319,7 @@ class AdminPromptPreviewServiceTest {
         draftPrompt: String? = "초안",
         priorState: AdminPromptPreviewState? = null,
         message: String = "첫 업무 회고",
+        conversationIntent: ConversationUserIntent = ConversationUserIntent.NORMAL,
     ) = AdminPromptPreviewCommand(
         job = Job.DEVELOPER,
         experience = UserExperience.YEARS_1_TO_2,
@@ -225,6 +328,7 @@ class AdminPromptPreviewServiceTest {
         priorState = priorState,
         userMessageId = UUID.randomUUID(),
         message = message,
+        conversationIntent = conversationIntent,
     )
 
     private fun message(id: UUID) =
@@ -242,6 +346,7 @@ class AdminPromptPreviewServiceTest {
         relevance: MessageRelevance = MessageRelevance.RETROSPECTIVE,
         updates: List<ConversationAnalysisUpdate> = emptyList(),
     ) = GeneratedConversationTurn(
+        action = ConversationTurnAction.ASK,
         acknowledgement = "확인했어요.",
         interpretation = "",
         question = "다음은 무엇인가요?",

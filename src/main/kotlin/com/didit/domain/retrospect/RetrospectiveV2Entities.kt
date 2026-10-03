@@ -20,6 +20,18 @@ enum class ConversationTurnStatus {
     FAILED,
 }
 
+enum class ConversationTurnAction {
+    ASK,
+    REFLECT,
+    OFFER_COMPLETION,
+    CONFIRM_COMPLETION,
+}
+
+enum class ConversationUserIntent {
+    NORMAL,
+    CONTINUE_AFTER_COMPLETION,
+}
+
 @Table(
     name = "retrospective_analysis_items",
     uniqueConstraints = [UniqueConstraint(columnNames = ["retrospective_id", "item_type"])],
@@ -39,6 +51,8 @@ class RetrospectiveAnalysisItem(
     var status: RetrospectiveItemStatus = RetrospectiveItemStatus.EMPTY,
     @Column(columnDefinition = "TEXT")
     var summary: String? = null,
+    @Column(nullable = false)
+    var questionAllowed: Boolean = true,
 ) : BaseEntity() {
     fun update(
         newStatus: RetrospectiveItemStatus,
@@ -46,6 +60,11 @@ class RetrospectiveAnalysisItem(
     ) {
         if (newStatus.ordinal >= status.ordinal) status = newStatus
         summary = newSummary.trim().takeIf { it.isNotEmpty() }
+        questionAllowed = true
+    }
+
+    fun declineQuestion() {
+        questionAllowed = false
     }
 
     companion object {
@@ -93,11 +112,17 @@ class RetrospectiveConversationTurn(
     val clientMessageId: UUID,
     @Column(nullable = false, columnDefinition = "BINARY(16)")
     val userMessageId: UUID,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    val conversationIntent: ConversationUserIntent = ConversationUserIntent.NORMAL,
     @Column(columnDefinition = "BINARY(16)")
     var assistantMessageId: UUID? = null,
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     var questionTarget: RetrospectiveItemType? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(length = 30)
+    var action: ConversationTurnAction? = null,
     @Column(nullable = false)
     val turnNumber: Int,
     @Enumerated(EnumType.STRING)
@@ -127,10 +152,15 @@ class RetrospectiveConversationTurn(
         questionTarget: RetrospectiveItemType?,
         inputTokens: Int,
         outputTokens: Int,
+        action: ConversationTurnAction,
     ) {
         check(status == ConversationTurnStatus.PROCESSING)
+        require(action == ConversationTurnAction.ASK || questionTarget == null) {
+            "질문이 아닌 대화 액션에는 질문 대상을 저장할 수 없습니다."
+        }
         this.assistantMessageId = assistantMessageId
         this.questionTarget = questionTarget
+        this.action = action
         this.inputTokens += inputTokens
         this.outputTokens += outputTokens
         status = ConversationTurnStatus.COMPLETED

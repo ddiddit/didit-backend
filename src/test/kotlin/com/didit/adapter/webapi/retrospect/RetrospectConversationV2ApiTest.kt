@@ -13,7 +13,9 @@ import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.ConversationTurnStatus
+import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.InputType
 import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.Sender
@@ -79,13 +81,22 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
     fun `V2 대화 메시지 전송`() {
         val request = SubmitConversationMessageV2Request(clientMessageId, "배포 자동화 작업을 완료했습니다.")
         whenever(
-            conversation.submitMessage(retrospectiveId, userId, clientMessageId, request.content, request.inputType, emptyList()),
+            conversation.submitMessage(
+                retrospectiveId,
+                userId,
+                clientMessageId,
+                request.content,
+                request.inputType,
+                emptyList(),
+                ConversationUserIntent.NORMAL,
+            ),
         ).thenReturn(
             SubmitConversationMessageResult(
                 turnId = turnId,
                 userMessageId = userMessageId,
                 assistantMessage = assistantMessage(),
                 readyToComplete = false,
+                action = ConversationTurnAction.ASK,
             ),
         )
 
@@ -98,6 +109,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             .andExpect(jsonPath("$.data.assistantMessage.content").value("자동화로 가장 크게 줄어든 작업은 무엇인가요?"))
             .andExpect(jsonPath("$.data.assistantMessage.title").isEmpty)
             .andExpect(jsonPath("$.data.assistantMessage.body").isEmpty)
+            .andExpect(jsonPath("$.data.action").value("ASK"))
             .andDo(
                 document(
                     "retrospect-v2/submit-message",
@@ -109,12 +121,17 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("content").type(JsonFieldType.STRING).description("사용자가 입력한 회고 내용"),
                         fieldWithPath("inputType").type(JsonFieldType.STRING).description("입력 출처. 생략 시 TEXT").optional(),
                         fieldWithPath("attachmentIds").type(JsonFieldType.ARRAY).description("첨부파일 ID, 최대 3개").optional(),
+                        fieldWithPath("conversationIntent")
+                            .type(JsonFieldType.STRING)
+                            .description("대화 의도. 기본 NORMAL, 종료 제안 후 계속 작성 선택 시 CONTINUE_AFTER_COMPLETION")
+                            .optional(),
                     ),
                     responseFields(
                         fieldWithPath("data.turnId").type(JsonFieldType.STRING).description("대화 턴 ID"),
                         fieldWithPath("data.userMessageId").type(JsonFieldType.STRING).description("저장된 사용자 메시지 ID"),
                         *messageFields("data.assistantMessage", "AI 후속 대화"),
                         fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("내부 회고 항목 기준 완료 준비도"),
+                        fieldWithPath("data.action").type(JsonFieldType.STRING).description("프론트가 처리할 다음 대화 액션"),
                     ),
                 ),
             )
@@ -131,6 +148,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                 "",
                 InputType.TEXT,
                 listOf(attachmentId),
+                ConversationUserIntent.NORMAL,
             ),
         ).thenReturn(
             SubmitConversationMessageResult(
@@ -138,6 +156,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                 userMessageId = userMessageId,
                 assistantMessage = null,
                 readyToComplete = false,
+                action = null,
             ),
         )
 
@@ -165,6 +184,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.userMessageId").type(JsonFieldType.STRING).description("사용자 메시지 ID"),
                         fieldWithPath("data.assistantMessage").type(JsonFieldType.NULL).description("분석 중에는 null"),
                         fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("완료 준비도"),
+                        fieldWithPath("data.action").type(JsonFieldType.NULL).description("비동기 처리 중에는 null"),
                     ),
                 ),
             )
@@ -182,8 +202,17 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
 
     @Test
     fun `V2 메시지 입력 타입을 생략하면 TEXT로 전달한다`() {
-        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, "직접 입력했습니다.", InputType.TEXT, emptyList()))
-            .thenReturn(submitMessageResult())
+        whenever(
+            conversation.submitMessage(
+                retrospectiveId,
+                userId,
+                clientMessageId,
+                "직접 입력했습니다.",
+                InputType.TEXT,
+                emptyList(),
+                ConversationUserIntent.NORMAL,
+            ),
+        ).thenReturn(submitMessageResult())
 
         mockMvc
             .perform(
@@ -194,14 +223,31 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                     ),
             ).andExpect(status().isOk)
 
-        verify(conversation).submitMessage(retrospectiveId, userId, clientMessageId, "직접 입력했습니다.", InputType.TEXT, emptyList())
+        verify(conversation).submitMessage(
+            retrospectiveId,
+            userId,
+            clientMessageId,
+            "직접 입력했습니다.",
+            InputType.TEXT,
+            emptyList(),
+            ConversationUserIntent.NORMAL,
+        )
     }
 
     @Test
     fun `V2 STT 메시지는 입력 타입을 STT로 전달한다`() {
         val request = SubmitConversationMessageV2Request(clientMessageId, "음성 결과를 수정했습니다.", InputType.STT)
-        whenever(conversation.submitMessage(retrospectiveId, userId, clientMessageId, request.content, InputType.STT, emptyList()))
-            .thenReturn(submitMessageResult())
+        whenever(
+            conversation.submitMessage(
+                retrospectiveId,
+                userId,
+                clientMessageId,
+                request.content,
+                InputType.STT,
+                emptyList(),
+                ConversationUserIntent.NORMAL,
+            ),
+        ).thenReturn(submitMessageResult())
 
         mockMvc
             .perform(
@@ -210,7 +256,87 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                     .content(objectMapper.writeValueAsString(request)),
             ).andExpect(status().isOk)
 
-        verify(conversation).submitMessage(retrospectiveId, userId, clientMessageId, request.content, InputType.STT, emptyList())
+        verify(conversation).submitMessage(
+            retrospectiveId,
+            userId,
+            clientMessageId,
+            request.content,
+            InputType.STT,
+            emptyList(),
+            ConversationUserIntent.NORMAL,
+        )
+    }
+
+    @Test
+    fun `종료 제안 뒤 계속하기 의도를 서비스에 전달한다`() {
+        whenever(
+            conversation.submitMessage(
+                retrospectiveId,
+                userId,
+                clientMessageId,
+                "아직 더 작성할게요.",
+                InputType.TEXT,
+                emptyList(),
+                ConversationUserIntent.CONTINUE_AFTER_COMPLETION,
+            ),
+        ).thenReturn(submitMessageResult())
+
+        mockMvc
+            .perform(
+                post("/api/v2/retrospectives/{retrospectiveId}/messages", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"clientMessageId":"$clientMessageId","content":"아직 더 작성할게요.","conversationIntent":"CONTINUE_AFTER_COMPLETION"}""",
+                    ),
+            ).andExpect(status().isOk)
+
+        verify(conversation).submitMessage(
+            retrospectiveId,
+            userId,
+            clientMessageId,
+            "아직 더 작성할게요.",
+            InputType.TEXT,
+            emptyList(),
+            ConversationUserIntent.CONTINUE_AFTER_COMPLETION,
+        )
+    }
+
+    @Test
+    fun `계속하기 의도는 텍스트 입력과 함께 보낼 때만 허용한다`() {
+        mockMvc
+            .perform(
+                post("/api/v2/retrospectives/{retrospectiveId}/messages", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"clientMessageId":"$clientMessageId","content":"계속할게요.","inputType":"STT","conversationIntent":"CONTINUE_AFTER_COMPLETION"}""",
+                    ),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `계속하기 의도는 첨부파일과 함께 보낼 수 없다`() {
+        val attachmentId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                post("/api/v2/retrospectives/{retrospectiveId}/messages", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"clientMessageId":"$clientMessageId","content":"계속할게요.","attachmentIds":["$attachmentId"],"conversationIntent":"CONTINUE_AFTER_COMPLETION"}""",
+                    ),
+            ).andExpect(status().isBadRequest)
+    }
+
+    @Test
+    fun `지원하지 않는 대화 의도는 400을 반환한다`() {
+        mockMvc
+            .perform(
+                post("/api/v2/retrospectives/{retrospectiveId}/messages", retrospectiveId)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(
+                        """{"clientMessageId":"$clientMessageId","content":"계속할게요.","conversationIntent":"CONTINUE"}""",
+                    ),
+            ).andExpect(status().isBadRequest)
     }
 
     @Test
@@ -241,6 +367,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                             status = ConversationTurnStatus.COMPLETED,
                             attemptCount = 1,
                             errorCode = null,
+                            action = ConversationTurnAction.OFFER_COMPLETION,
                         ),
                     ),
                 readyToComplete = false,
@@ -268,6 +395,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.turns[].status").type(JsonFieldType.STRING).description("처리 상태"),
                         fieldWithPath("data.turns[].attemptCount").type(JsonFieldType.NUMBER).description("처리 시도 횟수"),
                         fieldWithPath("data.turns[].errorCode").type(JsonFieldType.STRING).description("실패 코드").optional(),
+                        fieldWithPath("data.turns[].action").type(JsonFieldType.STRING).description("완료된 턴의 대화 액션").optional(),
                         fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("내부 회고 항목 기준 완료 준비도"),
                     ),
                 ),
@@ -359,6 +487,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             userMessageId = userMessageId,
             assistantMessage = assistantMessage(),
             readyToComplete = false,
+            action = ConversationTurnAction.ASK,
         )
 
     private fun startResponseFields() =
