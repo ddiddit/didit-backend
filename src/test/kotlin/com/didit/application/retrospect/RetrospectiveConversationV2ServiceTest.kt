@@ -68,6 +68,7 @@ import java.util.UUID
     AttachmentSensitiveDataDetector::class,
     ConversationAnswerGuidePolicy::class,
     ConversationV2TurnPolicy::class,
+    RetrospectiveResultV2TonePolicy::class,
     RetrospectiveConversationV2ServiceTest.MetricsConfig::class,
 )
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -391,7 +392,7 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
-    fun `두 번 연속 질문한 뒤 유효한 답변에는 새 질문 대신 쉬어간다`() {
+    fun `선택형 REFLECT의 주제를 기록하고 다음 거부 시 질문 대상에서 제외한다`() {
         val started = service.start(userId)
         whenever(aiClient.generateConversationTurn(any()))
             .thenReturn(
@@ -431,7 +432,20 @@ class RetrospectiveConversationV2ServiceTest {
                     inputTokens = 10,
                     outputTokens = 5,
                 )
-            }
+            }.thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "알겠어요.",
+                    interpretation = "다음 행동은 더 묻지 않을게요.",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    declinedItemTypes = listOf(RetrospectiveItemType.ACTION),
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            )
 
         service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "CS 공부를 했어요")
         service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "GPT 퀴즈를 풀었어요")
@@ -441,7 +455,15 @@ class RetrospectiveConversationV2ServiceTest {
         assertThat(result.assistantMessage!!.content).contains("이어")
         assertThat(
             turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
-        ).isNull()
+        ).isEqualTo(RetrospectiveItemType.ACTION)
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "다음에 다르게 할 건 없어요")
+
+        val action =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.ACTION }
+        assertThat(action.questionAllowed).isFalse()
     }
 
     @Test
@@ -913,7 +935,7 @@ class RetrospectiveConversationV2ServiceTest {
         assertThat(result.resultGenerationStatus.name).isEqualTo("GENERATED")
         assertThat(result.title).isEqualTo("배포 오류 롤백 회고")
         assertThat(result.result.strengths).isNull()
-        assertThat(saved.resultV2?.summary).isEqualTo("배포 오류를 발견하고 롤백했다.")
+        assertThat(saved.resultV2?.summary).isEqualTo("배포 오류를 발견하고 롤백했어요.")
         assertThat(saved.status.name).isEqualTo("COMPLETED")
         assertThat(saved.conversationFinishedAt).isNotNull()
     }

@@ -169,8 +169,8 @@ class RetrospectiveConversationTurn(
         answerExamples: List<String> = emptyList(),
     ) {
         check(status == ConversationTurnStatus.PROCESSING)
-        require(action == ConversationTurnAction.ASK || questionTarget == null) {
-            "질문이 아닌 대화 액션에는 질문 대상을 저장할 수 없습니다."
+        require(action == ConversationTurnAction.ASK || action == ConversationTurnAction.REFLECT || questionTarget == null) {
+            "ASK 또는 선택형 REFLECT에만 질문 대상을 저장할 수 있습니다."
         }
         require((answerGuideMode == null) == answerExamples.isEmpty()) {
             "답변 예시 표시 방식과 예시는 함께 저장해야 합니다."

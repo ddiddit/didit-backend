@@ -176,6 +176,28 @@ class RetrospectiveConversationV2Test {
     }
 
     @Test
+    fun `선택형 REFLECT에는 추후 거부 처리를 위한 주제를 저장한다`() {
+        val turn =
+            RetrospectiveConversationTurn(
+                retrospectiveId = UUID.randomUUID(),
+                clientMessageId = UUID.randomUUID(),
+                userMessageId = UUID.randomUUID(),
+                turnNumber = 1,
+            )
+
+        turn.complete(
+            assistantMessageId = UUID.randomUUID(),
+            action = ConversationTurnAction.REFLECT,
+            questionTarget = RetrospectiveItemType.ACTION,
+            inputTokens = 0,
+            outputTokens = 0,
+        )
+
+        assertThat(turn.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(turn.questionTarget).isEqualTo(RetrospectiveItemType.ACTION)
+    }
+
+    @Test
     fun `실패한 턴은 재시도 횟수를 올리고 처리 중 상태로 전환한다`() {
         val turn =
             RetrospectiveConversationTurn(

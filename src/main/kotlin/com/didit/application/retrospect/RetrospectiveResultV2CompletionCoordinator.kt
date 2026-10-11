@@ -43,6 +43,7 @@ class RetrospectiveResultV2CompletionCoordinator(
     private val turnRepository: RetrospectiveConversationTurnRepository,
     private val userFinder: UserFinder,
     private val aiClient: RetrospectiveResultV2AIClient,
+    private val tonePolicy: RetrospectiveResultV2TonePolicy,
     private val transactionTemplate: TransactionTemplate,
     private val metrics: RetrospectiveAiMetrics,
     private val eventPublisher: ApplicationEventPublisher,
@@ -63,7 +64,7 @@ class RetrospectiveResultV2CompletionCoordinator(
                 metrics.recordExternalCallTransactionState("result_v2")
                 val generated =
                     metrics.recordStage("result_v2", "openai") {
-                        aiClient.generateResult(checkNotNull(preparation.request))
+                        generatePoliteResult(checkNotNull(preparation.request))
                     }
                 val result =
                     metrics.recordStage("result_v2", "save") {
@@ -76,6 +77,18 @@ class RetrospectiveResultV2CompletionCoordinator(
                 throw RetrospectiveResultGenerationFailedException(retrospectiveId, exception)
             }
         }
+
+    private fun generatePoliteResult(request: RetrospectiveResultV2AIRequest): GeneratedRetrospectiveResultV2 {
+        val first = tonePolicy.normalize(aiClient.generateResult(request))
+        if (!tonePolicy.requiresRegeneration(first)) return first
+
+        val second = tonePolicy.normalize(aiClient.generateResult(request))
+        check(!tonePolicy.requiresRegeneration(second)) { "회고 결과가 해요체 규칙을 충족하지 않습니다." }
+        return second.copy(
+            inputTokens = first.inputTokens + second.inputTokens,
+            outputTokens = first.outputTokens + second.outputTokens,
+        )
+    }
 
     private fun prepare(
         retrospectiveId: UUID,
