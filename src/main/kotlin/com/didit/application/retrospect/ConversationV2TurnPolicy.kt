@@ -15,9 +15,18 @@ import java.util.UUID
 @Component
 class ConversationV2TurnPolicy {
     companion object {
-        private const val MIN_QUESTION_TURNS_FOR_READY_COMPLETION = 3
-        private const val MAX_QUESTION_TURNS = 6
+        private const val MIN_RETROSPECTIVE_MESSAGES_FOR_READY_COMPLETION = 2
+        private const val MAX_QUESTION_TURNS = 5
         private const val DEFAULT_REFLECT_ACKNOWLEDGEMENT = "알겠어요."
+        private const val FREE_INPUT_GUIDE = "더 남기고 싶은 내용이 있다면 자유롭게 이어서 말씀해주세요."
+        private val CONTINUATION_GUIDE_PHRASES =
+            listOf(
+                "더 말하고 싶",
+                "더 이어가고 싶",
+                "자유롭게 말씀",
+                "자유롭게 이어서",
+                "편하게 말씀",
+            )
     }
 
     fun initialIntro(): ConversationV2MessageSnapshot =
@@ -92,8 +101,9 @@ class ConversationV2TurnPolicy {
     fun shouldRecommendCompletion(
         readyToComplete: Boolean,
         completedQuestionCount: Int,
+        retrospectiveMessageCount: Int = 0,
     ): Boolean =
-        (readyToComplete && completedQuestionCount >= MIN_QUESTION_TURNS_FOR_READY_COMPLETION) ||
+        (readyToComplete && retrospectiveMessageCount >= MIN_RETROSPECTIVE_MESSAGES_FOR_READY_COMPLETION) ||
             completedQuestionCount >= MAX_QUESTION_TURNS
 
     fun readyToComplete(items: List<ConversationV2AnalysisItemSnapshot>): Boolean {
@@ -101,9 +111,13 @@ class ConversationV2TurnPolicy {
 
         fun collected(type: RetrospectiveItemType) = statuses[type] != null && statuses[type] != RetrospectiveItemStatus.EMPTY
         return collected(RetrospectiveItemType.FACT) &&
-            statuses.values.count { it != RetrospectiveItemStatus.EMPTY } >= 4 &&
-            listOf(RetrospectiveItemType.STRENGTH, RetrospectiveItemType.BLOCK, RetrospectiveItemType.PROCESS).any(::collected) &&
-            listOf(RetrospectiveItemType.LEARN, RetrospectiveItemType.ACTION).any(::collected)
+            statuses.values.count { it != RetrospectiveItemStatus.EMPTY } >= 3 &&
+            listOf(
+                RetrospectiveItemType.STRENGTH,
+                RetrospectiveItemType.BLOCK,
+                RetrospectiveItemType.LEARN,
+                RetrospectiveItemType.ACTION,
+            ).any(::collected)
     }
 
     fun decideTurn(
@@ -112,6 +126,31 @@ class ConversationV2TurnPolicy {
         completionRecommended: Boolean,
         completionPreviouslyOffered: Boolean,
         continuationRequested: Boolean = false,
+        hasMeaningfulAnalysisUpdate: Boolean = false,
+        completedQuestionCount: Int = 0,
+        consecutiveAskCount: Int = 0,
+        userMessageContent: String? = null,
+    ): GeneratedConversationTurn =
+        decideSanitizedTurn(
+            generated = generated.sanitizeUserFacingContent(userMessageContent),
+            eligibleQuestionTargets = eligibleQuestionTargets,
+            completionRecommended = completionRecommended,
+            completionPreviouslyOffered = completionPreviouslyOffered,
+            continuationRequested = continuationRequested,
+            hasMeaningfulAnalysisUpdate = hasMeaningfulAnalysisUpdate,
+            completedQuestionCount = completedQuestionCount,
+            consecutiveAskCount = consecutiveAskCount,
+        ).ensureVisibleContent()
+
+    private fun decideSanitizedTurn(
+        generated: GeneratedConversationTurn,
+        eligibleQuestionTargets: List<RetrospectiveItemType>,
+        completionRecommended: Boolean,
+        completionPreviouslyOffered: Boolean,
+        continuationRequested: Boolean,
+        hasMeaningfulAnalysisUpdate: Boolean,
+        completedQuestionCount: Int,
+        consecutiveAskCount: Int,
     ): GeneratedConversationTurn {
         if (continuationRequested) {
             val target =
@@ -157,6 +196,31 @@ class ConversationV2TurnPolicy {
                 questionTarget = null,
             )
         }
+        if (generated.declinedItemTypes.isNotEmpty()) {
+            return generated.asReflect(freeInputGuide = true)
+        }
+        if (
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            hasMeaningfulAnalysisUpdate &&
+            completedQuestionCount > 0 &&
+            consecutiveAskCount == 0
+        ) {
+            return generated.asReflect(freeInputGuide = true, optionalContinuationQuestion = generated.question)
+        }
+        if (
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            hasMeaningfulAnalysisUpdate &&
+            consecutiveAskCount >= 2
+        ) {
+            return generated.asReflect(freeInputGuide = true, optionalContinuationQuestion = generated.question)
+        }
+        if (
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            hasMeaningfulAnalysisUpdate &&
+            generated.action == ConversationTurnAction.REFLECT
+        ) {
+            return generated.asReflect(freeInputGuide = true)
+        }
         val fallbackTarget = eligibleQuestionTargets.firstOrNull()
         val shouldContinueWithQuestion =
             fallbackTarget != null &&
@@ -173,22 +237,73 @@ class ConversationV2TurnPolicy {
                     questionTarget = fallbackTarget,
                 )
             }
-            val reflected =
-                generated.copy(
-                    action = ConversationTurnAction.REFLECT,
-                    acknowledgement =
-                        generated.acknowledgement,
-                    interpretation = generated.interpretation,
+            return generated.asReflect()
+        }
+        return generated
+    }
+
+    private fun GeneratedConversationTurn.asReflect(
+        freeInputGuide: Boolean = false,
+        optionalContinuationQuestion: String? = null,
+    ): GeneratedConversationTurn {
+        val baseInterpretation =
+            optionalContinuationQuestion
+                ?.takeIf(String::isNotBlank)
+                ?.let { interpretation.replace(it, "").trim() }
+                ?: interpretation
+        val reflectInterpretation =
+            if (freeInputGuide) {
+                when {
+                    interpretation.hasContinuationGuide() -> interpretation
+                    !optionalContinuationQuestion.isNullOrBlank() ->
+                        listOf(
+                            baseInterpretation,
+                            "더 이어가고 싶다면 이 부분도 편하게 말씀해주세요. $optionalContinuationQuestion",
+                        ).filter(String::isNotBlank).joinToString(" ")
+                    interpretation.isBlank() -> FREE_INPUT_GUIDE
+                    else -> "$interpretation $FREE_INPUT_GUIDE"
+                }
+            } else {
+                interpretation
+            }
+        val reflected =
+            copy(
+                action = ConversationTurnAction.REFLECT,
+                acknowledgement = acknowledgement,
+                interpretation = reflectInterpretation,
+                question = null,
+                questionTarget = questionTarget.takeIf { !optionalContinuationQuestion.isNullOrBlank() },
+            )
+        return if (reflected.content().isBlank()) {
+            reflected.copy(acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT)
+        } else {
+            reflected
+        }
+    }
+
+    private fun String.hasContinuationGuide(): Boolean = CONTINUATION_GUIDE_PHRASES.any(::contains)
+
+    private fun GeneratedConversationTurn.sanitizeUserFacingContent(userMessageContent: String?): GeneratedConversationTurn =
+        copy(
+            acknowledgement =
+                acknowledgement.takeUnless { ConversationInternalMetadataPolicy.contains(it, userMessageContent) }.orEmpty(),
+            interpretation =
+                interpretation.takeUnless { ConversationInternalMetadataPolicy.contains(it, userMessageContent) }.orEmpty(),
+            question = question?.takeUnless { ConversationInternalMetadataPolicy.contains(it, userMessageContent) },
+        )
+
+    private fun GeneratedConversationTurn.ensureVisibleContent(): GeneratedConversationTurn {
+        if (content().isNotBlank()) return this
+        return when (action) {
+            ConversationTurnAction.CONFIRM_COMPLETION ->
+                copy(
+                    acknowledgement = "회고를 마칠까요?",
+                    interpretation = "",
                     question = null,
                     questionTarget = null,
                 )
-            return if (reflected.content().isBlank()) {
-                reflected.copy(acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT)
-            } else {
-                reflected
-            }
+            else -> asReflect()
         }
-        return generated
     }
 
     private fun fallbackQuestion(target: RetrospectiveItemType): String =
@@ -231,6 +346,56 @@ class ConversationV2TurnPolicy {
             )
         }
     }
+}
+
+internal object ConversationInternalMetadataPolicy {
+    private val internalEnumNames =
+        (RetrospectiveItemType.entries.map { it.name } + RetrospectiveItemStatus.entries.map { it.name })
+            .joinToString("|") { Regex.escape(it) }
+    private val internalEnumPatterns =
+        (RetrospectiveItemType.entries.map { it.name } + RetrospectiveItemStatus.entries.map { it.name })
+            .associateWith { Regex("(?<![A-Za-z0-9_])${Regex.escape(it)}(?![A-Za-z0-9_])") }
+    private val internalEnumToken = "(?<![A-Za-z0-9_])(?:$internalEnumNames)(?![A-Za-z0-9_])"
+    private val internalMetaTerms =
+        "(?:항목|비어|채워|수집\\s*상태|분석\\s*상태|회고\\s*상태|계획\\s*수준)"
+    private val internalFieldNames =
+        listOf(
+            "analysisItems",
+            "currentMessageId",
+            "consecutiveIrrelevantCount",
+            "eligibleQuestionTargets",
+            "recentQuestionTargets",
+            "completionRecommended",
+            "completionPreviouslyOffered",
+            "continuationRequested",
+            "questionTarget",
+            "declinedItemTypes",
+            "analysisUpdates",
+            "answerExamples",
+            "evidenceMessageIds",
+            "inputTokens",
+            "outputTokens",
+        ).joinToString("|") { Regex.escape(it) }
+    private val patterns =
+        listOf(
+            Regex("$internalEnumToken(?=.{0,20}$internalMetaTerms)"),
+            Regex("$internalMetaTerms.{0,20}$internalEnumToken"),
+            Regex(
+                "(?<![A-Za-z0-9_])(?:$internalFieldNames)(?![A-Za-z0-9_])",
+                RegexOption.IGNORE_CASE,
+            ),
+            Regex("회고.{0,20}(?:비어|채워|수집|계획 수준)"),
+            Regex("(?:회고|분석|수집)\\s*(?:항목|상태)"),
+        )
+
+    fun contains(
+        content: String,
+        userMessageContent: String? = null,
+    ): Boolean =
+        patterns.any { it.containsMatchIn(content) } ||
+            internalEnumPatterns.values.any { pattern ->
+                pattern.containsMatchIn(content) && userMessageContent?.let(pattern::containsMatchIn) != true
+            }
 }
 
 data class ConversationV2MessageSnapshot(

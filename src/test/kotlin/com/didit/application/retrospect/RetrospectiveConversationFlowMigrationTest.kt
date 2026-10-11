@@ -54,4 +54,32 @@ class RetrospectiveConversationFlowMigrationTest {
             }
         }
     }
+
+    @Test
+    fun `V54 스크립트는 기존 턴을 유지하며 nullable 답변 예시 컬럼을 추가한다`() {
+        val migration =
+            requireNotNull(
+                javaClass.getResource("/db/migration/V54__add_conversation_answer_guides.sql"),
+            ).readText()
+        val connectionUrl = "jdbc:h2:mem:conversation-guide-migration-${UUID.randomUUID()};MODE=MySQL"
+        DriverManager.getConnection(connectionUrl, "sa", "").use { connection ->
+            connection.createStatement().use { statement ->
+                statement.execute("CREATE TABLE retrospective_conversation_turns (id BINARY(16) PRIMARY KEY)")
+                statement.execute(
+                    "INSERT INTO retrospective_conversation_turns(id) VALUES (X'00000000000000000000000000000001')",
+                )
+
+                migration.split(";").filter { it.isNotBlank() }.forEach { statement.execute(it) }
+
+                statement
+                    .executeQuery(
+                        "SELECT answer_guide_mode, answer_examples FROM retrospective_conversation_turns",
+                    ).use { rows ->
+                        assertThat(rows.next()).isTrue()
+                        assertThat(rows.getString("answer_guide_mode")).isNull()
+                        assertThat(rows.getString("answer_examples")).isNull()
+                    }
+            }
+        }
+    }
 }

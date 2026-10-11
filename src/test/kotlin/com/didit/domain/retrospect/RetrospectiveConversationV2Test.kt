@@ -108,6 +108,53 @@ class RetrospectiveConversationV2Test {
     }
 
     @Test
+    fun `ASK 턴은 검증된 답변 예시와 표시 방식을 함께 보존한다`() {
+        val turn =
+            RetrospectiveConversationTurn(
+                retrospectiveId = UUID.randomUUID(),
+                clientMessageId = UUID.randomUUID(),
+                userMessageId = UUID.randomUUID(),
+                turnNumber = 1,
+            )
+
+        turn.complete(
+            assistantMessageId = UUID.randomUUID(),
+            action = ConversationTurnAction.ASK,
+            questionTarget = RetrospectiveItemType.ACTION,
+            inputTokens = 10,
+            outputTokens = 5,
+            answerGuideMode = ConversationAnswerGuideMode.INLINE,
+            answerExamples = listOf("면접 답변을 소리 내어 연습할래요", "지금 복습 방식을 유지할래요"),
+        )
+
+        assertThat(turn.answerGuideMode).isEqualTo(ConversationAnswerGuideMode.INLINE)
+        assertThat(turn.answerExamples).containsExactly("면접 답변을 소리 내어 연습할래요", "지금 복습 방식을 유지할래요")
+    }
+
+    @Test
+    fun `ASK가 아닌 턴에는 답변 예시를 저장할 수 없다`() {
+        val turn =
+            RetrospectiveConversationTurn(
+                retrospectiveId = UUID.randomUUID(),
+                clientMessageId = UUID.randomUUID(),
+                userMessageId = UUID.randomUUID(),
+                turnNumber = 1,
+            )
+
+        assertThrows<IllegalArgumentException> {
+            turn.complete(
+                assistantMessageId = UUID.randomUUID(),
+                action = ConversationTurnAction.REFLECT,
+                questionTarget = null,
+                inputTokens = 0,
+                outputTokens = 0,
+                answerGuideMode = ConversationAnswerGuideMode.ON_DEMAND,
+                answerExamples = listOf("예시 하나", "예시 둘"),
+            )
+        }
+    }
+
+    @Test
     fun `질문이 아닌 액션에는 질문 대상을 저장할 수 없다`() {
         val turn =
             RetrospectiveConversationTurn(
@@ -126,6 +173,28 @@ class RetrospectiveConversationV2Test {
                 outputTokens = 0,
             )
         }
+    }
+
+    @Test
+    fun `선택형 REFLECT에는 추후 거부 처리를 위한 주제를 저장한다`() {
+        val turn =
+            RetrospectiveConversationTurn(
+                retrospectiveId = UUID.randomUUID(),
+                clientMessageId = UUID.randomUUID(),
+                userMessageId = UUID.randomUUID(),
+                turnNumber = 1,
+            )
+
+        turn.complete(
+            assistantMessageId = UUID.randomUUID(),
+            action = ConversationTurnAction.REFLECT,
+            questionTarget = RetrospectiveItemType.ACTION,
+            inputTokens = 0,
+            outputTokens = 0,
+        )
+
+        assertThat(turn.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(turn.questionTarget).isEqualTo(RetrospectiveItemType.ACTION)
     }
 
     @Test

@@ -1,6 +1,7 @@
 package com.didit.adapter.integration.ai
 
 import com.didit.application.retrospect.required.ConversationTurnAIRequest
+import com.didit.application.retrospect.required.RetrospectiveResultV2AIRequest
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
@@ -44,6 +45,8 @@ class OpenAiClientAttachmentSafetyTest {
             .andExpect(jsonPath("$.instructions", containsString("continuationRequested")))
             .andExpect(jsonPath("$.instructions", containsString("LEARN은 사용자가 직접 말한 배움")))
             .andExpect(jsonPath("$.instructions", containsString("ACTION은 사용자가 직접 말한 다음 행동")))
+            .andExpect(jsonPath("$.instructions", containsString("내부 항목명")))
+            .andExpect(jsonPath("$.instructions", containsString("맥락에 맞는 이어가기 단서")))
             .andExpect(jsonPath("$.input").value("운영 DB에서 관리하는 프롬프트"))
             .andRespond(withSuccess(openAiConversationResponse(), MediaType.APPLICATION_JSON))
 
@@ -61,13 +64,62 @@ class OpenAiClientAttachmentSafetyTest {
         server.verify()
     }
 
+    @Test
+    fun `DB 결과 프롬프트와 무관하게 사용자 결과 문장을 해요체로 생성하도록 지시한다`() {
+        val builder = RestClient.builder()
+        val server = MockRestServiceServer.bindTo(builder).build()
+        val resultPrompts = mock<RetrospectiveResultV2Prompts>()
+        whenever(resultPrompts.build(org.mockito.kotlin.any())).thenReturn("운영 DB에서 관리하는 결과 프롬프트")
+        val client =
+            OpenAiClient(
+                builder.build(),
+                ObjectMapper().registerKotlinModule(),
+                mock<FeedbackPrompts>(),
+                mock<ConversationV2Prompts>(),
+                resultPrompts,
+                OpenAiMetrics(SimpleMeterRegistry()),
+                "test-key",
+                "test-model",
+            )
+        server
+            .expect(method(HttpMethod.POST))
+            .andExpect(jsonPath("$.instructions", containsString("해요체")))
+            .andExpect(jsonPath("$.instructions", containsString("~했다")))
+            .andExpect(jsonPath("$.input").value("운영 DB에서 관리하는 결과 프롬프트"))
+            .andRespond(withSuccess(openAiResultResponse(), MediaType.APPLICATION_JSON))
+
+        client.generateResult(
+            RetrospectiveResultV2AIRequest(
+                job = null,
+                experience = null,
+                messages = emptyList(),
+                analysisItems = emptyList(),
+            ),
+        )
+
+        server.verify()
+    }
+
     private fun openAiConversationResponse() =
         """
         {
           "output": [{
             "content": [{
               "type": "output_text",
-              "text": "{\"action\":\"ASK\",\"acknowledgement\":\"확인했어요.\",\"interpretation\":\"\",\"question\":\"어떤 업무였나요?\",\"questionTarget\":\"FACT\",\"relevance\":\"RETROSPECTIVE\",\"declinedItemTypes\":[],\"analysisUpdates\":[]}"
+              "text": "{\"action\":\"ASK\",\"acknowledgement\":\"확인했어요.\",\"interpretation\":\"\",\"question\":\"어떤 업무였나요?\",\"questionTarget\":\"FACT\",\"relevance\":\"RETROSPECTIVE\",\"declinedItemTypes\":[],\"analysisUpdates\":[],\"answerExamples\":[]}"
+            }]
+          }],
+          "usage": {"input_tokens": 1, "output_tokens": 1}
+        }
+        """.trimIndent()
+
+    private fun openAiResultResponse() =
+        """
+        {
+          "output": [{
+            "content": [{
+              "type": "output_text",
+              "text": "{\"title\":\"인덱스 학습\",\"summary\":\"B-Tree 구조를 공부했어요.\",\"strengths\":null,\"improvements\":null,\"processes\":null,\"learnings\":null,\"insight\":null,\"nextActions\":null}"
             }]
           }],
           "usage": {"input_tokens": 1, "output_tokens": 1}

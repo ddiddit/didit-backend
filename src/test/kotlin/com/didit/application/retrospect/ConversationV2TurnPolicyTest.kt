@@ -147,6 +147,36 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
+    fun `FACT와 전체 세 항목과 핵심 성찰 한 항목이 수집되면 완료 준비가 된다`() {
+        val ready =
+            policy.readyToComplete(
+                listOf(
+                    analysisItem(RetrospectiveItemType.FACT, RetrospectiveItemStatus.ENOUGH, "면접 공부"),
+                    analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "퀴즈로 복습"),
+                    analysisItem(RetrospectiveItemType.LEARN, RetrospectiveItemStatus.PARTIAL, "멱등성 이해"),
+                    analysisItem(RetrospectiveItemType.ACTION, RetrospectiveItemStatus.EMPTY, null),
+                ),
+            )
+
+        assertThat(ready).isTrue()
+    }
+
+    @Test
+    fun `전체 세 항목이 있어도 핵심 성찰 항목이 없으면 완료 준비가 아니다`() {
+        val ready =
+            policy.readyToComplete(
+                listOf(
+                    analysisItem(RetrospectiveItemType.FACT, RetrospectiveItemStatus.ENOUGH, "면접 공부"),
+                    analysisItem(RetrospectiveItemType.FEEL, RetrospectiveItemStatus.PARTIAL, "흥미로움"),
+                    analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "퀴즈로 복습"),
+                    analysisItem(RetrospectiveItemType.LEARN, RetrospectiveItemStatus.EMPTY, null),
+                ),
+            )
+
+        assertThat(ready).isFalse()
+    }
+
+    @Test
     fun `준비도가 충족되면 아직 제안하지 않은 회고에 종료 제안을 우선한다`() {
         val decided =
             policy.decideTurn(
@@ -163,15 +193,39 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `준비도가 충족되어도 질문 턴이 세 번 미만이면 완료를 권장하지 않는다`() {
-        assertThat(policy.shouldRecommendCompletion(readyToComplete = true, completedQuestionCount = 2)).isFalse()
-        assertThat(policy.shouldRecommendCompletion(readyToComplete = true, completedQuestionCount = 3)).isTrue()
+    fun `준비도가 충족되고 회고 메시지가 두 번이면 완료를 권장한다`() {
+        assertThat(
+            policy.shouldRecommendCompletion(
+                readyToComplete = true,
+                retrospectiveMessageCount = 1,
+                completedQuestionCount = 2,
+            ),
+        ).isFalse()
+        assertThat(
+            policy.shouldRecommendCompletion(
+                readyToComplete = true,
+                retrospectiveMessageCount = 2,
+                completedQuestionCount = 2,
+            ),
+        ).isTrue()
     }
 
     @Test
-    fun `질문 턴이 여섯 번 누적되면 완료를 권장한다`() {
-        assertThat(policy.shouldRecommendCompletion(readyToComplete = false, completedQuestionCount = 5)).isFalse()
-        assertThat(policy.shouldRecommendCompletion(readyToComplete = false, completedQuestionCount = 6)).isTrue()
+    fun `질문 턴이 다섯 번 누적되면 완료를 권장한다`() {
+        assertThat(
+            policy.shouldRecommendCompletion(
+                readyToComplete = false,
+                retrospectiveMessageCount = 1,
+                completedQuestionCount = 4,
+            ),
+        ).isFalse()
+        assertThat(
+            policy.shouldRecommendCompletion(
+                readyToComplete = false,
+                retrospectiveMessageCount = 1,
+                completedQuestionCount = 5,
+            ),
+        ).isTrue()
     }
 
     @Test
@@ -218,12 +272,35 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `회고 응답에 질문 후보가 남아 있으면 REFLECT 대신 다음 항목을 질문한다`() {
+    fun `회고 응답에 질문 후보가 남아 있어도 모델의 REFLECT를 유지한다`() {
         val decided =
             policy.decideTurn(
                 generated =
                     generated(MessageRelevance.RETROSPECTIVE).copy(
                         action = ConversationTurnAction.REFLECT,
+                        question = null,
+                        questionTarget = null,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.ACTION),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.question).isNull()
+    }
+
+    @Test
+    fun `분석 갱신과 거부가 없는 빈 REFLECT는 안전한 다음 질문으로 보정한다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.REFLECT,
+                        acknowledgement = "",
+                        interpretation = "",
                         question = null,
                         questionTarget = null,
                     ),
@@ -238,7 +315,107 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `거부한 항목이 있는 REFLECT는 남은 다른 항목을 질문한다`() {
+    fun `질문이 두 번 연속된 뒤 유효한 답변에는 새 질문 대신 자유 입력을 안내한다`() {
+        val decided =
+            policy.decideTurn(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.PROCESS),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+                consecutiveAskCount = 2,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.question).isNull()
+        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.PROCESS)
+        assertThat(decided.content())
+            .contains("이어")
+            .contains("다음 질문이에요.")
+    }
+
+    @Test
+    fun `질문을 쉬는 중 사용자가 자발적으로 새 내용을 말하면 다른 항목을 바로 질문하지 않는다`() {
+        // Break caught: user-led content after a REFLECT is immediately redirected to another empty retrospective item.
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        acknowledgement = "실제 프로젝트에 적용할 계획까지 세우셨네요.",
+                        interpretation = "",
+                        question = "진행하면서 어려웠거나 막혔던 점은 무엇이었나요?",
+                        questionTarget = RetrospectiveItemType.BLOCK,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.BLOCK),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+                completedQuestionCount = 1,
+                consecutiveAskCount = 0,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.question).isNull()
+        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.BLOCK)
+        assertThat(decided.content())
+            .contains("이어")
+            .contains("진행하면서 어려웠거나 막혔던 점은 무엇이었나요?")
+    }
+
+    @Test
+    fun `해석에 이어라는 표현이 있어도 선택형 후속 방향을 생략하지 않는다`() {
+        // Break caught: ordinary wording such as "업무로 이어가려는" was mistaken for a continuation guide.
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        acknowledgement = "적용 계획까지 세우셨네요.",
+                        interpretation = "학습을 실제 업무로 이어가려는 계획이 구체적이에요.",
+                        question = "먼저 확인해볼 병목 후보가 있나요?",
+                        questionTarget = RetrospectiveItemType.BLOCK,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.BLOCK),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+                completedQuestionCount = 1,
+                consecutiveAskCount = 0,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.question).isNull()
+        assertThat(decided.content())
+            .contains("더 이어가고 싶다면")
+            .contains("먼저 확인해볼 병목 후보가 있나요?")
+    }
+
+    @Test
+    fun `해석과 질문에 같은 질문이 있어도 선택형 안내와 함께 한 번만 노출한다`() {
+        val optionalQuestion = "먼저 확인해볼 병목 후보가 있나요?"
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        acknowledgement = "적용 계획까지 세우셨네요.",
+                        interpretation = "구체적인 실행 계획이에요. $optionalQuestion",
+                        question = optionalQuestion,
+                        questionTarget = RetrospectiveItemType.BLOCK,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.BLOCK),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+                completedQuestionCount = 1,
+                consecutiveAskCount = 0,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.content()).contains("더 이어가고 싶다면")
+        assertThat(decided.content().windowed(optionalQuestion.length).count { it == optionalQuestion }).isEqualTo(1)
+    }
+
+    @Test
+    fun `거부한 항목이 있는 REFLECT는 같은 응답에서 다른 항목을 질문하지 않는다`() {
         val decided =
             policy.decideTurn(
                 generated =
@@ -253,9 +430,140 @@ class ConversationV2TurnPolicyTest {
                 completionPreviouslyOffered = false,
             )
 
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.question).isNull()
+        assertThat(decided.content()).contains("이어")
+    }
+
+    @Test
+    fun `사용자 응답에는 내부 회고 항목과 수집 상태를 노출하지 않는다`() {
+        // Break caught: model wording such as BLOCK/ACTION or an empty analysis item reaches the user unchanged.
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.REFLECT,
+                        acknowledgement = "아직 진행 전이라 막힌 점은 없었던 거네요.",
+                        interpretation = "회고상 BLOCK은 비어 있고, ACTION만 계획 수준으로 남아 있어요.",
+                        question = null,
+                        questionTarget = null,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.LEARN),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+            )
+
+        assertThat(decided.content())
+            .contains("아직 진행 전이라 막힌 점은 없었던 거네요.")
+            .doesNotContain("BLOCK", "ACTION", "회고상", "비어")
+    }
+
+    @Test
+    fun `업무 맥락에서 사용한 enum과 같은 용어는 사용자 응답에 유지한다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.REFLECT,
+                        acknowledgement = "FACT 테이블 상태와 인덱스를 점검하셨네요.",
+                        interpretation = "조회 성능을 확인한 과정이 구체적이에요.",
+                        question = null,
+                        questionTarget = null,
+                    ),
+                eligibleQuestionTargets = emptyList(),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+                userMessageContent = "FACT 테이블 상태와 인덱스를 점검했어요.",
+            )
+
+        assertThat(decided.content()).contains("FACT 테이블 상태")
+    }
+
+    @Test
+    fun `사용자가 말하지 않은 내부 enum 이름은 단독으로도 노출하지 않는다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.REFLECT,
+                        acknowledgement = "ACTION은 아직 정하지 않았어요.",
+                        interpretation = "",
+                        question = null,
+                        questionTarget = null,
+                    ),
+                eligibleQuestionTargets = emptyList(),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+                userMessageContent = "다음 계획은 아직 없어요.",
+            )
+
+        assertThat(decided.content()).doesNotContain("ACTION").isNotBlank()
+    }
+
+    @Test
+    fun `내부 요청 필드명은 사용자 응답에 노출하지 않는다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.REFLECT,
+                        acknowledgement = "completionRecommended가 아직 false예요.",
+                        interpretation = "",
+                        question = null,
+                        questionTarget = null,
+                    ),
+                eligibleQuestionTargets = emptyList(),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+                userMessageContent = "조금 더 이야기할게요.",
+            )
+
+        assertThat(decided.content()).doesNotContain("completionRecommended").isNotBlank()
+    }
+
+    @Test
+    fun `내부 회고 상태가 포함된 질문은 안전한 사용자 질문으로 교체한다`() {
+        // Break caught: an internal analysis label survives inside a user-facing ASK question.
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        question = "비어 있는 LEARN 항목을 채우려면 무엇을 배웠나요?",
+                        questionTarget = RetrospectiveItemType.LEARN,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.LEARN),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+            )
+
         assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
-        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.ACTION)
-        assertThat(decided.question).isNotBlank()
+        assertThat(decided.question).isEqualTo("이번 경험을 통해 새롭게 알게 된 점은 무엇인가요?")
+        assertThat(decided.content()).doesNotContain("LEARN", "비어")
+    }
+
+    @Test
+    fun `회고 연결 응답에서 항목을 거부하면 모델의 새 질문을 제거한다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.BRIDGEABLE).copy(
+                        question = "다음에는 무엇을 다르게 해보고 싶나요?",
+                        questionTarget = RetrospectiveItemType.ACTION,
+                        declinedItemTypes = listOf(RetrospectiveItemType.BLOCK),
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.ACTION),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.question).isNull()
     }
 
     @Test

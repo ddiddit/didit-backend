@@ -8,6 +8,8 @@ import com.didit.application.admin.provided.AdminPromptSource
 import com.didit.application.admin.required.AdminPromptPreviewAIClient
 import com.didit.application.common.exception.BusinessException
 import com.didit.application.prompt.required.PromptRepository
+import com.didit.application.retrospect.AttachmentSensitiveDataDetector
+import com.didit.application.retrospect.ConversationAnswerGuidePolicy
 import com.didit.application.retrospect.ConversationV2TurnPolicy
 import com.didit.application.retrospect.required.ConversationAnalysisUpdate
 import com.didit.application.retrospect.required.GeneratedConversationTurn
@@ -15,6 +17,7 @@ import com.didit.domain.auth.UserExperience
 import com.didit.domain.prompt.Prompt
 import com.didit.domain.prompt.PromptJobType
 import com.didit.domain.prompt.PromptType
+import com.didit.domain.retrospect.ConversationAnswerGuideMode
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.ConversationUserIntent
@@ -39,7 +42,13 @@ import java.util.UUID
 class AdminPromptPreviewServiceTest {
     private val promptRepository = mock<PromptRepository>()
     private val aiClient = mock<AdminPromptPreviewAIClient>()
-    private val service = AdminPromptPreviewService(promptRepository, aiClient, ConversationV2TurnPolicy())
+    private val service =
+        AdminPromptPreviewService(
+            promptRepository,
+            aiClient,
+            ConversationV2TurnPolicy(),
+            ConversationAnswerGuidePolicy(AttachmentSensitiveDataDetector()),
+        )
 
     @BeforeEach
     fun setUp() {
@@ -222,6 +231,65 @@ class AdminPromptPreviewServiceTest {
     }
 
     @Test
+    fun `preview도 운영과 같은 답변 예시 표시 정책을 적용한다`() {
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map { type ->
+                        AdminPromptPreviewAnalysisItem(
+                            itemType = type,
+                            status =
+                                if (type ==
+                                    RetrospectiveItemType.FACT
+                                ) {
+                                    RetrospectiveItemStatus.PARTIAL
+                                } else {
+                                    RetrospectiveItemStatus.EMPTY
+                                },
+                            summary = if (type == RetrospectiveItemType.FACT) "배포 준비" else null,
+                        )
+                    },
+            )
+        whenever(aiClient.preview(any(), any())).thenReturn(
+            generatedTurn().copy(
+                question = "진행하면서 어려웠던 점은 무엇이었나요?",
+                questionTarget = RetrospectiveItemType.BLOCK,
+                answerExamples = listOf("테스트 범위가 예상보다 넓었어요", "개발 서버 설정에 시간이 걸렸어요"),
+            ),
+        )
+
+        val result = service.preview(command(priorState = priorState))
+
+        assertThat(result.assistantMessage.answerGuide?.mode).isEqualTo(ConversationAnswerGuideMode.ON_DEMAND)
+        assertThat(result.assistantMessage.answerGuide?.examples).hasSize(2)
+    }
+
+    @Test
+    fun `preview도 두 번 연속 질문 뒤 유효한 답변에는 질문 없이 쉬어간다`() {
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.EMPTY, null)
+                    },
+                consecutiveAskCount = 2,
+            )
+        whenever(aiClient.preview(any(), any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<com.didit.application.retrospect.required.ConversationTurnAIRequest>(1)
+            generatedTurn(
+                updates = listOf(update(RetrospectiveItemType.PROCESS, request.currentMessageId, RetrospectiveItemStatus.PARTIAL)),
+            )
+        }
+
+        val result = service.preview(command(priorState = priorState))
+
+        assertThat(result.assistantMessage.content).contains("이어")
+        assertThat(result.nextState.consecutiveAskCount).isZero()
+    }
+
+    @Test
     fun `비회고 응답의 분석 갱신은 무시한다`() {
         whenever(aiClient.preview(any(), any())).thenAnswer { invocation ->
             val request = invocation.getArgument<com.didit.application.retrospect.required.ConversationTurnAIRequest>(1)
@@ -276,6 +344,8 @@ class AdminPromptPreviewServiceTest {
             .withBean(PromptRepository::class.java, { promptRepository })
             .withBean(AdminPromptPreviewAIClient::class.java, { aiClient })
             .withBean(ConversationV2TurnPolicy::class.java)
+            .withBean(AttachmentSensitiveDataDetector::class.java)
+            .withBean(ConversationAnswerGuidePolicy::class.java)
             .withBean(AdminPromptPreviewService::class.java)
             .run { context ->
                 context.getBean(AdminPromptPreviewService::class.java).preview(

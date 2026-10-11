@@ -3,6 +3,7 @@ package com.didit.application.retrospect.dto
 import com.didit.domain.retrospect.AttachmentAnalysisStatus
 import com.didit.domain.retrospect.AttachmentFileType
 import com.didit.domain.retrospect.AttachmentUploadStatus
+import com.didit.domain.retrospect.ConversationAnswerGuideMode
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnAction
@@ -45,6 +46,12 @@ data class ConversationMessageResult(
     val content: String? = null,
     val createdAt: LocalDateTime? = null,
     val attachments: List<ConversationMessageAttachmentResult> = emptyList(),
+    val answerGuide: ConversationAnswerGuideResult? = null,
+)
+
+data class ConversationAnswerGuideResult(
+    val mode: ConversationAnswerGuideMode,
+    val examples: List<String>,
 )
 
 data class ConversationMessageAttachmentResult(

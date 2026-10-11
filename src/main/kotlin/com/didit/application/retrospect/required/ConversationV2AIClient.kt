@@ -60,6 +60,7 @@ data class GeneratedConversationTurn(
     val analysisUpdates: List<ConversationAnalysisUpdate>,
     val inputTokens: Int,
     val outputTokens: Int,
+    val answerExamples: List<String> = emptyList(),
 ) {
     fun content(): String =
         listOfNotNull(acknowledgement, interpretation, question).map { it.trim() }.filter { it.isNotEmpty() }.joinToString("\n")
