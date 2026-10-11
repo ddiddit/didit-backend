@@ -2,6 +2,7 @@ package com.didit.domain.retrospect
 
 import com.didit.domain.shared.BaseEntity
 import jakarta.persistence.Column
+import jakarta.persistence.Convert
 import jakarta.persistence.Entity
 import jakarta.persistence.EntityListeners
 import jakarta.persistence.EnumType
@@ -25,6 +26,11 @@ enum class ConversationTurnAction {
     REFLECT,
     OFFER_COMPLETION,
     CONFIRM_COMPLETION,
+}
+
+enum class ConversationAnswerGuideMode {
+    INLINE,
+    ON_DEMAND,
 }
 
 enum class ConversationUserIntent {
@@ -123,6 +129,12 @@ class RetrospectiveConversationTurn(
     @Enumerated(EnumType.STRING)
     @Column(length = 30)
     var action: ConversationTurnAction? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    var answerGuideMode: ConversationAnswerGuideMode? = null,
+    @Convert(converter = StringListJsonConverter::class)
+    @Column(columnDefinition = "TEXT")
+    var answerExamples: List<String> = emptyList(),
     @Column(nullable = false)
     val turnNumber: Int,
     @Enumerated(EnumType.STRING)
@@ -153,14 +165,31 @@ class RetrospectiveConversationTurn(
         inputTokens: Int,
         outputTokens: Int,
         action: ConversationTurnAction,
+        answerGuideMode: ConversationAnswerGuideMode? = null,
+        answerExamples: List<String> = emptyList(),
     ) {
         check(status == ConversationTurnStatus.PROCESSING)
         require(action == ConversationTurnAction.ASK || questionTarget == null) {
             "질문이 아닌 대화 액션에는 질문 대상을 저장할 수 없습니다."
         }
+        require((answerGuideMode == null) == answerExamples.isEmpty()) {
+            "답변 예시 표시 방식과 예시는 함께 저장해야 합니다."
+        }
+        if (answerGuideMode != null) {
+            require(action == ConversationTurnAction.ASK && questionTarget != null) {
+                "ASK 턴에만 답변 예시를 저장할 수 있습니다."
+            }
+            require(answerExamples.size in 2..3) { "답변 예시는 두 개에서 세 개여야 합니다." }
+            require(
+                (questionTarget == RetrospectiveItemType.ACTION && answerGuideMode == ConversationAnswerGuideMode.INLINE) ||
+                    (questionTarget != RetrospectiveItemType.ACTION && answerGuideMode == ConversationAnswerGuideMode.ON_DEMAND),
+            ) { "질문 대상과 답변 예시 표시 방식이 일치하지 않습니다." }
+        }
         this.assistantMessageId = assistantMessageId
         this.questionTarget = questionTarget
         this.action = action
+        this.answerGuideMode = answerGuideMode
+        this.answerExamples = answerExamples.toList()
         this.inputTokens += inputTokens
         this.outputTokens += outputTokens
         status = ConversationTurnStatus.COMPLETED

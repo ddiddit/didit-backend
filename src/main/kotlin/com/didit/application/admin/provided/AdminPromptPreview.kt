@@ -1,5 +1,6 @@
 package com.didit.application.admin.provided
 
+import com.didit.application.retrospect.dto.ConversationAnswerGuideResult
 import com.didit.domain.auth.UserExperience
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationUserIntent
@@ -34,7 +35,9 @@ data class AdminPromptPreviewState(
     val messages: List<AdminPromptPreviewMessage>,
     val analysisItems: List<AdminPromptPreviewAnalysisItem>,
     val recentQuestionTargets: List<RetrospectiveItemType> = emptyList(),
+    val askedQuestionTargets: Set<RetrospectiveItemType> = emptySet(),
     val completedQuestionCount: Int = 0,
+    val consecutiveAskCount: Int = 0,
     val completionPreviouslyOffered: Boolean = false,
 )
 
@@ -45,6 +48,7 @@ data class AdminPromptPreviewMessage(
     val messageType: ConversationMessageType,
     val supportingContent: String? = null,
     val relevance: MessageRelevance? = null,
+    val answerGuide: ConversationAnswerGuideResult? = null,
 )
 
 data class AdminPromptPreviewAnalysisItem(

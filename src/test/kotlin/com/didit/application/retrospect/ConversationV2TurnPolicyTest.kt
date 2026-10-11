@@ -147,6 +147,36 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
+    fun `FACT와 전체 세 항목과 핵심 성찰 한 항목이 수집되면 완료 준비가 된다`() {
+        val ready =
+            policy.readyToComplete(
+                listOf(
+                    analysisItem(RetrospectiveItemType.FACT, RetrospectiveItemStatus.ENOUGH, "면접 공부"),
+                    analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "퀴즈로 복습"),
+                    analysisItem(RetrospectiveItemType.LEARN, RetrospectiveItemStatus.PARTIAL, "멱등성 이해"),
+                    analysisItem(RetrospectiveItemType.ACTION, RetrospectiveItemStatus.EMPTY, null),
+                ),
+            )
+
+        assertThat(ready).isTrue()
+    }
+
+    @Test
+    fun `전체 세 항목이 있어도 핵심 성찰 항목이 없으면 완료 준비가 아니다`() {
+        val ready =
+            policy.readyToComplete(
+                listOf(
+                    analysisItem(RetrospectiveItemType.FACT, RetrospectiveItemStatus.ENOUGH, "면접 공부"),
+                    analysisItem(RetrospectiveItemType.FEEL, RetrospectiveItemStatus.PARTIAL, "흥미로움"),
+                    analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "퀴즈로 복습"),
+                    analysisItem(RetrospectiveItemType.LEARN, RetrospectiveItemStatus.EMPTY, null),
+                ),
+            )
+
+        assertThat(ready).isFalse()
+    }
+
+    @Test
     fun `준비도가 충족되면 아직 제안하지 않은 회고에 종료 제안을 우선한다`() {
         val decided =
             policy.decideTurn(
@@ -163,15 +193,39 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `준비도가 충족되어도 질문 턴이 세 번 미만이면 완료를 권장하지 않는다`() {
-        assertThat(policy.shouldRecommendCompletion(readyToComplete = true, completedQuestionCount = 2)).isFalse()
-        assertThat(policy.shouldRecommendCompletion(readyToComplete = true, completedQuestionCount = 3)).isTrue()
+    fun `준비도가 충족되고 회고 메시지가 두 번이면 완료를 권장한다`() {
+        assertThat(
+            policy.shouldRecommendCompletion(
+                readyToComplete = true,
+                retrospectiveMessageCount = 1,
+                completedQuestionCount = 2,
+            ),
+        ).isFalse()
+        assertThat(
+            policy.shouldRecommendCompletion(
+                readyToComplete = true,
+                retrospectiveMessageCount = 2,
+                completedQuestionCount = 2,
+            ),
+        ).isTrue()
     }
 
     @Test
-    fun `질문 턴이 여섯 번 누적되면 완료를 권장한다`() {
-        assertThat(policy.shouldRecommendCompletion(readyToComplete = false, completedQuestionCount = 5)).isFalse()
-        assertThat(policy.shouldRecommendCompletion(readyToComplete = false, completedQuestionCount = 6)).isTrue()
+    fun `질문 턴이 다섯 번 누적되면 완료를 권장한다`() {
+        assertThat(
+            policy.shouldRecommendCompletion(
+                readyToComplete = false,
+                retrospectiveMessageCount = 1,
+                completedQuestionCount = 4,
+            ),
+        ).isFalse()
+        assertThat(
+            policy.shouldRecommendCompletion(
+                readyToComplete = false,
+                retrospectiveMessageCount = 1,
+                completedQuestionCount = 5,
+            ),
+        ).isTrue()
     }
 
     @Test
@@ -218,12 +272,35 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `회고 응답에 질문 후보가 남아 있으면 REFLECT 대신 다음 항목을 질문한다`() {
+    fun `회고 응답에 질문 후보가 남아 있어도 모델의 REFLECT를 유지한다`() {
         val decided =
             policy.decideTurn(
                 generated =
                     generated(MessageRelevance.RETROSPECTIVE).copy(
                         action = ConversationTurnAction.REFLECT,
+                        question = null,
+                        questionTarget = null,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.ACTION),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.question).isNull()
+    }
+
+    @Test
+    fun `분석 갱신과 거부가 없는 빈 REFLECT는 안전한 다음 질문으로 보정한다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.REFLECT,
+                        acknowledgement = "",
+                        interpretation = "",
                         question = null,
                         questionTarget = null,
                     ),
@@ -238,7 +315,25 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `거부한 항목이 있는 REFLECT는 남은 다른 항목을 질문한다`() {
+    fun `질문이 두 번 연속된 뒤 유효한 답변에는 새 질문 대신 자유 입력을 안내한다`() {
+        val decided =
+            policy.decideTurn(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.PROCESS),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                hasMeaningfulAnalysisUpdate = true,
+                consecutiveAskCount = 2,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.question).isNull()
+        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.content()).contains("이어")
+    }
+
+    @Test
+    fun `거부한 항목이 있는 REFLECT는 같은 응답에서 다른 항목을 질문하지 않는다`() {
         val decided =
             policy.decideTurn(
                 generated =
@@ -253,9 +348,9 @@ class ConversationV2TurnPolicyTest {
                 completionPreviouslyOffered = false,
             )
 
-        assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
-        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.ACTION)
-        assertThat(decided.question).isNotBlank()
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.question).isNull()
     }
 
     @Test

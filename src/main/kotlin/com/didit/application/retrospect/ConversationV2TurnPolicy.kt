@@ -15,9 +15,10 @@ import java.util.UUID
 @Component
 class ConversationV2TurnPolicy {
     companion object {
-        private const val MIN_QUESTION_TURNS_FOR_READY_COMPLETION = 3
-        private const val MAX_QUESTION_TURNS = 6
+        private const val MIN_RETROSPECTIVE_MESSAGES_FOR_READY_COMPLETION = 2
+        private const val MAX_QUESTION_TURNS = 5
         private const val DEFAULT_REFLECT_ACKNOWLEDGEMENT = "알겠어요."
+        private const val FREE_INPUT_GUIDE = "더 남기고 싶은 내용이 있다면 자유롭게 이어서 말씀해주세요."
     }
 
     fun initialIntro(): ConversationV2MessageSnapshot =
@@ -92,8 +93,9 @@ class ConversationV2TurnPolicy {
     fun shouldRecommendCompletion(
         readyToComplete: Boolean,
         completedQuestionCount: Int,
+        retrospectiveMessageCount: Int = 0,
     ): Boolean =
-        (readyToComplete && completedQuestionCount >= MIN_QUESTION_TURNS_FOR_READY_COMPLETION) ||
+        (readyToComplete && retrospectiveMessageCount >= MIN_RETROSPECTIVE_MESSAGES_FOR_READY_COMPLETION) ||
             completedQuestionCount >= MAX_QUESTION_TURNS
 
     fun readyToComplete(items: List<ConversationV2AnalysisItemSnapshot>): Boolean {
@@ -101,9 +103,13 @@ class ConversationV2TurnPolicy {
 
         fun collected(type: RetrospectiveItemType) = statuses[type] != null && statuses[type] != RetrospectiveItemStatus.EMPTY
         return collected(RetrospectiveItemType.FACT) &&
-            statuses.values.count { it != RetrospectiveItemStatus.EMPTY } >= 4 &&
-            listOf(RetrospectiveItemType.STRENGTH, RetrospectiveItemType.BLOCK, RetrospectiveItemType.PROCESS).any(::collected) &&
-            listOf(RetrospectiveItemType.LEARN, RetrospectiveItemType.ACTION).any(::collected)
+            statuses.values.count { it != RetrospectiveItemStatus.EMPTY } >= 3 &&
+            listOf(
+                RetrospectiveItemType.STRENGTH,
+                RetrospectiveItemType.BLOCK,
+                RetrospectiveItemType.LEARN,
+                RetrospectiveItemType.ACTION,
+            ).any(::collected)
     }
 
     fun decideTurn(
@@ -112,6 +118,8 @@ class ConversationV2TurnPolicy {
         completionRecommended: Boolean,
         completionPreviouslyOffered: Boolean,
         continuationRequested: Boolean = false,
+        hasMeaningfulAnalysisUpdate: Boolean = false,
+        consecutiveAskCount: Int = 0,
     ): GeneratedConversationTurn {
         if (continuationRequested) {
             val target =
@@ -157,6 +165,26 @@ class ConversationV2TurnPolicy {
                 questionTarget = null,
             )
         }
+        if (
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            generated.declinedItemTypes.isNotEmpty()
+        ) {
+            return generated.asReflect()
+        }
+        if (
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            hasMeaningfulAnalysisUpdate &&
+            consecutiveAskCount >= 2
+        ) {
+            return generated.asReflect(freeInputGuide = true)
+        }
+        if (
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            hasMeaningfulAnalysisUpdate &&
+            generated.action == ConversationTurnAction.REFLECT
+        ) {
+            return generated.asReflect()
+        }
         val fallbackTarget = eligibleQuestionTargets.firstOrNull()
         val shouldContinueWithQuestion =
             fallbackTarget != null &&
@@ -173,22 +201,25 @@ class ConversationV2TurnPolicy {
                     questionTarget = fallbackTarget,
                 )
             }
-            val reflected =
-                generated.copy(
-                    action = ConversationTurnAction.REFLECT,
-                    acknowledgement =
-                        generated.acknowledgement,
-                    interpretation = generated.interpretation,
-                    question = null,
-                    questionTarget = null,
-                )
-            return if (reflected.content().isBlank()) {
-                reflected.copy(acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT)
-            } else {
-                reflected
-            }
+            return generated.asReflect()
         }
         return generated
+    }
+
+    private fun GeneratedConversationTurn.asReflect(freeInputGuide: Boolean = false): GeneratedConversationTurn {
+        val reflected =
+            copy(
+                action = ConversationTurnAction.REFLECT,
+                acknowledgement = acknowledgement,
+                interpretation = if (freeInputGuide) FREE_INPUT_GUIDE else interpretation,
+                question = null,
+                questionTarget = null,
+            )
+        return if (reflected.content().isBlank()) {
+            reflected.copy(acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT)
+        } else {
+            reflected
+        }
     }
 
     private fun fallbackQuestion(target: RetrospectiveItemType): String =

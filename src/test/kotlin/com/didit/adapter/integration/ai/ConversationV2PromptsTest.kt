@@ -98,6 +98,27 @@ class ConversationV2PromptsTest {
             .contains("말을 이어가려는 표현")
     }
 
+    @Test
+    fun `build - default prompt treats empty items as candidates instead of mandatory questions`() {
+        val rendered = prompts.build(request())
+
+        assertThat(rendered)
+            .contains("현재 이야기와 자연스럽게 이어지는 질문")
+            .contains("빈 항목을 채우기 위해 질문하지 마세요")
+            .doesNotContain("REFLECT보다 ASK를 우선하세요")
+    }
+
+    @Test
+    fun `build - default prompt generates bounded contextual answer examples in the same response`() {
+        val rendered = prompts.build(request())
+
+        assertThat(rendered)
+            .contains("answerExamples")
+            .contains("2개에서 3개")
+            .contains("별도 질문이나 추가 호출 없이")
+            .contains("이번 방식을 유지")
+    }
+
     private fun request() =
         ConversationTurnAIRequest(
             job = null,

@@ -67,7 +67,7 @@ class OpenAiClientAttachmentSafetyTest {
           "output": [{
             "content": [{
               "type": "output_text",
-              "text": "{\"action\":\"ASK\",\"acknowledgement\":\"확인했어요.\",\"interpretation\":\"\",\"question\":\"어떤 업무였나요?\",\"questionTarget\":\"FACT\",\"relevance\":\"RETROSPECTIVE\",\"declinedItemTypes\":[],\"analysisUpdates\":[]}"
+              "text": "{\"action\":\"ASK\",\"acknowledgement\":\"확인했어요.\",\"interpretation\":\"\",\"question\":\"어떤 업무였나요?\",\"questionTarget\":\"FACT\",\"relevance\":\"RETROSPECTIVE\",\"declinedItemTypes\":[],\"analysisUpdates\":[],\"answerExamples\":[]}"
             }]
           }],
           "usage": {"input_tokens": 1, "output_tokens": 1}

@@ -1,5 +1,6 @@
 package com.didit.adapter.webapi.retrospect.dto
 
+import com.didit.application.retrospect.dto.ConversationAnswerGuideResult
 import com.didit.application.retrospect.dto.ConversationMessageAttachmentResult
 import com.didit.application.retrospect.dto.ConversationMessageResult
 import com.didit.application.retrospect.dto.ConversationTurnResult
@@ -7,6 +8,7 @@ import com.didit.application.retrospect.dto.ConversationV2Result
 import com.didit.application.retrospect.dto.FinishConversationV2Result
 import com.didit.application.retrospect.dto.StartConversationV2Result
 import com.didit.application.retrospect.dto.SubmitConversationMessageResult
+import com.didit.domain.retrospect.ConversationAnswerGuideMode
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnAction
@@ -106,6 +108,7 @@ data class ConversationMessageV2Response(
     val content: String?,
     val createdAt: LocalDateTime?,
     val attachments: List<ConversationMessageAttachmentV2Response>,
+    val answerGuide: ConversationAnswerGuideV2Response?,
 ) {
     companion object {
         fun from(result: ConversationMessageResult) =
@@ -118,6 +121,20 @@ data class ConversationMessageV2Response(
                 content = result.content,
                 createdAt = result.createdAt,
                 attachments = result.attachments.map(ConversationMessageAttachmentV2Response::from),
+                answerGuide = result.answerGuide?.let(ConversationAnswerGuideV2Response::from),
+            )
+    }
+}
+
+data class ConversationAnswerGuideV2Response(
+    val mode: ConversationAnswerGuideMode,
+    val examples: List<String>,
+) {
+    companion object {
+        fun from(result: ConversationAnswerGuideResult) =
+            ConversationAnswerGuideV2Response(
+                mode = result.mode,
+                examples = result.examples,
             )
     }
 }
