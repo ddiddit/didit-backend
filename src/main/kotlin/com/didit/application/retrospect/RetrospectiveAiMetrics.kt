@@ -1,6 +1,9 @@
 package com.didit.application.retrospect
 
+import com.didit.domain.retrospect.ConversationAnswerGuideMode
+import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.MessageRelevance
+import com.didit.domain.retrospect.RetrospectiveItemType
 import io.micrometer.core.instrument.Counter
 import io.micrometer.core.instrument.MeterRegistry
 import io.micrometer.core.instrument.Timer
@@ -57,6 +60,24 @@ class RetrospectiveAiMetrics(
     fun incrementConversationRelevance(relevance: MessageRelevance) {
         meterRegistry.counter("didit.retrospective.v2.relevance", "type", relevance.name).increment()
         meterRegistry.counter("didit.retrospective.v2.turn", "result", "success").increment()
+    }
+
+    fun incrementConversationAction(action: ConversationTurnAction) {
+        meterRegistry.counter("didit.retrospective.v2.action", "action", action.name).increment()
+    }
+
+    fun incrementConversationAnswerGuide(
+        mode: ConversationAnswerGuideMode,
+        target: RetrospectiveItemType,
+    ) {
+        meterRegistry
+            .counter(
+                "didit.retrospective.v2.answer.guide",
+                "mode",
+                mode.name,
+                "target",
+                target.name,
+            ).increment()
     }
 
     private fun workflowTimer(

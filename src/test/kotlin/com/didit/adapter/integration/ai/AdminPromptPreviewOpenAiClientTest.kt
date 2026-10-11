@@ -32,6 +32,7 @@ class AdminPromptPreviewOpenAiClientTest {
         server
             .expect(once(), requestTo("https://api.openai.com/v1/responses"))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("초안 입력")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("answerExamples")))
             .andRespond(withSuccess(response(), MediaType.APPLICATION_JSON))
 
         val appender = previewLogAppender()
@@ -46,6 +47,7 @@ class AdminPromptPreviewOpenAiClientTest {
         assertThat(result.questionTarget).isEqualTo(RetrospectiveItemType.FACT)
         assertThat(result.action).isEqualTo(ConversationTurnAction.ASK)
         assertThat(result.declinedItemTypes).containsExactly(RetrospectiveItemType.BLOCK)
+        assertThat(result.answerExamples).containsExactly("배포 범위를 작게 나눠 진행했어요", "기존 방식을 유지했어요")
         assertThat(result.inputTokens).isEqualTo(12)
         assertThat(result.outputTokens).isEqualTo(34)
         assertThat(registry.find("didit.openai.request.duration").tag("operation", "conversation_v2_preview").timer()).isNotNull
@@ -107,7 +109,7 @@ class AdminPromptPreviewOpenAiClientTest {
         )
 
     private fun response() =
-        """{"output":[{"content":[{"type":"output_text","text":"{\"action\":\"ASK\",\"acknowledgement\":\"알겠습니다.\",\"interpretation\":\"상황을 이해했어요.\",\"question\":\"SENTINEL_PREVIEW_RESPONSE\",\"questionTarget\":\"FACT\",\"relevance\":\"RETROSPECTIVE\",\"declinedItemTypes\":[\"BLOCK\"],\"analysisUpdates\":[]}"}]}],"usage":{"input_tokens":12,"output_tokens":34}}"""
+        """{"output":[{"content":[{"type":"output_text","text":"{\"action\":\"ASK\",\"acknowledgement\":\"알겠습니다.\",\"interpretation\":\"상황을 이해했어요.\",\"question\":\"SENTINEL_PREVIEW_RESPONSE\",\"questionTarget\":\"FACT\",\"relevance\":\"RETROSPECTIVE\",\"declinedItemTypes\":[\"BLOCK\"],\"analysisUpdates\":[],\"answerExamples\":[\"배포 범위를 작게 나눠 진행했어요\",\"기존 방식을 유지했어요\"]}"}]}],"usage":{"input_tokens":12,"output_tokens":34}}"""
 
     private fun previewLogAppender(): CapturedLogAppender {
         val logger = logger()

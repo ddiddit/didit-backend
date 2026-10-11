@@ -1,6 +1,7 @@
 package com.didit.adapter.webapi.retrospect
 
 import com.didit.adapter.webapi.retrospect.dto.SubmitConversationMessageV2Request
+import com.didit.application.retrospect.dto.ConversationAnswerGuideResult
 import com.didit.application.retrospect.dto.ConversationMessageResult
 import com.didit.application.retrospect.dto.ConversationTurnResult
 import com.didit.application.retrospect.dto.ConversationV2Result
@@ -11,6 +12,7 @@ import com.didit.application.retrospect.dto.SubmitConversationMessageResult
 import com.didit.application.retrospect.provided.RetrospectiveConversationV2
 import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
+import com.didit.domain.retrospect.ConversationAnswerGuideMode
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnAction
@@ -109,6 +111,8 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             .andExpect(jsonPath("$.data.assistantMessage.content").value("자동화로 가장 크게 줄어든 작업은 무엇인가요?"))
             .andExpect(jsonPath("$.data.assistantMessage.title").isEmpty)
             .andExpect(jsonPath("$.data.assistantMessage.body").isEmpty)
+            .andExpect(jsonPath("$.data.assistantMessage.answerGuide.mode").value("ON_DEMAND"))
+            .andExpect(jsonPath("$.data.assistantMessage.answerGuide.examples.length()").value(2))
             .andExpect(jsonPath("$.data.action").value("ASK"))
             .andDo(
                 document(
@@ -479,6 +483,11 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             messageType = ConversationMessageType.CONVERSATION,
             content = "자동화로 가장 크게 줄어든 작업은 무엇인가요?",
             createdAt = now,
+            answerGuide =
+                ConversationAnswerGuideResult(
+                    mode = ConversationAnswerGuideMode.ON_DEMAND,
+                    examples = listOf("반복 배포 작업이 줄었어요", "수동 확인 시간이 줄었어요"),
+                ),
         )
 
     private fun submitMessageResult() =
@@ -509,6 +518,12 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
         fieldWithPath("$path.body").type(JsonFieldType.STRING).description("INTRO 보조 문구").optional(),
         fieldWithPath("$path.content").type(JsonFieldType.STRING).description("INTRO 이후 대화 내용").optional(),
         fieldWithPath("$path.createdAt").type(JsonFieldType.STRING).description("생성 시각").optional(),
+        fieldWithPath("$path.answerGuide").type(JsonFieldType.OBJECT).description("답변 예시 안내").optional(),
+        fieldWithPath("$path.answerGuide.mode")
+            .type(JsonFieldType.STRING)
+            .description("예시 표시 방식. INLINE은 즉시 표시, ON_DEMAND는 사용자 요청 시 표시")
+            .optional(),
+        fieldWithPath("$path.answerGuide.examples").type(JsonFieldType.ARRAY).description("현재 회고 맥락에 맞는 답변 예시 2~3개").optional(),
         fieldWithPath("$path.attachments").type(JsonFieldType.ARRAY).description("메시지 첨부파일"),
         fieldWithPath("$path.attachments[].id").type(JsonFieldType.STRING).description("첨부파일 ID").optional(),
         fieldWithPath("$path.attachments[].filename").type(JsonFieldType.STRING).description("원본 파일명").optional(),

@@ -6,8 +6,10 @@ import com.didit.application.admin.provided.AdminPromptPreviewMessage
 import com.didit.application.admin.provided.AdminPromptPreviewProgress
 import com.didit.application.admin.provided.AdminPromptPreviewResult
 import com.didit.application.admin.provided.AdminPromptPreviewState
+import com.didit.application.retrospect.dto.ConversationAnswerGuideResult
 import com.didit.docs.AdminAuthenticatedRestDocsSupport
 import com.didit.docs.ApiDocumentUtils
+import com.didit.domain.retrospect.ConversationAnswerGuideMode
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.RetrospectiveItemStatus
@@ -45,6 +47,11 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                 sender = Sender.AI,
                 content = "어떤 방식으로 해결했나요?",
                 messageType = ConversationMessageType.CONVERSATION,
+                answerGuide =
+                    ConversationAnswerGuideResult(
+                        mode = ConversationAnswerGuideMode.ON_DEMAND,
+                        examples = listOf("테스트 범위가 예상보다 넓었어요", "환경 설정에 시간이 걸렸어요"),
+                    ),
             )
         val items =
             RetrospectiveItemType.entries.map {
@@ -81,6 +88,7 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
             ).andExpect(status().isOk)
             .andExpect(jsonPath("$.data.progress.filledCount").value(1))
             .andExpect(jsonPath("$.data.nextState.analysisItems[0].status").value("PARTIAL"))
+            .andExpect(jsonPath("$.data.assistantMessage.answerGuide.mode").value("ON_DEMAND"))
             .andDo(
                 document(
                     "admin/prompts/preview-v2",
@@ -106,6 +114,13 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.assistantMessage.messageType").type(JsonFieldType.STRING).description("메시지 유형"),
                         fieldWithPath("data.assistantMessage.supportingContent").type(JsonFieldType.NULL).optional().description("보조 문구"),
                         fieldWithPath("data.assistantMessage.relevance").type(JsonFieldType.NULL).optional().description("사용자 메시지 관련성"),
+                        fieldWithPath("data.assistantMessage.answerGuide").type(JsonFieldType.OBJECT).optional().description("답변 예시 안내"),
+                        fieldWithPath(
+                            "data.assistantMessage.answerGuide.mode",
+                        ).type(JsonFieldType.STRING).optional().description("예시 표시 방식"),
+                        fieldWithPath(
+                            "data.assistantMessage.answerGuide.examples",
+                        ).type(JsonFieldType.ARRAY).optional().description("답변 예시 2~3개"),
                         fieldWithPath("data.progress.filledCount").type(JsonFieldType.NUMBER).description("채워진 정보 수"),
                         fieldWithPath("data.progress.totalCount").type(JsonFieldType.NUMBER).description("전체 정보 수"),
                         fieldWithPath("data.nextState.messages[].id").type(JsonFieldType.STRING).description("메시지 ID"),
@@ -116,6 +131,15 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                             "data.nextState.messages[].supportingContent",
                         ).type(JsonFieldType.NULL).optional().description("보조 문구"),
                         fieldWithPath("data.nextState.messages[].relevance").type(JsonFieldType.NULL).optional().description("사용자 메시지 관련성"),
+                        fieldWithPath(
+                            "data.nextState.messages[].answerGuide",
+                        ).type(JsonFieldType.OBJECT).optional().description("답변 예시 안내"),
+                        fieldWithPath(
+                            "data.nextState.messages[].answerGuide.mode",
+                        ).type(JsonFieldType.STRING).optional().description("예시 표시 방식"),
+                        fieldWithPath(
+                            "data.nextState.messages[].answerGuide.examples",
+                        ).type(JsonFieldType.ARRAY).optional().description("답변 예시 2~3개"),
                         fieldWithPath("data.nextState.analysisItems[].itemType").type(JsonFieldType.STRING).description("정보 항목"),
                         fieldWithPath("data.nextState.analysisItems[].status").type(JsonFieldType.STRING).description("채움 상태"),
                         fieldWithPath(
@@ -127,9 +151,15 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.nextState.recentQuestionTargets")
                             .type(JsonFieldType.ARRAY)
                             .description("최근 질문한 회고 항목. 다음 요청의 priorState로 그대로 전달"),
+                        fieldWithPath("data.nextState.askedQuestionTargets")
+                            .type(JsonFieldType.ARRAY)
+                            .description("이미 질문한 회고 항목. 예시 중복 제공 방지를 위해 다음 요청의 priorState로 그대로 전달"),
                         fieldWithPath("data.nextState.completedQuestionCount")
                             .type(JsonFieldType.NUMBER)
                             .description("완료된 질문 턴 수. 다음 요청의 priorState로 그대로 전달"),
+                        fieldWithPath("data.nextState.consecutiveAskCount")
+                            .type(JsonFieldType.NUMBER)
+                            .description("연속 ASK 턴 수. 다음 요청의 priorState로 그대로 전달"),
                         fieldWithPath("data.nextState.completionPreviouslyOffered")
                             .type(JsonFieldType.BOOLEAN)
                             .description("회고 종료 제안 이력. 다음 요청의 priorState로 그대로 전달"),
