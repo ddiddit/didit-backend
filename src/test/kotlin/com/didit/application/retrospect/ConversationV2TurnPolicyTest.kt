@@ -328,7 +328,7 @@ class ConversationV2TurnPolicyTest {
 
         assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
         assertThat(decided.question).isNull()
-        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.PROCESS)
         assertThat(decided.content())
             .contains("이어")
             .contains("다음 질문이에요.")
@@ -356,7 +356,7 @@ class ConversationV2TurnPolicyTest {
 
         assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
         assertThat(decided.question).isNull()
-        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.BLOCK)
         assertThat(decided.content())
             .contains("이어")
             .contains("진행하면서 어려웠거나 막혔던 점은 무엇이었나요?")

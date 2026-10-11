@@ -51,6 +51,24 @@ class RetrospectiveResultV2TonePolicyTest {
         assertThat(policy.requiresRegeneration(result(summary = "직접 적용해봤어요."))).isFalse()
     }
 
+    @Test
+    fun `과거 명사형 종결을 해요체로 보정한다`() {
+        assertThat(policy.normalize(result(summary = "배포가 완료되었음.")).summary)
+            .isEqualTo("배포가 완료되었어요.")
+        assertThat(policy.normalize(result(summary = "협업 경험이 좋았음.")).summary)
+            .isEqualTo("협업 경험이 좋았어요.")
+        assertThat(policy.normalize(result(summary = "범위를 확인했었음.")).summary)
+            .isEqualTo("범위를 확인했었어요.")
+    }
+
+    @Test
+    fun `보정하지 못한 미음 명사형 종결은 재생성이 필요하다`() {
+        val normalized = policy.normalize(result(summary = "배포 준비가 완료됨."))
+
+        assertThat(normalized.summary).isEqualTo("배포 준비가 완료됨.")
+        assertThat(policy.requiresRegeneration(normalized)).isTrue()
+    }
+
     private fun result(summary: String) =
         GeneratedRetrospectiveResultV2(
             title = "배포 회고",

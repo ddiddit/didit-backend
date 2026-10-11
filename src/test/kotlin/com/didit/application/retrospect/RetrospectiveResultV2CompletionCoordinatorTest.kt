@@ -94,13 +94,13 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
     private fun generatedResult() =
         GeneratedRetrospectiveResultV2(
             title = "배포 자동화 회고",
-            summary = "요약",
-            strengths = listOf("잘한 점"),
-            improvements = listOf("아쉬운 점"),
-            processes = listOf("과정"),
-            learnings = listOf("배움"),
-            insight = RetrospectiveResultDetail("인사이트", "인사이트 설명"),
-            nextActions = listOf(RetrospectiveResultDetail("다음 행동", "다음 행동 설명")),
+            summary = "배포 자동화를 점검했어요.",
+            strengths = listOf("문제를 빠르게 확인했어요."),
+            improvements = listOf("사전 점검이 필요해요."),
+            processes = listOf("배포 단계를 확인했어요."),
+            learnings = listOf("자동화 검증 방법을 배웠어요."),
+            insight = RetrospectiveResultDetail("인사이트", "반복 검증이 중요해요."),
+            nextActions = listOf(RetrospectiveResultDetail("다음 행동", "배포 전 점검을 이어갈게요.")),
             inputTokens = 10,
             outputTokens = 5,
         )

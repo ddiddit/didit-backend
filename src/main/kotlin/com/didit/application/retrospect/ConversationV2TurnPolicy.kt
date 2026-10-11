@@ -272,7 +272,7 @@ class ConversationV2TurnPolicy {
                 acknowledgement = acknowledgement,
                 interpretation = reflectInterpretation,
                 question = null,
-                questionTarget = null,
+                questionTarget = questionTarget.takeIf { !optionalContinuationQuestion.isNullOrBlank() },
             )
         return if (reflected.content().isBlank()) {
             reflected.copy(acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT)

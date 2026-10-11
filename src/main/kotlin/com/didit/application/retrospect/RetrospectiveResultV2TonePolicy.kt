@@ -18,14 +18,23 @@ class RetrospectiveResultV2TonePolicy {
         )
 
     fun requiresRegeneration(generated: GeneratedRetrospectiveResultV2): Boolean =
-        generated.userFacingNarratives().any(REPORT_STYLE_REMAINDER::containsMatchIn)
+        generated.userFacingNarratives().any { narrative ->
+            REPORT_STYLE_REMAINDER.containsMatchIn(narrative) || narrative.endsWithNominalMieum()
+        }
 
     private fun RetrospectiveResultDetail.toPoliteStyle(): RetrospectiveResultDetail = copy(description = description.toPoliteStyle())
 
     private fun String.toPoliteStyle(): String =
         REPORT_STYLE_ENDINGS
             .fold(this) { normalized, (ending, replacement) -> normalized.replace(ending, replacement) }
+            .normalizePastNominalEnding()
             .normalizePastPlainEnding()
+
+    private fun String.normalizePastNominalEnding(): String =
+        PAST_NOMINAL_ENDING.replace(this) { match ->
+            val syllable = match.groupValues[1].single()
+            if (syllable.hasFinalSsangSiot()) "${syllable}어요" else match.value
+        }
 
     private fun String.normalizePastPlainEnding(): String =
         PAST_PLAIN_ENDING.replace(this) { match ->
@@ -36,6 +45,17 @@ class RetrospectiveResultV2TonePolicy {
     private fun Char.hasFinalSsangSiot(): Boolean =
         code in HANGUL_SYLLABLE_START..HANGUL_SYLLABLE_END &&
             (code - HANGUL_SYLLABLE_START) % HANGUL_FINAL_COUNT == SSANG_SIOT_FINAL_INDEX
+
+    private fun String.endsWithNominalMieum(): Boolean =
+        trimEnd()
+            .trimEnd('.', '!', '?', '…')
+            .trimEnd()
+            .lastOrNull()
+            ?.hasFinalMieum() == true
+
+    private fun Char.hasFinalMieum(): Boolean =
+        code in HANGUL_SYLLABLE_START..HANGUL_SYLLABLE_END &&
+            (code - HANGUL_SYLLABLE_START) % HANGUL_FINAL_COUNT == MIEUM_FINAL_INDEX
 
     private fun GeneratedRetrospectiveResultV2.userFacingNarratives(): List<String> =
         buildList {
@@ -50,11 +70,13 @@ class RetrospectiveResultV2TonePolicy {
 
     companion object {
         private val SENTENCE_END = "(?=\\s*[.!?…]?(?:\\s|$))"
+        private val PAST_NOMINAL_ENDING = Regex("([가-힣])음$SENTENCE_END")
         private val PAST_PLAIN_ENDING = Regex("([가-힣])다$SENTENCE_END")
         private val REPORT_STYLE_REMAINDER = Regex("(?:다|하였음|했음|함)$SENTENCE_END")
         private const val HANGUL_SYLLABLE_START = 0xAC00
         private const val HANGUL_SYLLABLE_END = 0xD7A3
         private const val HANGUL_FINAL_COUNT = 28
+        private const val MIEUM_FINAL_INDEX = 16
         private const val SSANG_SIOT_FINAL_INDEX = 20
         private val REPORT_STYLE_ENDINGS =
             listOf(
