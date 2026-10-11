@@ -162,6 +162,60 @@ class ConversationAnswerGuidePolicyTest {
         assertThat(guide?.examples).containsExactly("[민감정보]에게 확인이 필요했어요", "테스트 환경 접근이 어려웠어요")
     }
 
+    @Test
+    fun `내부 회고 항목이나 상태가 포함된 예시는 전체를 버린다`() {
+        val guide =
+            policy.decide(
+                generated =
+                    generated(
+                        RetrospectiveItemType.BLOCK,
+                        listOf("BLOCK은 아직 확인되지 않았어요", "테스트 범위가 예상보다 넓었어요"),
+                    ),
+                decided = generated(RetrospectiveItemType.BLOCK),
+                items = items(fact = RetrospectiveItemStatus.PARTIAL),
+                sensitiveDataDetected = false,
+                userMessageContent = "테스트 범위가 예상보다 넓었어요.",
+            )
+
+        assertThat(guide).isNull()
+    }
+
+    @Test
+    fun `업무 맥락에서 사용한 enum과 같은 용어는 답변 예시에 유지한다`() {
+        val guide =
+            policy.decide(
+                generated =
+                    generated(
+                        RetrospectiveItemType.BLOCK,
+                        listOf("FACT 테이블 상태를 확인했어요", "복합 인덱스를 검토했어요"),
+                    ),
+                decided = generated(RetrospectiveItemType.BLOCK),
+                items = items(fact = RetrospectiveItemStatus.PARTIAL),
+                sensitiveDataDetected = false,
+                userMessageContent = "FACT 테이블 상태를 확인했어요.",
+            )
+
+        assertThat(guide?.examples).containsExactly("FACT 테이블 상태를 확인했어요", "복합 인덱스를 검토했어요")
+    }
+
+    @Test
+    fun `내부 응답 필드명이 포함된 예시는 전체를 버린다`() {
+        val guide =
+            policy.decide(
+                generated =
+                    generated(
+                        RetrospectiveItemType.BLOCK,
+                        listOf("analysisUpdates가 비어 있어요", "테스트 범위가 예상보다 넓었어요"),
+                    ),
+                decided = generated(RetrospectiveItemType.BLOCK),
+                items = items(fact = RetrospectiveItemStatus.PARTIAL),
+                sensitiveDataDetected = false,
+                userMessageContent = "테스트 범위가 예상보다 넓었어요.",
+            )
+
+        assertThat(guide).isNull()
+    }
+
     private fun generated(
         target: RetrospectiveItemType,
         examples: List<String> = emptyList(),

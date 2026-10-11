@@ -33,6 +33,8 @@ class AdminPromptPreviewOpenAiClientTest {
             .expect(once(), requestTo("https://api.openai.com/v1/responses"))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("초안 입력")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("answerExamples")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("내부 항목명")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("맥락에 맞는 이어가기 단서")))
             .andRespond(withSuccess(response(), MediaType.APPLICATION_JSON))
 
         val appender = previewLogAppender()

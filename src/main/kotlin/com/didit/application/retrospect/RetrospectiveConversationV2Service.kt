@@ -556,7 +556,9 @@ class RetrospectiveConversationV2Service(
                     completionPreviouslyOffered = conversationState.completionPreviouslyOffered,
                     continuationRequested = preparation.continuationRequested,
                     hasMeaningfulAnalysisUpdate = updatedItemTypes.isNotEmpty(),
+                    completedQuestionCount = conversationState.completedQuestionCount,
                     consecutiveAskCount = conversationState.consecutiveAskCount,
+                    userMessageContent = userMessage.content,
                 )
             val answerGuide =
                 answerGuidePolicy.decide(
@@ -565,6 +567,7 @@ class RetrospectiveConversationV2Service(
                     items = items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary, it.questionAllowed) },
                     sensitiveDataDetected = preparation.sensitiveDataDetected,
                     previouslyAskedTargets = conversationState.askedQuestionTargets,
+                    userMessageContent = userMessage.content,
                 )
 
             val generatedContent =

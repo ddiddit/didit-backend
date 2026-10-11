@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test
 import org.mockito.kotlin.any
 import org.mockito.kotlin.doAnswer
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.times
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.context.ApplicationEventPublisher
 import org.springframework.transaction.TransactionDefinition
@@ -29,7 +31,7 @@ import java.util.UUID
 
 class RetrospectiveResultV2CompletionCoordinatorTest {
     @Test
-    fun `complete - 완료 이벤트는 결과 저장 트랜잭션 안에서 발행한다`() {
+    fun `complete - 보고서체 결과는 한 번 재생성하고 완료 이벤트는 저장 트랜잭션 안에서 발행한다`() {
         val retrospectiveId = UUID.randomUUID()
         val userId = UUID.randomUUID()
         val retrospective =
@@ -54,7 +56,10 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
         whenever(chatMessageRepository.findAllResultEvidenceByRetrospectiveId(retrospectiveId)).thenReturn(emptyList())
         whenever(analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)).thenReturn(emptyList())
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(mock<User>())
-        whenever(aiClient.generateResult(any())).thenReturn(generatedResult())
+        whenever(aiClient.generateResult(any())).thenReturn(
+            generatedResult().copy(summary = "좋다."),
+            generatedResult().copy(summary = "좋아요."),
+        )
         doAnswer { invocation ->
             if (invocation.getArgument<Any>(0) is RetrospectiveCompletedEvent) {
                 synchronizationActiveWhenPublished = TransactionSynchronizationManager.isSynchronizationActive()
@@ -71,6 +76,7 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
                 turnRepository,
                 userFinder,
                 aiClient,
+                RetrospectiveResultV2TonePolicy(),
                 TransactionTemplate(TestTransactionManager()),
                 RetrospectiveAiMetrics(SimpleMeterRegistry()),
                 eventPublisher,
@@ -80,6 +86,8 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
 
         coordinator.complete(retrospectiveId, userId)
 
+        verify(aiClient, times(2)).generateResult(any())
+        assertThat(retrospective.resultV2?.summary).isEqualTo("좋아요.")
         assertThat(synchronizationActiveWhenPublished).isTrue()
     }
 

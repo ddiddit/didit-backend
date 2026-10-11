@@ -31,6 +31,7 @@ class ConversationAnswerGuidePolicy(
         items: List<ConversationV2AnalysisItemSnapshot>,
         sensitiveDataDetected: Boolean,
         previouslyAskedTargets: Set<RetrospectiveItemType> = emptySet(),
+        userMessageContent: String? = null,
     ): ConversationAnswerGuide? {
         val target = decided.questionTarget ?: return null
         if (decided.action != ConversationTurnAction.ASK || target !in SUPPORTED_TARGETS) return null
@@ -46,6 +47,7 @@ class ConversationAnswerGuidePolicy(
             }
         if (examples.size !in MIN_EXAMPLE_COUNT..MAX_EXAMPLE_COUNT) return null
         if (examples.any { it.isBlank() || it.length > MAX_EXAMPLE_LENGTH || '\n' in it || '\r' in it }) return null
+        if (examples.any { ConversationInternalMetadataPolicy.contains(it, userMessageContent) }) return null
         if (examples.distinct().size != examples.size) return null
         if (target == RetrospectiveItemType.ACTION && examples.none(::isMaintenanceChoice)) return null
 

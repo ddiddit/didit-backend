@@ -68,6 +68,7 @@ import java.util.UUID
     AttachmentSensitiveDataDetector::class,
     ConversationAnswerGuidePolicy::class,
     ConversationV2TurnPolicy::class,
+    RetrospectiveResultV2TonePolicy::class,
     RetrospectiveConversationV2ServiceTest.MetricsConfig::class,
 )
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
@@ -913,7 +914,7 @@ class RetrospectiveConversationV2ServiceTest {
         assertThat(result.resultGenerationStatus.name).isEqualTo("GENERATED")
         assertThat(result.title).isEqualTo("배포 오류 롤백 회고")
         assertThat(result.result.strengths).isNull()
-        assertThat(saved.resultV2?.summary).isEqualTo("배포 오류를 발견하고 롤백했다.")
+        assertThat(saved.resultV2?.summary).isEqualTo("배포 오류를 발견하고 롤백했어요.")
         assertThat(saved.status.name).isEqualTo("COMPLETED")
         assertThat(saved.conversationFinishedAt).isNotNull()
     }

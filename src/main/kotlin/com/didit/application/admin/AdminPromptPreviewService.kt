@@ -119,7 +119,9 @@ class AdminPromptPreviewService(
                 completionPreviouslyOffered = priorState.completionPreviouslyOffered,
                 continuationRequested = continuationRequested,
                 hasMeaningfulAnalysisUpdate = hasMeaningfulAnalysisUpdate,
+                completedQuestionCount = priorState.completedQuestionCount,
                 consecutiveAskCount = priorState.consecutiveAskCount,
+                userMessageContent = command.message,
             )
         val answerGuide =
             answerGuidePolicy
@@ -129,6 +131,7 @@ class AdminPromptPreviewService(
                     items = updatedItemSnapshots,
                     sensitiveDataDetected = false,
                     previouslyAskedTargets = priorState.askedQuestionTargets,
+                    userMessageContent = command.message,
                 )?.toResult()
         val assistantSnapshot = turnPolicy.assistantSnapshot(decided)
         check(assistantSnapshot.content.isNotBlank()) { "AI 응답이 비어 있습니다." }
