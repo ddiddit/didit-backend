@@ -354,6 +354,26 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
+    fun `회고 연결 응답에서 항목을 거부하면 모델의 새 질문을 제거한다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.BRIDGEABLE).copy(
+                        question = "다음에는 무엇을 다르게 해보고 싶나요?",
+                        questionTarget = RetrospectiveItemType.ACTION,
+                        declinedItemTypes = listOf(RetrospectiveItemType.BLOCK),
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.ACTION),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.question).isNull()
+    }
+
+    @Test
     fun `이어 말하기로 분류된 REFLECT는 새 질문으로 덮어쓰지 않는다`() {
         val decided =
             policy.decideTurn(

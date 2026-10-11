@@ -165,10 +165,7 @@ class ConversationV2TurnPolicy {
                 questionTarget = null,
             )
         }
-        if (
-            generated.relevance == MessageRelevance.RETROSPECTIVE &&
-            generated.declinedItemTypes.isNotEmpty()
-        ) {
+        if (generated.declinedItemTypes.isNotEmpty()) {
             return generated.asReflect()
         }
         if (
