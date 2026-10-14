@@ -22,9 +22,11 @@ import com.didit.domain.organization.Tag
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveResultV2
 import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.domain.retrospect.SearchHistory
 import com.didit.support.RetrospectiveFixture
+import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
@@ -817,7 +819,10 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
         mockMvc
             .perform(get("/api/v2/retrospectives/{retrospectiveId}", retrospectiveId))
             .andExpect(status().isOk)
-            .andDo(
+            .andExpect(
+                jsonPath("$.data.content.summary")
+                    .value("오늘은 로그인 API 연동 작업을 마무리하면서 토큰 만료 처리 로직에서 예상치 못한 엣지 케이스를 발견하고 해결한 하루였어요."),
+            ).andDo(
                 document(
                     "retrospect/v2/find-by-id",
                     ApiDocumentUtils.getDocumentRequest(),
@@ -890,6 +895,54 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.tags[].id").type(JsonFieldType.STRING).description("태그 ID"),
                         fieldWithPath("data.tags[].name").type(JsonFieldType.STRING).description("태그 이름"),
                     ),
+                ),
+            )
+    }
+
+    @Test
+    fun `V2 회고 상세 조회는 기존 V1 요약 데이터를 응답하지 않는다`() {
+        val retrospective =
+            Retrospective.createV2(userId).apply {
+                startProgress()
+                saveSummary(
+                    RetrospectiveSummary(
+                        summary = "기존 요약",
+                        blockedPoint = listOf("기존 막힌 지점"),
+                        solutionProcess = listOf("기존 해결 과정"),
+                        lessonLearned = listOf("기존 배운 점"),
+                        insightTitle = "기존 인사이트",
+                        insightDescription = "기존 인사이트 설명",
+                        nextActionTitle = "기존 다음 행동",
+                        nextActionDescription = "기존 다음 행동 설명",
+                    ),
+                )
+                saveV2Result(
+                    title = "V2 회고",
+                    result =
+                        RetrospectiveResultV2(
+                            summary = "V2 요약",
+                            strengths = null,
+                            improvements = null,
+                            processes = null,
+                            learnings = null,
+                            insight = null,
+                            nextActions = null,
+                        ),
+                )
+            }
+        whenever(
+            retrospectiveFinder.findRetrospectWithProjectAndTags(retrospectiveId, userId),
+        ).thenReturn(RetrospectiveDetailResult(retrospective, null, emptyList()))
+
+        mockMvc
+            .perform(get("/api/v2/retrospectives/{retrospectiveId}", retrospectiveId))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.content").value(nullValue()))
+            .andDo(
+                document(
+                    "retrospect/v2/find-by-id-v2-flow",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
                 ),
             )
     }
