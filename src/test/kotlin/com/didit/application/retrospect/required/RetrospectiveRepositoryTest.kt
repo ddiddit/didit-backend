@@ -173,6 +173,64 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
+    fun `스키마 2 결과가 저장된 회고를 상세 조회할 수 있다`() {
+        val retrospective =
+            Retrospective.createV2(userId).apply {
+                startProgress()
+                finishConversation()
+                saveV2Result(
+                    title = "기존 회고",
+                    result = RetrospectiveResultV2(null, null, null, null, null, null, null),
+                )
+            }
+        retrospectiveRepository.save(retrospective)
+        entityManager.flush()
+        entityManager.clear()
+
+        entityManager
+            .createNativeQuery(
+                """
+                UPDATE retrospectives
+                SET result_schema_version = 2,
+                    result_summary = :summary,
+                    result_strength = :strength,
+                    result_improvement = :improvement,
+                    result_process = :process,
+                    result_learning = :learning,
+                    result_insight = :insight,
+                    result_next_actions = :nextActions
+                WHERE id = :id
+                """.trimIndent(),
+            ).setParameter("summary", "기존 회고 요약")
+            .setParameter("strength", "문제를 빨리 발견했다.")
+            .setParameter("improvement", "배포 전 확인이 부족했다.")
+            .setParameter("process", "로그로 원인을 좁혔다.")
+            .setParameter("learning", "체크리스트가 필요하다.")
+            .setParameter("insight", "원인을 먼저 분리해 보는 게 중요하다.")
+            .setParameter("nextActions", """["테스트 추가", "체크리스트 작성", "알림 기준 점검"]""")
+            .setParameter("id", retrospective.id)
+            .executeUpdate()
+        entityManager.flush()
+        entityManager.clear()
+
+        val saved =
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNull(retrospective.id, userId)!!
+
+        assertThat(saved.resultV2?.strengths).containsExactly("문제를 빨리 발견했다.")
+        assertThat(saved.resultV2?.improvements).containsExactly("배포 전 확인이 부족했다.")
+        assertThat(saved.resultV2?.processes).containsExactly("로그로 원인을 좁혔다.")
+        assertThat(saved.resultV2?.learnings).containsExactly("체크리스트가 필요하다.")
+        assertThat(saved.resultV2?.insight)
+            .isEqualTo(RetrospectiveResultDetail("디딧의 인사이트", "원인을 먼저 분리해 보는 게 중요하다."))
+        assertThat(saved.resultV2?.nextActions)
+            .containsExactly(
+                RetrospectiveResultDetail("다음 행동", "테스트 추가"),
+                RetrospectiveResultDetail("다음 행동", "체크리스트 작성"),
+                RetrospectiveResultDetail("다음 행동", "알림 기준 점검"),
+            )
+    }
+
+    @Test
     fun `findRecentCompletedByUserId - limit만큼만 반환한다`() {
         repeat(5) { retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고 $it")) }
 
