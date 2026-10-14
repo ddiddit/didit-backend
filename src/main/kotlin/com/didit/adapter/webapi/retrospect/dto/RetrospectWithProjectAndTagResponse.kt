@@ -23,23 +23,27 @@ data class RetrospectWithProjectAndTagResponse(
                 title = result.retrospective.title,
                 status = result.retrospective.status,
                 content =
-                    result.retrospective.summary?.let {
-                        ContentResponse(
-                            summary = it.summary,
-                            blockedPoint = it.blockedPoint,
-                            solutionProcess = it.solutionProcess,
-                            lessonLearned = it.lessonLearned,
-                            insight =
-                                InsightContentResponse(
-                                    title = it.insightTitle,
-                                    description = it.insightDescription,
-                                ),
-                            nextAction =
-                                NextActionContentResponse(
-                                    title = it.nextActionTitle,
-                                    description = it.nextActionDescription,
-                                ),
-                        )
+                    if (result.retrospective.isV2()) {
+                        null
+                    } else {
+                        result.retrospective.summary?.let {
+                            ContentResponse(
+                                summary = it.summary,
+                                blockedPoint = it.blockedPoint,
+                                solutionProcess = it.solutionProcess,
+                                lessonLearned = it.lessonLearned,
+                                insight =
+                                    InsightContentResponse(
+                                        title = it.insightTitle,
+                                        description = it.insightDescription,
+                                    ),
+                                nextAction =
+                                    NextActionContentResponse(
+                                        title = it.nextActionTitle,
+                                        description = it.nextActionDescription,
+                                    ),
+                            )
+                        }
                     },
                 completedAt = result.retrospective.completedAt,
                 project = result.project?.let { ProjectListResponse.from(it) },
