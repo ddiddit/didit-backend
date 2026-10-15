@@ -85,7 +85,13 @@ class NullableStringListJsonConverter : AttributeConverter<List<String>, String>
     override fun convertToDatabaseColumn(attribute: List<String>?): String? = attribute?.let(objectMapper::writeValueAsString)
 
     override fun convertToEntityAttribute(dbData: String?): List<String>? =
-        dbData?.takeIf(String::isNotBlank)?.let { data -> objectMapper.readValue<List<String>>(data) }
+        dbData.normalizedPersistedValue()?.let { data ->
+            if (data.startsWith("[") || data.startsWith("{")) {
+                objectMapper.readValue<List<String>>(data)
+            } else {
+                listOf(data)
+            }
+        }
 }
 
 @Converter
@@ -93,7 +99,13 @@ class NullableResultDetailJsonConverter : AttributeConverter<RetrospectiveResult
     override fun convertToDatabaseColumn(attribute: RetrospectiveResultDetail?): String? = attribute?.let(objectMapper::writeValueAsString)
 
     override fun convertToEntityAttribute(dbData: String?): RetrospectiveResultDetail? =
-        dbData?.takeIf(String::isNotBlank)?.let { data -> objectMapper.readValue<RetrospectiveResultDetail>(data) }
+        dbData.normalizedPersistedValue()?.let { data ->
+            if (data.startsWith("{")) {
+                objectMapper.readValue<RetrospectiveResultDetail>(data)
+            } else {
+                RetrospectiveResultDetail(LEGACY_INSIGHT_TITLE, data)
+            }
+        }
 }
 
 @Converter
@@ -102,7 +114,18 @@ class NullableResultDetailListJsonConverter : AttributeConverter<List<Retrospect
         attribute?.let(objectMapper::writeValueAsString)
 
     override fun convertToEntityAttribute(dbData: String?): List<RetrospectiveResultDetail>? =
-        dbData?.takeIf(String::isNotBlank)?.let { data -> objectMapper.readValue<List<RetrospectiveResultDetail>>(data) }
+        dbData.normalizedPersistedValue()?.let { data ->
+            val items = objectMapper.readTree(data)
+            if (items.isArray && items.all { it.isTextual }) {
+                items.map { RetrospectiveResultDetail(LEGACY_NEXT_ACTION_TITLE, it.textValue()) }
+            } else {
+                objectMapper.readerForListOf(RetrospectiveResultDetail::class.java).readValue(items)
+            }
+        }
 }
 
+private const val LEGACY_INSIGHT_TITLE = "디딧의 인사이트"
+private const val LEGACY_NEXT_ACTION_TITLE = "다음 행동"
 private val objectMapper = jacksonObjectMapper()
+
+private fun String?.normalizedPersistedValue(): String? = this?.trim()?.takeIf(String::isNotEmpty)
