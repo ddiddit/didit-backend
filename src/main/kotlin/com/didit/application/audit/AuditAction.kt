@@ -48,6 +48,7 @@ enum class AuditAction(
     ADMIN_PROMPT_UPDATED("프롬프트 수정", ActorType.ADMIN),
 
     USER_FORCE_WITHDREW("회원 강제 탈퇴", ActorType.ADMIN),
+    USER_ACCOUNT_TYPE_CHANGED("회원 계정 유형 변경", ActorType.ADMIN),
     USER_MARKETING_CONSENT_UPDATED("마케팅 수신 동의 변경", ActorType.USER),
     USER_NOTIFICATION_SETTING_UPDATED("알림 설정 변경", ActorType.USER),
     USER_NIGHT_PUSH_CONSENT_UPDATED("야간 푸시 동의 변경", ActorType.USER),

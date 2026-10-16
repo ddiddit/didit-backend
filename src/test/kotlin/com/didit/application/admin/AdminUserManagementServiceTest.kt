@@ -7,6 +7,7 @@ import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.notification.required.DeviceTokenRepository
+import com.didit.domain.auth.UserAccountType
 import com.didit.support.UserFixture
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -41,6 +42,26 @@ class AdminUserManagementServiceTest {
 
     private val adminId = UUID.randomUUID()
     private val userId = UUID.randomUUID()
+
+    @Test
+    fun `계정 유형 변경 성공 - 사용자와 감사 로그를 저장한다`() {
+        val user = UserFixture.createOnboarded()
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(userRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        adminUserManagementService.changeAccountType(adminId, userId, UserAccountType.TEAM)
+
+        assert(user.accountType == UserAccountType.TEAM)
+        verify(userRepository).save(user)
+        verify(auditLogger).log(
+            adminId,
+            ActorType.ADMIN,
+            AuditAction.USER_ACCOUNT_TYPE_CHANGED,
+            userId,
+            "USER",
+            mapOf("previousAccountType" to "CUSTOMER", "accountType" to "TEAM"),
+        )
+    }
 
     @Test
     fun `강제 탈퇴 성공 - 유저 상태 변경 및 토큰 삭제`() {

@@ -220,6 +220,13 @@ class UserApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.provider")
                             .type(JsonFieldType.STRING)
                             .description("소셜 로그인 제공자 (KAKAO, GOOGLE, APPLE)"),
+                        fieldWithPath("data.accountType")
+                            .type(JsonFieldType.STRING)
+                            .description("계정 유형 (CUSTOMER, TEAM, TEST)"),
+                        fieldWithPath("data.createdAt")
+                            .type(JsonFieldType.STRING)
+                            .optional()
+                            .description("가입 일시"),
                         fieldWithPath("data.recentBadges").type(JsonFieldType.ARRAY).description("최근 획득 배지 목록 (최대 3개)"),
                     ),
                 ),

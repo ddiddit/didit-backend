@@ -87,3 +87,7 @@ retrospective:
   attachments:
     bucket: ${RETROSPECTIVE_ATTACHMENT_BUCKET:didit-retrospective-attachments-dev}
     region: ${AWS_REGION:ap-northeast-2}
+
+analytics:
+  # DB 시간이 UTC이므로 출시 시각도 UTC로 설정한다. 기본값은 2026-10-23 00:00 KST.
+  launch-at-utc: ${ANALYTICS_LAUNCH_AT_UTC:2026-10-22T15:00:00}
