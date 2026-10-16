@@ -63,6 +63,7 @@ data class StartConversationV2Response(
 
 data class SubmitConversationMessageV2Response(
     val turnId: UUID,
+    val turnNumber: Int,
     val userMessageId: UUID,
     val assistantMessage: ConversationMessageV2Response?,
     val readyToComplete: Boolean,
@@ -72,6 +73,7 @@ data class SubmitConversationMessageV2Response(
         fun from(result: SubmitConversationMessageResult) =
             SubmitConversationMessageV2Response(
                 turnId = result.turnId,
+                turnNumber = result.turnNumber,
                 userMessageId = result.userMessageId,
                 assistantMessage = result.assistantMessage?.let(ConversationMessageV2Response::from),
                 readyToComplete = result.readyToComplete,

@@ -95,6 +95,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
         ).thenReturn(
             SubmitConversationMessageResult(
                 turnId = turnId,
+                turnNumber = 1,
                 userMessageId = userMessageId,
                 assistantMessage = assistantMessage(),
                 readyToComplete = false,
@@ -132,6 +133,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     responseFields(
                         fieldWithPath("data.turnId").type(JsonFieldType.STRING).description("대화 턴 ID"),
+                        fieldWithPath("data.turnNumber").type(JsonFieldType.NUMBER).description("서버 기준 대화 턴 번호"),
                         fieldWithPath("data.userMessageId").type(JsonFieldType.STRING).description("저장된 사용자 메시지 ID"),
                         *messageFields("data.assistantMessage", "AI 후속 대화"),
                         fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("내부 회고 항목 기준 완료 준비도"),
@@ -157,6 +159,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
         ).thenReturn(
             SubmitConversationMessageResult(
                 turnId = turnId,
+                turnNumber = 1,
                 userMessageId = userMessageId,
                 assistantMessage = null,
                 readyToComplete = false,
@@ -185,6 +188,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                     ),
                     responseFields(
                         fieldWithPath("data.turnId").type(JsonFieldType.STRING).description("비동기 처리 턴 ID"),
+                        fieldWithPath("data.turnNumber").type(JsonFieldType.NUMBER).description("서버 기준 대화 턴 번호"),
                         fieldWithPath("data.userMessageId").type(JsonFieldType.STRING).description("사용자 메시지 ID"),
                         fieldWithPath("data.assistantMessage").type(JsonFieldType.NULL).description("분석 중에는 null"),
                         fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("완료 준비도"),
@@ -493,6 +497,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
     private fun submitMessageResult() =
         SubmitConversationMessageResult(
             turnId = turnId,
+            turnNumber = 1,
             userMessageId = userMessageId,
             assistantMessage = assistantMessage(),
             readyToComplete = false,

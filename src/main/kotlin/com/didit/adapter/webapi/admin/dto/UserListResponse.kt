@@ -1,6 +1,7 @@
 package com.didit.adapter.webapi.admin.dto
 
 import com.didit.application.admin.provided.UserSummary
+import com.didit.domain.auth.UserAccountType
 import com.didit.domain.auth.UserAge
 import com.didit.domain.auth.UserExperience
 import com.didit.domain.shared.Job
@@ -15,6 +16,7 @@ data class UserListResponse(
     val age: UserAge?,
     val experience: UserExperience?,
     val provider: String,
+    val accountType: UserAccountType,
     val createdAt: LocalDateTime?,
     val lastLoginAt: LocalDateTime?,
     val onboardingCompleted: Boolean,
@@ -30,6 +32,7 @@ data class UserListResponse(
                 age = summary.age,
                 experience = summary.experience,
                 provider = summary.provider,
+                accountType = summary.accountType,
                 createdAt = summary.createdAt,
                 lastLoginAt = summary.lastLoginAt,
                 onboardingCompleted = summary.onboardingCompleted,

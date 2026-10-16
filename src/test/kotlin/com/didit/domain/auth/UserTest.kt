@@ -19,6 +19,16 @@ class UserTest {
         assertThat(user.job).isNull()
         assertThat(user.isDeleted).isFalse()
         assertThat(user.isOnboardingCompleted).isFalse()
+        assertThat(user.accountType).isEqualTo(UserAccountType.CUSTOMER)
+    }
+
+    @Test
+    fun `계정 유형을 변경한다`() {
+        val user = UserFixture.create()
+
+        user.changeAccountType(UserAccountType.TEAM)
+
+        assertThat(user.accountType).isEqualTo(UserAccountType.TEAM)
     }
 
     @Test

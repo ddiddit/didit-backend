@@ -47,6 +47,9 @@ class User(
     var onboardingCompletedAt: LocalDateTime? = null,
     @Column(name = "deleted_at")
     var deletedAt: LocalDateTime? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(name = "account_type", nullable = false, length = 20)
+    var accountType: UserAccountType = UserAccountType.CUSTOMER,
 ) : BaseEntity() {
     @OneToOne(cascade = [CascadeType.ALL], fetch = FetchType.LAZY)
     @PrimaryKeyJoinColumn
@@ -143,6 +146,10 @@ class User(
     fun updateMarketingConsent(agreed: Boolean) {
         checkNotNull(consent) { "동의 정보가 존재하지 않습니다." }
         consent!!.updateMarketing(agreed)
+    }
+
+    fun changeAccountType(accountType: UserAccountType) {
+        this.accountType = accountType
     }
 
     private fun String.isValidNickname(): Boolean = matches(Regex("^[가-힣a-zA-Z]{2,10}$"))

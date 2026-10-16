@@ -23,6 +23,7 @@ data class StartConversationV2Result(
 
 data class SubmitConversationMessageResult(
     val turnId: UUID,
+    val turnNumber: Int,
     val userMessageId: UUID,
     val assistantMessage: ConversationMessageResult?,
     val readyToComplete: Boolean,

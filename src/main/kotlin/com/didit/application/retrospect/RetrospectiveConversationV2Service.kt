@@ -145,6 +145,7 @@ class RetrospectiveConversationV2Service(
             )
             return SubmitConversationMessageResult(
                 turnId = preparation.turnId,
+                turnNumber = preparation.turnNumber,
                 userMessageId = preparation.userMessageId,
                 assistantMessage = null,
                 readyToComplete = false,
@@ -473,6 +474,7 @@ class RetrospectiveConversationV2Service(
             retrospectiveId = retrospective.id,
             userId = retrospective.userId,
             turnId = turn.id,
+            turnNumber = turn.turnNumber,
             userMessageId = userMessage.id,
             aiRequest =
                 if (attachmentIds.isEmpty() || includeAttachmentContext) {
@@ -613,6 +615,7 @@ class RetrospectiveConversationV2Service(
 
             SubmitConversationMessageResult(
                 turnId = turn.id,
+                turnNumber = turn.turnNumber,
                 userMessageId = userMessage.id,
                 assistantMessage = assistantMessage.toResult(answerGuide = answerGuide?.toResult()),
                 readyToComplete = ready,
@@ -790,6 +793,7 @@ class RetrospectiveConversationV2Service(
     ): SubmitConversationMessageResult =
         SubmitConversationMessageResult(
             turnId = id,
+            turnNumber = turnNumber,
             userMessageId = userMessageId,
             assistantMessage = assistantMessage.toResult(answerGuide = toAnswerGuideResult()),
             readyToComplete = readyToComplete,
@@ -806,6 +810,7 @@ private data class TurnPreparation(
     val retrospectiveId: UUID,
     val userId: UUID,
     val turnId: UUID,
+    val turnNumber: Int,
     val userMessageId: UUID,
     val aiRequest: ConversationTurnAIRequest?,
     val attachmentIds: List<UUID> = emptyList(),
@@ -824,6 +829,7 @@ private data class TurnPreparation(
                 retrospectiveId = retrospectiveId,
                 userId = userId,
                 turnId = result.turnId,
+                turnNumber = result.turnNumber,
                 userMessageId = result.userMessageId,
                 aiRequest = null,
                 cachedResult = result,

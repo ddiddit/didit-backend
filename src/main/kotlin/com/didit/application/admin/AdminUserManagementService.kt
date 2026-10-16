@@ -8,6 +8,7 @@ import com.didit.application.auth.provided.UserFinder
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.UserRepository
 import com.didit.application.notification.required.DeviceTokenRepository
+import com.didit.domain.auth.UserAccountType
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
@@ -24,6 +25,32 @@ class AdminUserManagementService(
 ) : AdminUserManager {
     companion object {
         private val logger = LoggerFactory.getLogger(AdminUserManagementService::class.java)
+    }
+
+    @Transactional
+    override fun changeAccountType(
+        adminId: UUID,
+        userId: UUID,
+        accountType: UserAccountType,
+    ) {
+        val user = userFinder.findByIdOrThrow(userId)
+        val previousAccountType = user.accountType
+
+        user.changeAccountType(accountType)
+        userRepository.save(user)
+
+        auditLogger.log(
+            actorId = adminId,
+            actorType = ActorType.ADMIN,
+            action = AuditAction.USER_ACCOUNT_TYPE_CHANGED,
+            targetId = userId,
+            targetType = "USER",
+            payload =
+                mapOf(
+                    "previousAccountType" to previousAccountType.name,
+                    "accountType" to accountType.name,
+                ),
+        )
     }
 
     @Transactional

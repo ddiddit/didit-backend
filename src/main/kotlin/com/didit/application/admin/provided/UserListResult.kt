@@ -1,6 +1,7 @@
 package com.didit.application.admin.provided
 
 import com.didit.domain.auth.User
+import com.didit.domain.auth.UserAccountType
 import com.didit.domain.auth.UserAge
 import com.didit.domain.auth.UserExperience
 import com.didit.domain.shared.Job
@@ -23,6 +24,7 @@ data class UserSummary(
     val age: UserAge?,
     val experience: UserExperience?,
     val provider: String,
+    val accountType: UserAccountType,
     val createdAt: LocalDateTime?,
     val lastLoginAt: LocalDateTime?,
     val onboardingCompleted: Boolean,
@@ -40,6 +42,7 @@ data class UserSummary(
             age = user.age,
             experience = user.experience,
             provider = user.provider.name,
+            accountType = user.accountType,
             createdAt = user.createdAt,
             lastLoginAt = lastLoginAt,
             onboardingCompleted = user.isOnboardingCompleted,
