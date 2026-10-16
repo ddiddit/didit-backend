@@ -3,6 +3,8 @@ package com.didit.application.admin
 import com.didit.application.admin.provided.AdminAnalyticsFinder
 import com.didit.application.admin.provided.AdminAnalyticsResult
 import com.didit.application.admin.required.AdminAnalyticsRepository
+import com.didit.application.common.exception.BusinessException
+import com.didit.application.common.exception.ErrorCode
 import com.didit.domain.shared.ServiceTime
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -21,8 +23,12 @@ class AdminAnalyticsService(
         from: LocalDate,
         to: LocalDate,
     ): AdminAnalyticsResult {
-        require(!from.isAfter(to)) { "시작일은 종료일보다 늦을 수 없습니다." }
-        require(!from.isBefore(to.minusYears(1))) { "조회 기간은 최대 1년입니다." }
+        if (from.isAfter(to)) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST, "시작일은 종료일보다 늦을 수 없습니다.")
+        }
+        if (from.isBefore(to.minusYears(1))) {
+            throw BusinessException(ErrorCode.INVALID_REQUEST, "조회 기간은 최대 1년입니다.")
+        }
 
         val snapshot =
             repository.load(

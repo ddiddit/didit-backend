@@ -3,8 +3,11 @@ package com.didit.application.admin
 import com.didit.application.admin.required.AdminAnalyticsRepository
 import com.didit.application.admin.required.AdminAnalyticsSnapshot
 import com.didit.application.admin.required.AnalyticsRetrospective
+import com.didit.application.common.exception.BusinessException
+import com.didit.application.common.exception.ErrorCode
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.api.extension.ExtendWith
 import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
@@ -17,6 +20,30 @@ import java.time.LocalDateTime
 class AdminAnalyticsServiceTest {
     @Mock
     lateinit var repository: AdminAnalyticsRepository
+
+    @Test
+    fun `시작일이 종료일보다 늦으면 잘못된 요청 예외를 던진다`() {
+        val service = AdminAnalyticsService(repository, LocalDateTime.of(2026, 10, 23, 0, 0))
+
+        val exception =
+            assertThrows<BusinessException> {
+                service.find(LocalDate.of(2026, 10, 31), LocalDate.of(2026, 10, 30))
+            }
+
+        assertThat(exception.errorCode).isEqualTo(ErrorCode.INVALID_REQUEST)
+    }
+
+    @Test
+    fun `조회 기간이 1년을 넘으면 잘못된 요청 예외를 던진다`() {
+        val service = AdminAnalyticsService(repository, LocalDateTime.of(2026, 10, 23, 0, 0))
+
+        val exception =
+            assertThrows<BusinessException> {
+                service.find(LocalDate.of(2025, 10, 29), LocalDate.of(2026, 10, 30))
+            }
+
+        assertThat(exception.errorCode).isEqualTo(ErrorCode.INVALID_REQUEST)
+    }
 
     @Test
     fun `고객 회고 스냅샷으로 공식 KPI를 계산한다`() {

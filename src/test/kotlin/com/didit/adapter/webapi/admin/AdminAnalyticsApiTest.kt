@@ -2,8 +2,11 @@ package com.didit.adapter.webapi.admin
 
 import com.didit.application.admin.provided.AdminAnalyticsFinder
 import com.didit.application.admin.provided.AdminAnalyticsResult
+import com.didit.application.common.exception.BusinessException
+import com.didit.application.common.exception.ErrorCode
 import com.didit.docs.AdminAuthenticatedRestDocsSupport
 import com.didit.docs.ApiDocumentUtils
+import com.didit.docs.CommonDocumentation
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.whenever
@@ -22,6 +25,29 @@ class AdminAnalyticsApiTest : AdminAuthenticatedRestDocsSupport() {
     private val finder: AdminAnalyticsFinder = mock(AdminAnalyticsFinder::class.java)
 
     override fun initController() = AdminAnalyticsApi(finder)
+
+    @Test
+    fun `잘못된 분석 조회 기간은 400을 반환한다`() {
+        val from = LocalDate.of(2026, 10, 31)
+        val to = LocalDate.of(2026, 10, 30)
+        whenever(finder.find(from, to)).thenThrow(BusinessException(ErrorCode.INVALID_REQUEST))
+
+        mockMvc
+            .perform(
+                get("/api/v1/admin/analytics")
+                    .param("from", from.toString())
+                    .param("to", to.toString())
+                    .accept(MediaType.APPLICATION_JSON),
+            ).andExpect(status().isBadRequest)
+            .andDo(
+                document(
+                    "admin/analytics-invalid-range",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    responseFields(*CommonDocumentation.errorResponseFields()),
+                ),
+            )
+    }
 
     @Test
     fun `공식 분석 지표 조회`() {
