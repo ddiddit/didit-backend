@@ -10,17 +10,20 @@ import com.didit.application.audit.AuditEntry
 import com.didit.docs.AdminAuthenticatedRestDocsSupport
 import com.didit.docs.ApiDocumentUtils
 import com.didit.domain.auth.Provider
+import com.didit.domain.auth.UserAccountType
 import com.didit.domain.auth.UserAge
 import com.didit.domain.auth.UserExperience
 import com.didit.domain.shared.Job
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
 import org.springframework.restdocs.mockmvc.MockMvcRestDocumentation.document
 import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
+import org.springframework.restdocs.payload.PayloadDocumentation.requestFields
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.request.RequestDocumentation.parameterWithName
 import org.springframework.restdocs.request.RequestDocumentation.pathParameters
@@ -48,6 +51,7 @@ class UserManagementApiTest : AdminAuthenticatedRestDocsSupport() {
         age = UserAge.AGE_30,
         experience = UserExperience.LESS_THAN_1_YEAR,
         provider = Provider.KAKAO.name,
+        accountType = UserAccountType.CUSTOMER,
         createdAt = LocalDateTime.of(2024, 1, 1, 0, 0, 0),
         lastLoginAt = LocalDateTime.of(2024, 6, 1, 12, 0, 0),
         onboardingCompleted = true,
@@ -106,6 +110,9 @@ class UserManagementApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.content[].provider")
                             .type(JsonFieldType.STRING)
                             .description("소셜 로그인 제공자 (KAKAO, GOOGLE, APPLE)"),
+                        fieldWithPath("data.content[].accountType")
+                            .type(JsonFieldType.STRING)
+                            .description("계정 유형 (CUSTOMER, TEAM, TEST)"),
                         fieldWithPath("data.content[].createdAt")
                             .type(JsonFieldType.STRING)
                             .optional()
@@ -184,6 +191,9 @@ class UserManagementApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.profile.provider")
                             .type(JsonFieldType.STRING)
                             .description("소셜 로그인 제공자"),
+                        fieldWithPath("data.profile.accountType")
+                            .type(JsonFieldType.STRING)
+                            .description("계정 유형 (CUSTOMER, TEAM, TEST)"),
                         fieldWithPath("data.profile.createdAt")
                             .type(JsonFieldType.STRING)
                             .optional()
@@ -230,5 +240,37 @@ class UserManagementApiTest : AdminAuthenticatedRestDocsSupport() {
                     ),
                 ),
             )
+    }
+
+    @Test
+    fun `슈퍼 관리자가 유저 계정 유형을 변경한다`() {
+        val userId = UUID.randomUUID()
+
+        mockMvc
+            .perform(
+                org.springframework.test.web.servlet.request.MockMvcRequestBuilders
+                    .patch(
+                        "/api/v1/admin/users/{userId}/account-type",
+                        userId,
+                    ).contentType(MediaType.APPLICATION_JSON)
+                    .content("""{"accountType":"TEAM"}"""),
+            ).andExpect(status().isNoContent)
+            .andDo(
+                document(
+                    "user/admin/change-account-type",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(
+                        parameterWithName("userId").description("계정 유형을 변경할 유저 ID"),
+                    ),
+                    requestFields(
+                        fieldWithPath("accountType")
+                            .type(JsonFieldType.STRING)
+                            .description("계정 유형 (CUSTOMER, TEAM, TEST)"),
+                    ),
+                ),
+            )
+
+        verify(adminUserManager).changeAccountType(adminId, userId, UserAccountType.TEAM)
     }
 }

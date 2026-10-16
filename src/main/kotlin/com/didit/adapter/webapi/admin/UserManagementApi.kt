@@ -3,6 +3,7 @@ package com.didit.adapter.webapi.admin
 import com.didit.adapter.webapi.admin.annotation.CurrentAdminId
 import com.didit.adapter.webapi.admin.annotation.RequireAdmin
 import com.didit.adapter.webapi.admin.annotation.RequireSuperAdmin
+import com.didit.adapter.webapi.admin.dto.UpdateUserAccountTypeRequest
 import com.didit.adapter.webapi.admin.dto.UserDetailResponse
 import com.didit.adapter.webapi.admin.dto.UserPageResponse
 import com.didit.adapter.webapi.response.SuccessResponse
@@ -11,8 +12,10 @@ import com.didit.application.admin.provided.AdminUserManager
 import com.didit.domain.shared.Job
 import org.springframework.http.HttpStatus
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.ResponseStatus
@@ -44,6 +47,17 @@ class UserManagementApi(
     ): SuccessResponse<UserDetailResponse> {
         val result = adminUserFinder.findUserDetail(userId)
         return SuccessResponse.of(UserDetailResponse.from(result))
+    }
+
+    @RequireSuperAdmin
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PatchMapping("/{userId}/account-type")
+    fun changeAccountType(
+        @CurrentAdminId adminId: UUID,
+        @PathVariable userId: UUID,
+        @RequestBody request: UpdateUserAccountTypeRequest,
+    ) {
+        adminUserManager.changeAccountType(adminId, userId, request.accountType)
     }
 
     @RequireSuperAdmin
