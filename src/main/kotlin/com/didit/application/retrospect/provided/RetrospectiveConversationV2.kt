@@ -1,6 +1,7 @@
 package com.didit.application.retrospect.provided
 
 import com.didit.application.retrospect.dto.ConversationV2Result
+import com.didit.application.retrospect.dto.ExitConversationV2Result
 import com.didit.application.retrospect.dto.FinishConversationV2Result
 import com.didit.application.retrospect.dto.StartConversationV2Result
 import com.didit.application.retrospect.dto.SubmitConversationMessageResult
@@ -63,4 +64,9 @@ interface RetrospectiveConversationV2 {
         retrospectiveId: UUID,
         userId: UUID,
     ): FinishConversationV2Result
+
+    fun exit(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): ExitConversationV2Result
 }

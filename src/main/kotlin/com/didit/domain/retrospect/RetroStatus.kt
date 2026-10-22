@@ -4,4 +4,5 @@ enum class RetroStatus {
     PENDING,
     IN_PROGRESS,
     COMPLETED,
+    ABANDONED,
 }

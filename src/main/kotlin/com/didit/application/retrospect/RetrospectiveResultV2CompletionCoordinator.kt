@@ -4,8 +4,10 @@ import com.didit.application.auth.provided.UserFinder
 import com.didit.application.retrospect.dto.FinishConversationV2Result
 import com.didit.application.retrospect.dto.RetrospectiveResultV2Result
 import com.didit.application.retrospect.exception.AnotherConversationTurnInProgressException
+import com.didit.application.retrospect.exception.ConversationAlreadyFinishedException
 import com.didit.application.retrospect.exception.RetrospectiveFlowVersionMismatchException
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
+import com.didit.application.retrospect.exception.RetrospectiveNotReadyToCompleteException
 import com.didit.application.retrospect.exception.RetrospectiveResultGenerationFailedException
 import com.didit.application.retrospect.exception.SummaryGenerationInProgressException
 import com.didit.application.retrospect.required.ChatMessageRepository
@@ -20,8 +22,11 @@ import com.didit.application.retrospect.required.RetrospectiveResultV2AIClient
 import com.didit.application.retrospect.required.RetrospectiveResultV2AIRequest
 import com.didit.domain.retrospect.ConversationStatus
 import com.didit.domain.retrospect.ConversationTurnStatus
+import com.didit.domain.retrospect.RetroStatus
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveCompletedEvent
+import com.didit.domain.retrospect.RetrospectiveItemStatus
+import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.RetrospectiveResultV2
 import com.didit.domain.retrospect.SummaryGenerationStatus
 import com.didit.domain.shared.ServiceTime
@@ -44,6 +49,7 @@ class RetrospectiveResultV2CompletionCoordinator(
     private val userFinder: UserFinder,
     private val aiClient: RetrospectiveResultV2AIClient,
     private val tonePolicy: RetrospectiveResultV2TonePolicy,
+    private val turnPolicy: ConversationV2TurnPolicy,
     private val transactionTemplate: TransactionTemplate,
     private val metrics: RetrospectiveAiMetrics,
     private val eventPublisher: ApplicationEventPublisher,
@@ -68,7 +74,13 @@ class RetrospectiveResultV2CompletionCoordinator(
                     }
                 val result =
                     metrics.recordStage("result_v2", "save") {
-                        save(retrospectiveId, userId, checkNotNull(preparation.attemptId), generated)
+                        save(
+                            retrospectiveId,
+                            userId,
+                            checkNotNull(preparation.attemptId),
+                            generated,
+                            preparation.collectedItemTypes,
+                        )
                     }
                 result
             } catch (exception: Exception) {
@@ -99,6 +111,9 @@ class RetrospectiveResultV2CompletionCoordinator(
             if (retrospective.summaryGenerationStatus == SummaryGenerationStatus.GENERATED) {
                 return@execute ResultPreparation(cached = retrospective.toFinishResult())
             }
+            if (retrospective.status == RetroStatus.ABANDONED) {
+                throw ConversationAlreadyFinishedException(retrospectiveId)
+            }
             val now = LocalDateTime.now()
             if (retrospective.summaryGenerationStatus == SummaryGenerationStatus.GENERATING &&
                 !retrospective.isV2ResultGenerationStale(now, Duration.ofSeconds(resultGenerationTimeoutSeconds))
@@ -108,6 +123,13 @@ class RetrospectiveResultV2CompletionCoordinator(
             if (turnRepository.findFirstByRetrospectiveIdAndStatus(retrospectiveId, ConversationTurnStatus.PROCESSING) != null) {
                 throw AnotherConversationTurnInProgressException(retrospectiveId)
             }
+
+            val analysisItems = analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)
+            val readyToComplete =
+                turnPolicy.readyToComplete(
+                    analysisItems.map { it.toConversationSnapshot() },
+                )
+            if (!readyToComplete) throw RetrospectiveNotReadyToCompleteException(retrospectiveId)
 
             retrospective.finishConversation()
             val attemptId = UUID.randomUUID()
@@ -137,12 +159,13 @@ class RetrospectiveResultV2CompletionCoordinator(
                                         )
                                     },
                             ),
-                        analysisItems =
-                            analysisItemRepository
-                                .findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)
-                                .map { ConversationAnalysisItem(it.itemType, it.status, it.summary) },
+                        analysisItems = analysisItems.map { ConversationAnalysisItem(it.itemType, it.status, it.summary) },
                     ),
                 attemptId = attemptId,
+                collectedItemTypes =
+                    analysisItems
+                        .filter { it.status != RetrospectiveItemStatus.EMPTY }
+                        .mapTo(mutableSetOf()) { it.itemType },
             )
         }!!
 
@@ -154,6 +177,7 @@ class RetrospectiveResultV2CompletionCoordinator(
         userId: UUID,
         attemptId: UUID,
         generated: GeneratedRetrospectiveResultV2,
+        collectedItemTypes: Set<RetrospectiveItemType>,
     ): FinishConversationV2Result =
         transactionTemplate.execute {
             val retrospective = findV2ForUpdate(retrospectiveId, userId)
@@ -168,10 +192,10 @@ class RetrospectiveResultV2CompletionCoordinator(
                 result =
                     RetrospectiveResultV2(
                         summary = generated.summary,
-                        strengths = generated.strengths,
-                        improvements = generated.improvements,
-                        processes = generated.processes,
-                        learnings = generated.learnings,
+                        strengths = generated.strengths.takeIf { RetrospectiveItemType.STRENGTH in collectedItemTypes },
+                        improvements = generated.improvements.takeIf { RetrospectiveItemType.BLOCK in collectedItemTypes },
+                        processes = generated.processes.takeIf { RetrospectiveItemType.PROCESS in collectedItemTypes },
+                        learnings = generated.learnings.takeIf { RetrospectiveItemType.LEARN in collectedItemTypes },
                         insight = generated.insight,
                         nextActions = generated.nextActions,
                     ),
@@ -254,4 +278,5 @@ private data class ResultPreparation(
     val request: RetrospectiveResultV2AIRequest? = null,
     val cached: FinishConversationV2Result? = null,
     val attemptId: UUID? = null,
+    val collectedItemTypes: Set<RetrospectiveItemType> = emptySet(),
 )

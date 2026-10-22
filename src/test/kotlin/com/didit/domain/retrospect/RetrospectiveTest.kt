@@ -50,6 +50,57 @@ class RetrospectiveTest {
     }
 
     @Test
+    fun `abandonConversationWithoutResult - 진행 전 V2 회고를 결과 없이 종료한다`() {
+        val retro = Retrospective.createV2(userId)
+
+        retro.abandonConversationWithoutResult()
+
+        assertThat(retro.status).isEqualTo(RetroStatus.ABANDONED)
+        assertThat(retro.conversationStatus).isEqualTo(ConversationStatus.FINISHED)
+        assertThat(retro.conversationFinishedAt).isNotNull()
+        assertThat(retro.completedAt).isNull()
+        assertThat(retro.title).isNull()
+        assertThat(retro.resultV2).isNull()
+        assertThat(retro.summaryGenerationStatus).isEqualTo(SummaryGenerationStatus.NOT_STARTED)
+    }
+
+    @Test
+    fun `abandonConversationWithoutResult - 진행 중 V2 회고를 종료하고 반복 호출은 같은 상태를 유지한다`() {
+        val retro = Retrospective.createV2(userId).apply { startProgress() }
+
+        retro.abandonConversationWithoutResult()
+        val finishedAt = retro.conversationFinishedAt
+        retro.abandonConversationWithoutResult()
+
+        assertThat(retro.status).isEqualTo(RetroStatus.ABANDONED)
+        assertThat(retro.conversationStatus).isEqualTo(ConversationStatus.FINISHED)
+        assertThat(retro.conversationFinishedAt).isEqualTo(finishedAt)
+        assertThat(retro.completedAt).isNull()
+    }
+
+    @Test
+    fun `abandonConversationWithoutResult - 결과 생성 중인 회고는 종료하지 않는다`() {
+        val retro = Retrospective.createV2(userId).apply { startV2ResultGeneration() }
+
+        assertThrows<IllegalStateException> { retro.abandonConversationWithoutResult() }
+    }
+
+    @Test
+    fun `abandonConversationWithoutResult - 결과 생성 실패 후 종료된 대화는 포기로 바꾸지 않는다`() {
+        val retro =
+            Retrospective.createV2(userId).apply {
+                startProgress()
+                finishConversation()
+                startV2ResultGeneration()
+                resetSummaryGeneration()
+            }
+
+        assertThrows<IllegalStateException> { retro.abandonConversationWithoutResult() }
+        assertThat(retro.status).isEqualTo(RetroStatus.IN_PROGRESS)
+        assertThat(retro.summaryGenerationStatus).isEqualTo(SummaryGenerationStatus.NOT_STARTED)
+    }
+
+    @Test
     fun `complete - 정상 완료 시 status가 COMPLETED로 변경된다`() {
         val retro = retrospective().apply { startProgress() }
 
@@ -116,8 +167,6 @@ class RetrospectiveTest {
                     nextActions =
                         listOf(
                             RetrospectiveResultDetail("  만료 테스트 추가  ", " 인증 만료 조건을 검증한다. "),
-                            RetrospectiveResultDetail("만료 테스트 추가", "인증 만료 조건을 검증한다."),
-                            RetrospectiveResultDetail("응답 명세 정리", "오류 응답을 문서화한다."),
                         ),
                 ),
         )
@@ -132,8 +181,7 @@ class RetrospectiveTest {
             .isEqualTo(RetrospectiveResultDetail("재현 조건 분리", "원인 파악을 도왔다."))
         assertThat(retro.resultV2?.nextActions)
             .containsExactly(
-                RetrospectiveResultDetail("만료 테스트 추가", "인증 만료 조건을 검증한다."),
-                RetrospectiveResultDetail("응답 명세 정리", "오류 응답을 문서화한다."),
+                RetrospectiveResultDetail("만료 테스트 추가하기", "인증 만료 조건을 검증한다."),
             )
     }
 
@@ -146,20 +194,20 @@ class RetrospectiveTest {
                 title = "로그인 오류 원인 정리",
                 result =
                     RetrospectiveResultV2(
-                        summary = null,
+                        summary = "로그인 오류를 추적했다.",
                         strengths = listOf("잘한 점 1", "잘한 점 2", "잘한 점 3"),
                         improvements = null,
                         processes = null,
                         learnings = null,
-                        insight = null,
-                        nextActions = null,
+                        insight = RetrospectiveResultDetail("재현 조건 분리", "원인 파악을 도왔다."),
+                        nextActions = listOf(RetrospectiveResultDetail("만료 테스트 추가하기", "인증 만료 조건을 검증한다.")),
                     ),
             )
         }
     }
 
     @Test
-    fun `saveV2Result - 다음 행동이 2개를 초과하면 거절한다`() {
+    fun `saveV2Result - 다음 행동이 두 개면 거절한다`() {
         val retro = Retrospective.createV2(userId).apply { startProgress() }
 
         assertThrows<IllegalArgumentException> {
@@ -167,19 +215,55 @@ class RetrospectiveTest {
                 title = "로그인 오류 원인 정리",
                 result =
                     RetrospectiveResultV2(
-                        summary = null,
+                        summary = "로그인 오류를 추적했다.",
                         strengths = null,
                         improvements = null,
                         processes = null,
                         learnings = null,
-                        insight = null,
+                        insight = RetrospectiveResultDetail("재현 조건 분리", "원인 파악을 도왔다."),
                         nextActions =
                             listOf(
                                 RetrospectiveResultDetail("행동 1", "설명 1"),
                                 RetrospectiveResultDetail("행동 2", "설명 2"),
-                                RetrospectiveResultDetail("행동 3", "설명 3"),
                             ),
                     ),
+            )
+        }
+    }
+
+    @Test
+    fun `saveV2Result - 요약 인사이트 다음 행동이 모두 있어야 한다`() {
+        fun result(
+            summary: String? = "로그인 오류를 추적했다.",
+            insight: RetrospectiveResultDetail? = RetrospectiveResultDetail("재현 조건 분리", "원인 파악을 도왔다."),
+            nextActions: List<RetrospectiveResultDetail>? =
+                listOf(RetrospectiveResultDetail("만료 테스트 추가하기", "인증 만료 조건을 검증한다.")),
+        ) = RetrospectiveResultV2(
+            summary = summary,
+            strengths = null,
+            improvements = null,
+            processes = null,
+            learnings = null,
+            insight = insight,
+            nextActions = nextActions,
+        )
+
+        assertThrows<IllegalArgumentException> {
+            Retrospective.createV2(userId).apply { startProgress() }.saveV2Result(
+                title = "로그인 오류 원인 정리",
+                result = result(summary = null),
+            )
+        }
+        assertThrows<IllegalArgumentException> {
+            Retrospective.createV2(userId).apply { startProgress() }.saveV2Result(
+                title = "로그인 오류 원인 정리",
+                result = result(insight = null),
+            )
+        }
+        assertThrows<IllegalArgumentException> {
+            Retrospective.createV2(userId).apply { startProgress() }.saveV2Result(
+                title = "로그인 오류 원인 정리",
+                result = result(nextActions = null),
             )
         }
     }

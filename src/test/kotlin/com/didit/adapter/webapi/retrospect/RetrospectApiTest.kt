@@ -22,6 +22,7 @@ import com.didit.domain.organization.Tag
 import com.didit.domain.retrospect.ChatMessage
 import com.didit.domain.retrospect.QuestionType
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.RetrospectiveResultV2
 import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.domain.retrospect.SearchHistory
@@ -925,8 +926,11 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                             improvements = null,
                             processes = null,
                             learnings = null,
-                            insight = null,
-                            nextActions = null,
+                            insight = RetrospectiveResultDetail("테스트 범위 구분", "V1과 V2 결과를 구분했다."),
+                            nextActions =
+                                listOf(
+                                    RetrospectiveResultDetail("V2 결과 조회 확인하기", "V1 요약이 노출되지 않는지 확인한다."),
+                                ),
                         ),
                 )
             }
@@ -961,7 +965,7 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
             .perform(get("/api/v2/retrospectives/{retrospectiveId}/result", retrospectiveId))
             .andExpect(status().isOk)
             .andExpect(jsonPath("$.data.flowVersion").value("V1"))
-            .andExpect(jsonPath("$.data.content.strengths[0]").value("오늘 잘한 점은 대화에서 확인되지 않았어요."))
+            .andExpect(jsonPath("$.data.content.strengths").doesNotExist())
             .andDo(
                 document(
                     "retrospect/v2/find-result",
@@ -974,14 +978,14 @@ class RetrospectApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath("data.content").type(JsonFieldType.OBJECT).description("구조화 회고 결과"),
                         fieldWithPath("data.content.summary").type(JsonFieldType.STRING).description("회고 요약"),
-                        fieldWithPath("data.content.strengths").type(JsonFieldType.ARRAY).description("오늘 잘한 점, 최대 2개"),
-                        fieldWithPath("data.content.improvements").type(JsonFieldType.ARRAY).description("아쉬웠던 점, 최대 2개"),
-                        fieldWithPath("data.content.processes").type(JsonFieldType.ARRAY).description("해결 과정, 최대 2개"),
-                        fieldWithPath("data.content.learnings").type(JsonFieldType.ARRAY).description("배운 점, 최대 2개"),
+                        fieldWithPath("data.content.strengths").type(JsonFieldType.ARRAY).description("오늘 잘한 점, 최대 2개").optional(),
+                        fieldWithPath("data.content.improvements").type(JsonFieldType.ARRAY).description("아쉬웠던 점, 최대 2개").optional(),
+                        fieldWithPath("data.content.processes").type(JsonFieldType.ARRAY).description("해결 과정, 최대 2개").optional(),
+                        fieldWithPath("data.content.learnings").type(JsonFieldType.ARRAY).description("배운 점, 최대 2개").optional(),
                         fieldWithPath("data.content.insight").type(JsonFieldType.OBJECT).description("디딧의 인사이트"),
                         fieldWithPath("data.content.insight.title").type(JsonFieldType.STRING).description("인사이트 제목"),
                         fieldWithPath("data.content.insight.description").type(JsonFieldType.STRING).description("인사이트 설명"),
-                        fieldWithPath("data.content.nextActions").type(JsonFieldType.ARRAY).description("다음 행동, 최대 2개"),
+                        fieldWithPath("data.content.nextActions").type(JsonFieldType.ARRAY).description("다음 행동, 1개"),
                         fieldWithPath("data.content.nextActions[].title").type(JsonFieldType.STRING).description("다음 행동 제목"),
                         fieldWithPath("data.content.nextActions[].description").type(JsonFieldType.STRING).description("다음 행동 설명"),
                         fieldWithPath("data.completedAt").type(JsonFieldType.STRING).description("완료 시간").optional(),

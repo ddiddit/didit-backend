@@ -5,6 +5,7 @@ import com.didit.application.retrospect.dto.ConversationAnswerGuideResult
 import com.didit.application.retrospect.dto.ConversationMessageResult
 import com.didit.application.retrospect.dto.ConversationTurnResult
 import com.didit.application.retrospect.dto.ConversationV2Result
+import com.didit.application.retrospect.dto.ExitConversationV2Result
 import com.didit.application.retrospect.dto.FinishConversationV2Result
 import com.didit.application.retrospect.dto.RetrospectiveResultV2Result
 import com.didit.application.retrospect.dto.StartConversationV2Result
@@ -425,11 +426,11 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         improvements = listOf("배포 전 확인이 부족했다."),
                         processes = listOf("로그를 확인해 원인을 좁혔다."),
                         learnings = listOf("배포 체크리스트가 필요하다."),
-                        insight = null,
+                        insight = RetrospectiveResultDetail("반복 검증", "배포 전 확인 순서를 정하면 오류를 줄일 수 있어요."),
                         nextActions =
                             listOf(
                                 RetrospectiveResultDetail(
-                                    title = "배포 체크리스트 작성",
+                                    title = "배포 체크리스트 작성하기",
                                     description = "배포 전 확인 항목을 정리한다.",
                                 ),
                             ),
@@ -440,7 +441,8 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
         mockMvc
             .perform(post("/api/v2/retrospectives/{retrospectiveId}/finish", retrospectiveId))
             .andExpect(status().isOk)
-            .andExpect(jsonPath("$.data.result.strengths[0]").value("오늘 잘한 점은 대화에서 확인되지 않았어요."))
+            .andExpect(jsonPath("$.data.result.strengths").doesNotExist())
+            .andExpect(jsonPath("$.data.result.nextActions.length()").value(1))
             .andDo(
                 document(
                     "retrospect-v2/finish",
@@ -454,20 +456,56 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                             .type(JsonFieldType.STRING)
                             .description("구조화 결과 생성 상태. 성공 시 GENERATED"),
                         fieldWithPath("data.title").type(JsonFieldType.STRING).description("자동 생성된 구체적인 회고 제목"),
-                        fieldWithPath("data.result.summary").type(JsonFieldType.STRING).description("회고 요약").optional(),
-                        fieldWithPath("data.result.strengths").type(JsonFieldType.ARRAY).description("오늘 잘한 점, 최대 2개"),
-                        fieldWithPath("data.result.improvements").type(JsonFieldType.ARRAY).description("아쉬웠던 점, 최대 2개"),
-                        fieldWithPath("data.result.processes").type(JsonFieldType.ARRAY).description("해결 과정, 최대 2개"),
-                        fieldWithPath("data.result.learnings").type(JsonFieldType.ARRAY).description("배운 점, 최대 2개"),
+                        fieldWithPath("data.result.summary").type(JsonFieldType.STRING).description("회고 요약"),
+                        fieldWithPath(
+                            "data.result.strengths",
+                        ).type(JsonFieldType.ARRAY).description("오늘 잘한 점, 최대 2개. 수집되지 않으면 생략").optional(),
+                        fieldWithPath(
+                            "data.result.improvements",
+                        ).type(JsonFieldType.ARRAY).description("아쉬웠던 점, 최대 2개. 수집되지 않으면 생략").optional(),
+                        fieldWithPath(
+                            "data.result.processes",
+                        ).type(JsonFieldType.ARRAY).description("해결 과정, 최대 2개. 수집되지 않으면 생략").optional(),
+                        fieldWithPath("data.result.learnings").type(JsonFieldType.ARRAY).description("배운 점, 최대 2개. 수집되지 않으면 생략").optional(),
                         fieldWithPath("data.result.insight").type(JsonFieldType.OBJECT).description("디딧의 인사이트"),
                         fieldWithPath("data.result.insight.title").type(JsonFieldType.STRING).description("인사이트 제목"),
                         fieldWithPath("data.result.insight.description").type(JsonFieldType.STRING).description("인사이트 설명"),
-                        fieldWithPath("data.result.nextActions").type(JsonFieldType.ARRAY).description("다음 행동, 최대 2개"),
+                        fieldWithPath("data.result.nextActions").type(JsonFieldType.ARRAY).description("다음 행동, 정확히 1개"),
                         fieldWithPath("data.result.nextActions[].title").type(JsonFieldType.STRING).description("다음 행동 제목"),
                         fieldWithPath("data.result.nextActions[].description").type(JsonFieldType.STRING).description("다음 행동 설명"),
                     ),
                 ),
             )
+    }
+
+    @Test
+    fun `내용이 부족한 V2 대화를 결과 없이 나간다`() {
+        whenever(conversation.exit(retrospectiveId, userId)).thenReturn(
+            ExitConversationV2Result(
+                retrospectiveId = retrospectiveId,
+                conversationStatus = ConversationStatus.FINISHED,
+            ),
+        )
+
+        mockMvc
+            .perform(post("/api/v2/retrospectives/{retrospectiveId}/exit", retrospectiveId))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.retrospectiveId").value(retrospectiveId.toString()))
+            .andExpect(jsonPath("$.data.conversationStatus").value("FINISHED"))
+            .andDo(
+                document(
+                    "retrospect-v2/exit",
+                    ApiDocumentUtils.getDocumentRequest(),
+                    ApiDocumentUtils.getDocumentResponse(),
+                    pathParameters(parameterWithName("retrospectiveId").description("결과 없이 종료할 회고 ID")),
+                    responseFields(
+                        fieldWithPath("data.retrospectiveId").type(JsonFieldType.STRING).description("회고 ID"),
+                        fieldWithPath("data.conversationStatus").type(JsonFieldType.STRING).description("종료된 대화 상태"),
+                    ),
+                ),
+            )
+
+        verify(conversation).exit(retrospectiveId, userId)
     }
 
     private fun introMessage() =

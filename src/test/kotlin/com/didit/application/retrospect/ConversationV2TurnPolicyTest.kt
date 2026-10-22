@@ -415,7 +415,7 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `거부한 항목이 있는 REFLECT는 같은 응답에서 다른 항목을 질문하지 않는다`() {
+    fun `거부한 항목이 있으면 추가 질문 없이 종료 확인으로 전환한다`() {
         val decided =
             policy.decideTurn(
                 generated =
@@ -430,10 +430,35 @@ class ConversationV2TurnPolicyTest {
                 completionPreviouslyOffered = false,
             )
 
-        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
         assertThat(decided.questionTarget).isNull()
         assertThat(decided.question).isNull()
-        assertThat(decided.content()).contains("이어")
+        assertThat(decided.content()).doesNotContain("이어", "자유롭게")
+    }
+
+    @Test
+    fun `모델이 거절 항목을 누락해도 사용자의 없음 응답은 종료 확인으로 전환한다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.REFLECT,
+                        acknowledgement = "알겠어요.",
+                        interpretation = "더 남기고 싶은 내용이 있다면 이어서 말씀해주세요.",
+                        question = null,
+                        questionTarget = null,
+                        declinedItemTypes = emptyList(),
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.ACTION),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                userMessageContent = "없는 것 같아.",
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
+        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.question).isNull()
+        assertThat(decided.content()).doesNotContain("이어", "자유롭게")
     }
 
     @Test
@@ -547,7 +572,7 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `회고 연결 응답에서 항목을 거부하면 모델의 새 질문을 제거한다`() {
+    fun `회고 연결 응답에서 항목을 거부하면 종료 확인으로 전환한다`() {
         val decided =
             policy.decideTurn(
                 generated =
@@ -561,7 +586,7 @@ class ConversationV2TurnPolicyTest {
                 completionPreviouslyOffered = false,
             )
 
-        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
         assertThat(decided.questionTarget).isNull()
         assertThat(decided.question).isNull()
     }

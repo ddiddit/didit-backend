@@ -107,6 +107,25 @@ interface RetrospectiveRepository : Repository<Retrospective, UUID> {
         WHERE r.userId = :userId
         AND r.status = 'COMPLETED'
         AND r.deletedAt IS NULL
+        AND (
+            (r.flowVersion = 'V2' AND r.resultV2.nextActions IS NOT NULL)
+            OR
+            (r.flowVersion = 'V1' AND r.summary.nextActionTitle IS NOT NULL AND TRIM(r.summary.nextActionTitle) <> '')
+        )
+        ORDER BY r.completedAt DESC, r.id DESC
+        """,
+    )
+    fun findRecentCompletedWithNextActionByUserId(
+        @Param("userId") userId: UUID,
+        pageable: Pageable,
+    ): List<Retrospective>
+
+    @Query(
+        """
+        SELECT r FROM Retrospective r
+        WHERE r.userId = :userId
+        AND r.status = 'COMPLETED'
+        AND r.deletedAt IS NULL
         AND r.completedAt >= :from AND r.completedAt < :to
         ORDER BY r.completedAt DESC
     """,

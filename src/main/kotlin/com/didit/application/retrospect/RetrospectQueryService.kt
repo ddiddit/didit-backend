@@ -211,7 +211,7 @@ class RetrospectQueryService(
     ): List<RetrospectiveDetailResult> =
         toDetailResults(
             userId,
-            retrospectiveRepository.findRecentCompletedByUserId(userId, PageRequest.of(0, limit)),
+            retrospectiveRepository.findRecentCompletedWithNextActionByUserId(userId, PageRequest.of(0, limit)),
         )
 
     private fun toDetailResults(

@@ -8,6 +8,7 @@ import com.didit.domain.retrospect.RetrospectiveFlowVersion
 import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.RetrospectiveResultV2
 import com.didit.domain.retrospect.RetrospectiveSummary
+import com.fasterxml.jackson.annotation.JsonInclude
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -41,12 +42,13 @@ data class StructuredRetrospectiveResultResponse(
     }
 }
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 data class StructuredRetrospectiveContentResponse(
     val summary: String,
-    val strengths: List<String>,
-    val improvements: List<String>,
-    val processes: List<String>,
-    val learnings: List<String>,
+    val strengths: List<String>?,
+    val improvements: List<String>?,
+    val processes: List<String>?,
+    val learnings: List<String>?,
     val insight: StructuredResultDetailResponse,
     val nextActions: List<StructuredResultDetailResponse>,
 ) {
@@ -54,39 +56,41 @@ data class StructuredRetrospectiveContentResponse(
         fun fromV2Result(result: RetrospectiveResultV2Result) =
             StructuredRetrospectiveContentResponse(
                 summary = result.summary ?: StructuredResultDefaults.SUMMARY,
-                strengths = result.strengths.orDefault(StructuredResultDefaults.STRENGTH),
-                improvements = result.improvements.orDefault(StructuredResultDefaults.IMPROVEMENT),
-                processes = result.processes.orDefault(StructuredResultDefaults.PROCESS),
-                learnings = result.learnings.orDefault(StructuredResultDefaults.LEARNING),
+                strengths = result.strengths.normalizedItems(),
+                improvements = result.improvements.normalizedItems(),
+                processes = result.processes.normalizedItems(),
+                learnings = result.learnings.normalizedItems(),
                 insight = result.insight.toResponseOrDefault(StructuredResultDefaults.INSIGHT),
                 nextActions =
                     result.nextActions
                         ?.map(StructuredResultDetailResponse::from)
+                        ?.take(1)
                         .orDefault(StructuredResultDefaults.NEXT_ACTION),
             )
 
         fun fromV2(result: RetrospectiveResultV2?) =
             StructuredRetrospectiveContentResponse(
                 summary = result?.summary ?: StructuredResultDefaults.SUMMARY,
-                strengths = result?.strengths.orDefault(StructuredResultDefaults.STRENGTH),
-                improvements = result?.improvements.orDefault(StructuredResultDefaults.IMPROVEMENT),
-                processes = result?.processes.orDefault(StructuredResultDefaults.PROCESS),
-                learnings = result?.learnings.orDefault(StructuredResultDefaults.LEARNING),
+                strengths = result?.strengths.normalizedItems(),
+                improvements = result?.improvements.normalizedItems(),
+                processes = result?.processes.normalizedItems(),
+                learnings = result?.learnings.normalizedItems(),
                 insight = result?.insight.toResponseOrDefault(StructuredResultDefaults.INSIGHT),
                 nextActions =
                     result
                         ?.nextActions
                         ?.map(StructuredResultDetailResponse::from)
+                        ?.take(1)
                         .orDefault(StructuredResultDefaults.NEXT_ACTION),
             )
 
         fun fromV1(summary: RetrospectiveSummary?) =
             StructuredRetrospectiveContentResponse(
                 summary = summary?.summary.normalized() ?: StructuredResultDefaults.SUMMARY,
-                strengths = listOf(StructuredResultDefaults.STRENGTH),
-                improvements = summary?.blockedPoint.normalizedItemsOrDefault(StructuredResultDefaults.IMPROVEMENT),
-                processes = summary?.solutionProcess.normalizedItemsOrDefault(StructuredResultDefaults.PROCESS),
-                learnings = summary?.lessonLearned.normalizedItemsOrDefault(StructuredResultDefaults.LEARNING),
+                strengths = null,
+                improvements = summary?.blockedPoint.normalizedItems(),
+                processes = summary?.solutionProcess.normalizedItems(),
+                learnings = summary?.lessonLearned.normalizedItems(),
                 insight =
                     summary
                         ?.toInsight()
@@ -103,13 +107,12 @@ data class StructuredRetrospectiveContentResponse(
 
         private fun <T> List<T>?.orDefault(default: T): List<T> = this?.takeIf { it.isNotEmpty() } ?: listOf(default)
 
-        private fun Iterable<String?>?.normalizedItemsOrDefault(default: String): List<String> =
+        private fun Iterable<String?>?.normalizedItems(): List<String>? =
             this
                 ?.mapNotNull { it.normalized() }
                 ?.distinct()
                 ?.take(2)
                 ?.takeIf { it.isNotEmpty() }
-                ?: listOf(default)
 
         private fun RetrospectiveSummary.toInsight(): RetrospectiveResultDetail? = detailOrNull(insightTitle, insightDescription)
 
@@ -145,10 +148,6 @@ data class StructuredResultDetailResponse(
 
 object StructuredResultDefaults {
     const val SUMMARY = "충분한 내용이 모이지 않았어요."
-    const val STRENGTH = "오늘 잘한 점은 대화에서 확인되지 않았어요."
-    const val IMPROVEMENT = "아쉬웠던 점은 대화에서 확인되지 않았어요."
-    const val PROCESS = "해결 과정은 대화에서 확인되지 않았어요."
-    const val LEARNING = "배운 점은 대화에서 확인되지 않았어요."
     val INSIGHT =
         StructuredResultDetailResponse(
             title = "인사이트를 만들기 어려웠어요.",

@@ -5,6 +5,7 @@ import com.didit.application.retrospect.dto.ConversationMessageAttachmentResult
 import com.didit.application.retrospect.dto.ConversationMessageResult
 import com.didit.application.retrospect.dto.ConversationTurnResult
 import com.didit.application.retrospect.dto.ConversationV2Result
+import com.didit.application.retrospect.dto.ExitConversationV2Result
 import com.didit.application.retrospect.dto.FinishConversationV2Result
 import com.didit.application.retrospect.dto.StartConversationV2Result
 import com.didit.application.retrospect.dto.SubmitConversationMessageResult
@@ -204,6 +205,19 @@ data class FinishConversationV2Response(
                 resultGenerationStatus = result.resultGenerationStatus,
                 title = result.title,
                 result = StructuredRetrospectiveContentResponse.fromV2Result(result.result),
+            )
+    }
+}
+
+data class ExitConversationV2Response(
+    val retrospectiveId: UUID,
+    val conversationStatus: ConversationStatus,
+) {
+    companion object {
+        fun from(result: ExitConversationV2Result) =
+            ExitConversationV2Response(
+                retrospectiveId = result.retrospectiveId,
+                conversationStatus = result.conversationStatus,
             )
     }
 }
