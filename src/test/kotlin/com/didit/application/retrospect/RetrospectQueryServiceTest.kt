@@ -368,7 +368,7 @@ class RetrospectQueryServiceTest {
         val tagId = UUID.randomUUID()
         val retro = RetrospectiveFixture.createCompleted(userId).apply { registerProject(projectId) }
 
-        whenever(retrospectiveRepository.findRecentCompletedByUserId(userId, PageRequest.of(0, 5)))
+        whenever(retrospectiveRepository.findRecentCompletedWithNextActionByUserId(userId, PageRequest.of(0, 5)))
             .thenReturn(listOf(retro))
         whenever(projectRepository.findAllByUserIdAndDeletedAtIsNull(userId))
             .thenReturn(listOf(Project(projectId, userId, "프로젝트")))

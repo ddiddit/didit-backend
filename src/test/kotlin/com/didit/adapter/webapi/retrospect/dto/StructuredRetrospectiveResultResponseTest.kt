@@ -1,9 +1,11 @@
 package com.didit.adapter.webapi.retrospect.dto
 
 import com.didit.application.retrospect.dto.RetrospectiveDetailResult
+import com.didit.application.retrospect.dto.RetrospectiveResultV2Result
 import com.didit.domain.retrospect.Retrospective
-import com.didit.domain.retrospect.RetrospectiveResultV2
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.RetrospectiveSummary
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import java.util.UUID
@@ -12,34 +14,28 @@ class StructuredRetrospectiveResultResponseTest {
     private val userId = UUID.randomUUID()
 
     @Test
-    fun `V2 빈 항목은 저장값을 바꾸지 않고 일관된 안내 문구로 응답한다`() {
-        val retrospective =
-            Retrospective.createV2(userId).apply {
-                startProgress()
-                finishConversation()
-                saveV2Result(
-                    title = "배포 오류 롤백 회고",
-                    result =
-                        RetrospectiveResultV2(
-                            summary = "배포 오류를 발견하고 롤백했다.",
-                            strengths = null,
-                            improvements = null,
-                            processes = listOf("로그를 확인했다."),
-                            learnings = null,
-                            insight = null,
-                            nextActions = null,
-                        ),
-                )
-            }
+    fun `V2 수집되지 않은 선택 항목은 null이고 JSON에서 생략한다`() {
+        val response =
+            StructuredRetrospectiveContentResponse.fromV2Result(
+                RetrospectiveResultV2Result(
+                    summary = "배포 오류를 발견하고 롤백했어요.",
+                    strengths = null,
+                    improvements = null,
+                    processes = listOf("로그를 확인했어요."),
+                    learnings = null,
+                    insight = RetrospectiveResultDetail("원인 분리", "로그 순서가 원인을 좁히는 데 도움이 됐어요."),
+                    nextActions = listOf(RetrospectiveResultDetail("체크리스트 작성하기", "배포 전 항목을 정리해요.")),
+                ),
+            )
 
-        val response = StructuredRetrospectiveResultResponse.from(RetrospectiveDetailResult(retrospective, null, emptyList()))
+        val json = jacksonObjectMapper().writeValueAsString(response)
 
-        assertThat(retrospective.resultV2?.strengths).isNull()
-        assertThat(response.flowVersion.name).isEqualTo("V2")
-        assertThat(response.content.strengths).containsExactly(StructuredResultDefaults.STRENGTH)
-        assertThat(response.content.processes).containsExactly("로그를 확인했다.")
-        assertThat(response.content.insight).isEqualTo(StructuredResultDefaults.INSIGHT)
-        assertThat(response.content.nextActions).containsExactly(StructuredResultDefaults.NEXT_ACTION)
+        assertThat(response.strengths).isNull()
+        assertThat(response.improvements).isNull()
+        assertThat(response.processes).containsExactly("로그를 확인했어요.")
+        assertThat(response.learnings).isNull()
+        assertThat(json).doesNotContain("strengths", "improvements", "learnings", "확인되지 않았어요")
+        assertThat(json).contains("summary", "processes", "insight", "nextActions")
     }
 
     @Test
@@ -66,7 +62,7 @@ class StructuredRetrospectiveResultResponseTest {
 
         assertThat(response.flowVersion.name).isEqualTo("V1")
         assertThat(response.content.summary).isEqualTo("기존 요약")
-        assertThat(response.content.strengths).containsExactly(StructuredResultDefaults.STRENGTH)
+        assertThat(response.content.strengths).isNull()
         assertThat(response.content.improvements).containsExactly("일정이 촉박했다.")
         assertThat(response.content.processes).containsExactly("범위를 줄였다.")
         assertThat(response.content.learnings).containsExactly("우선순위 합의가 중요하다.")

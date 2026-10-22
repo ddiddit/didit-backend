@@ -10,7 +10,10 @@ import com.didit.application.retrospect.required.RetrospectiveRepository
 import com.didit.application.retrospect.required.RetrospectiveResultV2AIClient
 import com.didit.domain.auth.User
 import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveAnalysisItem
 import com.didit.domain.retrospect.RetrospectiveCompletedEvent
+import com.didit.domain.retrospect.RetrospectiveItemStatus
+import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.RetrospectiveResultDetail
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry
 import org.assertj.core.api.Assertions.assertThat
@@ -54,7 +57,13 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
         whenever(repository.findByIdAndUserIdAndDeletedAtIsNullForUpdate(retrospectiveId, userId)).thenReturn(retrospective)
         whenever(repository.save(any())).thenAnswer { it.arguments[0] }
         whenever(chatMessageRepository.findAllResultEvidenceByRetrospectiveId(retrospectiveId)).thenReturn(emptyList())
-        whenever(analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)).thenReturn(emptyList())
+        whenever(analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)).thenReturn(
+            listOf(
+                analysisItem(retrospectiveId, RetrospectiveItemType.FACT),
+                analysisItem(retrospectiveId, RetrospectiveItemType.PROCESS),
+                analysisItem(retrospectiveId, RetrospectiveItemType.ACTION),
+            ),
+        )
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(mock<User>())
         whenever(aiClient.generateResult(any())).thenReturn(
             generatedResult().copy(summary = "좋다."),
@@ -77,6 +86,7 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
                 userFinder,
                 aiClient,
                 RetrospectiveResultV2TonePolicy(),
+                ConversationV2TurnPolicy(),
                 TransactionTemplate(TestTransactionManager()),
                 RetrospectiveAiMetrics(SimpleMeterRegistry()),
                 eventPublisher,
@@ -104,6 +114,16 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
             inputTokens = 10,
             outputTokens = 5,
         )
+
+    private fun analysisItem(
+        retrospectiveId: UUID,
+        itemType: RetrospectiveItemType,
+    ) = RetrospectiveAnalysisItem(
+        retrospectiveId = retrospectiveId,
+        itemType = itemType,
+        status = RetrospectiveItemStatus.ENOUGH,
+        summary = "수집된 내용",
+    )
 
     private class TestTransactionManager : AbstractPlatformTransactionManager() {
         override fun doGetTransaction(): Any = Any()

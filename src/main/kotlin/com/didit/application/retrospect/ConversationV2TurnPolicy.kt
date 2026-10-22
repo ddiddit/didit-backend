@@ -6,6 +6,7 @@ import com.didit.application.retrospect.required.GeneratedConversationTurn
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.MessageRelevance
+import com.didit.domain.retrospect.RetrospectiveAnalysisItem
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
@@ -140,6 +141,7 @@ class ConversationV2TurnPolicy {
             hasMeaningfulAnalysisUpdate = hasMeaningfulAnalysisUpdate,
             completedQuestionCount = completedQuestionCount,
             consecutiveAskCount = consecutiveAskCount,
+            completionConfirmationRequested = userMessageContent.requestsCompletionConfirmation(),
         ).ensureVisibleContent()
 
     private fun decideSanitizedTurn(
@@ -151,6 +153,7 @@ class ConversationV2TurnPolicy {
         hasMeaningfulAnalysisUpdate: Boolean,
         completedQuestionCount: Int,
         consecutiveAskCount: Int,
+        completionConfirmationRequested: Boolean,
     ): GeneratedConversationTurn {
         if (continuationRequested) {
             val target =
@@ -181,6 +184,14 @@ class ConversationV2TurnPolicy {
                 )
             }
         }
+        if (completionConfirmationRequested) {
+            return generated.copy(
+                action = ConversationTurnAction.CONFIRM_COMPLETION,
+                interpretation = "",
+                question = null,
+                questionTarget = null,
+            )
+        }
         if (generated.action == ConversationTurnAction.CONFIRM_COMPLETION) {
             return generated.copy(question = null, questionTarget = null)
         }
@@ -197,7 +208,11 @@ class ConversationV2TurnPolicy {
             )
         }
         if (generated.declinedItemTypes.isNotEmpty()) {
-            return generated.asReflect(freeInputGuide = true)
+            return generated.copy(
+                action = ConversationTurnAction.CONFIRM_COMPLETION,
+                question = null,
+                questionTarget = null,
+            )
         }
         if (
             generated.relevance == MessageRelevance.RETROSPECTIVE &&
@@ -282,6 +297,12 @@ class ConversationV2TurnPolicy {
     }
 
     private fun String.hasContinuationGuide(): Boolean = CONTINUATION_GUIDE_PHRASES.any(::contains)
+
+    private fun String?.requestsCompletionConfirmation(): Boolean =
+        this
+            ?.trim()
+            ?.let(COMPLETION_REFUSAL_PATTERN::containsMatchIn)
+            ?: false
 
     private fun GeneratedConversationTurn.sanitizeUserFacingContent(userMessageContent: String?): GeneratedConversationTurn =
         copy(
@@ -398,6 +419,11 @@ internal object ConversationInternalMetadataPolicy {
             }
 }
 
+private val COMPLETION_REFUSAL_PATTERN =
+    Regex(
+        "(?:없어(?:요)?|없습니다|없다|없음|없는\\s*것\\s*같아(?:요)?|모르겠어(?:요)?|모르겠습니다|생각나지\\s*않아(?:요)?|생각나지\\s*않습니다|끝내(?:자|줘|주세요)?|마치자)[\\s.!?…]*$",
+    )
+
 data class ConversationV2MessageSnapshot(
     val content: String,
     val messageType: ConversationMessageType,
@@ -416,6 +442,14 @@ data class ConversationV2AnalysisItemSnapshot(
     val summary: String?,
     val questionAllowed: Boolean = true,
 )
+
+internal fun RetrospectiveAnalysisItem.toConversationSnapshot(): ConversationV2AnalysisItemSnapshot =
+    ConversationV2AnalysisItemSnapshot(
+        itemType = itemType,
+        status = status,
+        summary = summary,
+        questionAllowed = questionAllowed,
+    )
 
 data class ConversationV2EvidenceDecision(
     val acceptedMessageIds: List<UUID>,

@@ -84,6 +84,11 @@ data class FinishConversationV2Result(
     val result: RetrospectiveResultV2Result,
 )
 
+data class ExitConversationV2Result(
+    val retrospectiveId: UUID,
+    val conversationStatus: ConversationStatus,
+)
+
 data class RetrospectiveResultV2Result(
     val summary: String?,
     val strengths: List<String>?,

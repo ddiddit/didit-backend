@@ -4,8 +4,11 @@ import com.didit.adapter.config.JpaAuditingConfig
 import com.didit.application.auth.provided.UserFinder
 import com.didit.application.retrospect.dto.SubmitConversationMessageResult
 import com.didit.application.retrospect.exception.ConversationAiFailedException
+import com.didit.application.retrospect.exception.ConversationAlreadyFinishedException
 import com.didit.application.retrospect.exception.DuplicateMessageContentMismatchException
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
+import com.didit.application.retrospect.exception.RetrospectiveNotReadyToCompleteException
+import com.didit.application.retrospect.exception.RetrospectiveReadyToCompleteException
 import com.didit.application.retrospect.exception.RetrospectiveResultGenerationFailedException
 import com.didit.application.retrospect.exception.SummaryGenerationInProgressException
 import com.didit.application.retrospect.provided.RetrospectiveFinder
@@ -142,6 +145,58 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `내용이 부족한 회고는 결과를 생성하지 않고 나간다`() {
+        val started = service.start(userId)
+
+        val result = service.exit(started.retrospectiveId, userId)
+        val saved = checkNotNull(retrospectiveRepository.findByIdAndUserId(started.retrospectiveId, userId))
+
+        assertThat(result.retrospectiveId).isEqualTo(started.retrospectiveId)
+        assertThat(result.conversationStatus.name).isEqualTo("FINISHED")
+        assertThat(saved.status.name).isEqualTo("ABANDONED")
+        assertThat(saved.completedAt).isNull()
+        assertThat(saved.resultV2).isNull()
+        assertThat(applicationEvents.stream(com.didit.domain.retrospect.RetrospectiveCompletedEvent::class.java)).isEmpty()
+        verify(resultAIClient, never()).generateResult(any())
+    }
+
+    @Test
+    fun `결과 없이 나간 회고는 이후 완료할 수 없다`() {
+        val started = service.start(userId)
+        service.exit(started.retrospectiveId, userId)
+
+        assertThrows<ConversationAlreadyFinishedException> {
+            service.finish(started.retrospectiveId, userId)
+        }
+
+        verify(resultAIClient, never()).generateResult(any())
+    }
+
+    @Test
+    fun `내용이 부족한 회고는 완료할 수 없다`() {
+        val started = service.start(userId)
+
+        assertThrows<RetrospectiveNotReadyToCompleteException> {
+            service.finish(started.retrospectiveId, userId)
+        }
+
+        verify(resultAIClient, never()).generateResult(any())
+    }
+
+    @Test
+    fun `완료 준비가 된 회고는 결과 없이 나갈 수 없다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            retrospectiveResponse(invocation.getArgument(0))
+        }
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 자동화를 완료했습니다.")
+
+        assertThrows<RetrospectiveReadyToCompleteException> {
+            service.exit(started.retrospectiveId, userId)
+        }
+    }
+
+    @Test
     fun `완료된 clientMessageId를 재전송하면 AI를 다시 호출하지 않는다`() {
         val started = service.start(userId)
         val clientMessageId = UUID.randomUUID()
@@ -180,6 +235,33 @@ class RetrospectiveConversationV2ServiceTest {
 
         assertThat(result.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
         assertThat(result.assistantMessage!!.content).doesNotContain("무시되어야 하는 질문")
+        assertThat(savedTurn.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
+        assertThat(savedTurn.questionTarget).isNull()
+    }
+
+    @Test
+    fun `모델이 거절 의사를 놓쳐도 없음 응답은 종료 확인 액션을 저장한다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any())).thenReturn(
+            GeneratedConversationTurn(
+                action = ConversationTurnAction.REFLECT,
+                acknowledgement = "알겠어요.",
+                interpretation = "더 남기고 싶은 내용이 있다면 이어서 말씀해주세요.",
+                question = null,
+                questionTarget = null,
+                relevance = MessageRelevance.RETROSPECTIVE,
+                declinedItemTypes = emptyList(),
+                analysisUpdates = emptyList(),
+                inputTokens = 10,
+                outputTokens = 5,
+            ),
+        )
+
+        val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "없어")
+        val savedTurn = turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).single()
+
+        assertThat(result.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
+        assertThat(result.assistantMessage!!.content).doesNotContain("이어", "자유롭게")
         assertThat(savedTurn.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
         assertThat(savedTurn.questionTarget).isNull()
     }
@@ -935,6 +1017,11 @@ class RetrospectiveConversationV2ServiceTest {
         assertThat(result.resultGenerationStatus.name).isEqualTo("GENERATED")
         assertThat(result.title).isEqualTo("배포 오류 롤백 회고")
         assertThat(result.result.strengths).isNull()
+        assertThat(result.result.improvements).containsExactly("배포 전 확인이 부족했어요.")
+        assertThat(result.result.processes).isNull()
+        assertThat(result.result.learnings).containsExactly("배포 체크리스트가 필요해요.")
+        assertThat(result.result.insight).isNotNull()
+        assertThat(result.result.nextActions).singleElement().extracting<String> { it.title }.isEqualTo("배포 체크리스트 작성하기")
         assertThat(saved.resultV2?.summary).isEqualTo("배포 오류를 발견하고 롤백했어요.")
         assertThat(saved.status.name).isEqualTo("COMPLETED")
         assertThat(saved.conversationFinishedAt).isNotNull()
@@ -965,6 +1052,7 @@ class RetrospectiveConversationV2ServiceTest {
     @Test
     fun `완료 요청을 다시 보내면 저장된 결과를 반환하고 AI를 다시 호출하지 않는다`() {
         val started = service.start(userId)
+        markReadyToComplete(started.retrospectiveId)
         whenever(resultAIClient.generateResult(any())).thenReturn(generatedResult())
 
         val first = service.finish(started.retrospectiveId, userId)
@@ -977,6 +1065,7 @@ class RetrospectiveConversationV2ServiceTest {
     @Test
     fun `결과 생성 실패 시 상태를 복구해 같은 완료 요청으로 재시도할 수 있다`() {
         val started = service.start(userId)
+        markReadyToComplete(started.retrospectiveId)
         whenever(resultAIClient.generateResult(any()))
             .thenThrow(IllegalStateException("temporary failure"))
             .thenReturn(generatedResult())
@@ -995,8 +1084,25 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `필수 결과가 누락되면 저장과 완료 이벤트를 만들지 않는다`() {
+        val started = service.start(userId)
+        markReadyToComplete(started.retrospectiveId)
+        whenever(resultAIClient.generateResult(any())).thenReturn(generatedResult().copy(insight = null))
+
+        assertThrows<RetrospectiveResultGenerationFailedException> {
+            service.finish(started.retrospectiveId, userId)
+        }
+
+        val saved = checkNotNull(retrospectiveRepository.findByIdAndUserId(started.retrospectiveId, userId))
+        assertThat(saved.resultV2).isNull()
+        assertThat(saved.status.name).isNotEqualTo("COMPLETED")
+        assertThat(applicationEvents.stream(com.didit.domain.retrospect.RetrospectiveCompletedEvent::class.java)).isEmpty()
+    }
+
+    @Test
     fun `오래된 결과 생성 상태는 재획득해 완료할 수 있다`() {
         val started = service.start(userId)
+        markReadyToComplete(started.retrospectiveId)
         val retrospective = retrospectiveRepository.findByIdAndUserId(started.retrospectiveId, userId)!!
         retrospective.finishConversation()
         retrospective.startV2ResultGeneration(LocalDateTime.now().minusMinutes(11))
@@ -1044,11 +1150,20 @@ class RetrospectiveConversationV2ServiceTest {
             improvements = listOf("배포 전 확인이 부족했다."),
             processes = listOf("로그를 확인해 원인을 좁혔다."),
             learnings = listOf("배포 체크리스트가 필요하다."),
-            insight = null,
+            insight = RetrospectiveResultDetail("반복 검증", "배포 전에 같은 기준으로 확인하면 오류를 줄일 수 있어요."),
             nextActions = listOf(RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리한다.")),
             inputTokens = 120,
             outputTokens = 50,
         )
+
+    private fun markReadyToComplete(retrospectiveId: UUID) {
+        analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId).forEach { item ->
+            if (item.itemType in setOf(RetrospectiveItemType.FACT, RetrospectiveItemType.PROCESS, RetrospectiveItemType.ACTION)) {
+                item.update(RetrospectiveItemStatus.ENOUGH, "수집된 내용")
+                analysisItemRepository.save(item)
+            }
+        }
+    }
 
     private fun uploadedAttachment(retrospectiveId: UUID): RetrospectiveAttachment =
         attachmentRepository.save(

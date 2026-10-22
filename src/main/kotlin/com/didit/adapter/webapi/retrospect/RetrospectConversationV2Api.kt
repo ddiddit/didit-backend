@@ -4,6 +4,7 @@ import com.didit.adapter.webapi.auth.annotation.CurrentUserId
 import com.didit.adapter.webapi.auth.annotation.RequireAuth
 import com.didit.adapter.webapi.response.SuccessResponse
 import com.didit.adapter.webapi.retrospect.dto.ConversationV2Response
+import com.didit.adapter.webapi.retrospect.dto.ExitConversationV2Response
 import com.didit.adapter.webapi.retrospect.dto.FinishConversationV2Response
 import com.didit.adapter.webapi.retrospect.dto.StartConversationV2Response
 import com.didit.adapter.webapi.retrospect.dto.SubmitConversationMessageV2Request
@@ -69,4 +70,12 @@ class RetrospectConversationV2Api(
         @PathVariable retrospectiveId: UUID,
     ): SuccessResponse<FinishConversationV2Response> =
         SuccessResponse.of(FinishConversationV2Response.from(conversation.finish(retrospectiveId, userId)))
+
+    @RequireAuth
+    @PostMapping("/api/v2/retrospectives/{retrospectiveId}/exit")
+    fun exit(
+        @CurrentUserId userId: UUID,
+        @PathVariable retrospectiveId: UUID,
+    ): SuccessResponse<ExitConversationV2Response> =
+        SuccessResponse.of(ExitConversationV2Response.from(conversation.exit(retrospectiveId, userId)))
 }

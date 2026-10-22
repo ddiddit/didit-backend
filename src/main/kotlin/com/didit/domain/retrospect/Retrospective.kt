@@ -112,6 +112,17 @@ class Retrospective(
         conversationFinishedAt = LocalDateTime.now()
     }
 
+    fun abandonConversationWithoutResult() {
+        check(isV2()) { "V2 회고만 결과 없이 종료할 수 있습니다." }
+        if (status == RetroStatus.ABANDONED) return
+        check(status != RetroStatus.COMPLETED) { "완료된 회고는 결과 없이 종료할 수 없습니다." }
+        check(summaryGenerationStatus == SummaryGenerationStatus.NOT_STARTED) { "결과 생성 중인 회고는 종료할 수 없습니다." }
+        check(isConversationActive()) { "진행 중인 대화가 아닙니다." }
+
+        finishConversation()
+        status = RetroStatus.ABANDONED
+    }
+
     fun saveSummary(summary: RetrospectiveSummary) {
         this.summary = summary
         this.summaryGenerationStatus = SummaryGenerationStatus.GENERATED
@@ -122,7 +133,7 @@ class Retrospective(
         result: RetrospectiveResultV2,
     ) {
         check(isV2()) { "V2 회고만 구조화 결과를 저장할 수 있습니다." }
-        this.resultV2 = result
+        this.resultV2 = result.validatedForNewGeneration()
         this.summaryGenerationStatus = SummaryGenerationStatus.GENERATED
         this.resultGenerationStartedAt = null
         this.resultGenerationAttemptId = null

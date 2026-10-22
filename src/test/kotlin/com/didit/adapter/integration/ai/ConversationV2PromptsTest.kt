@@ -99,6 +99,17 @@ class ConversationV2PromptsTest {
     }
 
     @Test
+    fun `build - default prompt treats no-more-content and question refusal as completion confirmation`() {
+        val rendered = prompts.build(request())
+
+        assertThat(rendered)
+            .contains("없어", "없는 것 같아", "딱히 없어", "더 없는 것 같아")
+            .contains("CONFIRM_COMPLETION")
+            .contains("declinedItemTypes")
+            .doesNotContain("declinedItemTypes에 넣고 REFLECT")
+    }
+
+    @Test
     fun `build - default prompt treats empty items as candidates instead of mandatory questions`() {
         val rendered = prompts.build(request())
 

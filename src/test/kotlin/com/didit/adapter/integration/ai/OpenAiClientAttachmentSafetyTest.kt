@@ -85,6 +85,12 @@ class OpenAiClientAttachmentSafetyTest {
             .expect(method(HttpMethod.POST))
             .andExpect(jsonPath("$.instructions", containsString("해요체")))
             .andExpect(jsonPath("$.instructions", containsString("~했다")))
+            .andExpect(jsonPath("$.instructions", containsString("인사이트를 정확히 1개")))
+            .andExpect(jsonPath("$.instructions", containsString("다음 행동을 정확히 1개")))
+            .andExpect(jsonPath("$.text.format.schema.properties.summary.type").value("string"))
+            .andExpect(jsonPath("$.text.format.schema.properties.insight.type").value("object"))
+            .andExpect(jsonPath("$.text.format.schema.properties.nextActions.minItems").value(1))
+            .andExpect(jsonPath("$.text.format.schema.properties.nextActions.maxItems").value(1))
             .andExpect(jsonPath("$.input").value("운영 DB에서 관리하는 결과 프롬프트"))
             .andRespond(withSuccess(openAiResultResponse(), MediaType.APPLICATION_JSON))
 
@@ -119,7 +125,7 @@ class OpenAiClientAttachmentSafetyTest {
           "output": [{
             "content": [{
               "type": "output_text",
-              "text": "{\"title\":\"인덱스 학습\",\"summary\":\"B-Tree 구조를 공부했어요.\",\"strengths\":null,\"improvements\":null,\"processes\":null,\"learnings\":null,\"insight\":null,\"nextActions\":null}"
+              "text": "{\"title\":\"인덱스 학습\",\"summary\":\"B-Tree 구조를 공부했어요.\",\"strengths\":null,\"improvements\":null,\"processes\":null,\"learnings\":null,\"insight\":{\"title\":\"검증 순서\",\"description\":\"구조를 먼저 확인하면 원인을 좁힐 수 있어요.\"},\"nextActions\":[{\"title\":\"실행 계획 정리\",\"description\":\"확인할 항목을 한 가지 정리해요.\"}]}"
             }]
           }],
           "usage": {"input_tokens": 1, "output_tokens": 1}

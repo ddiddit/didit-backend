@@ -21,7 +21,8 @@ class AdminRetrospectiveStatsService(
         val completed = retrospectiveRepository.countByStatusAndDeletedAtIsNull(RetroStatus.COMPLETED)
         val pending = retrospectiveRepository.countByStatusAndDeletedAtIsNull(RetroStatus.PENDING)
         val inProgress = retrospectiveRepository.countByStatusAndDeletedAtIsNull(RetroStatus.IN_PROGRESS)
-        val total = completed + pending + inProgress
+        val abandoned = retrospectiveRepository.countByStatusAndDeletedAtIsNull(RetroStatus.ABANDONED)
+        val total = completed + pending + inProgress + abandoned
         val totalUsers = userRepository.countByDeletedAtIsNull()
 
         // 최근 30일(오늘 포함) 완료 추이 — KST 기준 날짜 경계
