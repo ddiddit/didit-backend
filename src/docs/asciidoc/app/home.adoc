@@ -12,7 +12,16 @@ include::{snippets}/home/get/http-response.adoc[]
 include::{snippets}/home/get/response-fields.adoc[]
 
 == 홈 조회 (v2)
-최근 회고에 프로젝트명과 태그 정보를 포함한 v2 홈 조회 엔드포인트
+최근 제안 받은 행동과 프로젝트명·태그 정보를 포함한 v2 홈 조회 엔드포인트입니다.
+
+`recentRetrospectives`는 실제 다음 행동이 있는 완료 회고만 `completedAt` 최신순으로 최대 5개 반환합니다.
+V2 회고는 구조화 결과의 첫 번째 `nextActions.title`을, V1 회고는 기존 `summary.nextActionTitle`을 `nextAction`으로 반환합니다.
+이전 스키마에서 이관되어 V2 행동 제목이 기본값인 경우에는 `nextActions.description`을 행동 문구로 사용합니다.
+따라서 배열에 포함된 항목의 `nextAction`은 항상 존재하며 `~하기` 형태의 행동 문구를 우선 사용합니다.
+
+프론트는 `nextAction`을 카드의 주 문구로 최대 2줄까지 표시합니다.
+보조 문구는 프로젝트 회고일 때 `projectName · title`, 자유 회고일 때 `title`만 표시합니다.
+제안 행동이 없는 경우 `recentRetrospectives`는 빈 배열입니다.
 
 === Request
 
