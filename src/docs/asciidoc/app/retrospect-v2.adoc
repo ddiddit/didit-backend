@@ -17,7 +17,7 @@
 |`ASK` |AI 질문을 표시하고 사용자 입력을 계속 받습니다.
 |`REFLECT` |질문 없는 AI 반응을 표시하고 사용자 입력을 계속 받습니다.
 |`OFFER_COMPLETION` |서버가 회고 종료를 제안한 상태입니다. 아래 종료 메뉴 계약에 따라 처리하고, 계속하기를 선택하면 `conversationIntent=CONTINUE_AFTER_COMPLETION`으로 메시지를 전송합니다.
-|`CONFIRM_COMPLETION` |사용자가 `더 할 말 없어`, `그만할게`, `끝내자`처럼 회고 전체를 마치려는 의사를 명확히 표현한 상태입니다. `없어`, `없는 것 같아`처럼 현재 질문에 답할 내용이 없다는 표현만으로는 반환하지 않습니다.
+|`CONFIRM_COMPLETION` |사용자가 `더 할 말 없어`, `그만할게`, `끝내자`처럼 회고 전체를 마치려는 의사를 명확히 표현했거나, 결과 생성이 어려운 상태에서 항목 답변을 3회 연속 건너뛰었거나 질문 후보가 소진된 상태입니다. `없어`, `없는 것 같아` 한 번만으로는 반환하지 않습니다.
 |===
 
 첨부파일을 비동기로 분석하는 동안 메시지 전송 응답의 `action`은 `null`입니다. 분석 완료 후 대화 조회 응답에서 해당 턴의 `action`을 확인합니다.
@@ -120,8 +120,8 @@ include::{snippets}/retrospect-v2/get-conversation/response-fields.adoc[]
 
 대화 응답의 `action`이 `OFFER_COMPLETION` 또는 `CONFIRM_COMPLETION`이면 다음 계약을 사용하며 상단 버튼의 2단계 경고 상태와 공유하지 않습니다.
 
-* `readyToComplete=true`: `계속 작성하기`, `이대로 마치기`를 표시합니다. `이대로 마치기`는 결과 생성 API(`/finish`)를 호출합니다.
-* `readyToComplete=false`: AI 안내에 결과 미생성과 이용 횟수 1회 차감 내용이 포함됩니다. `계속 작성하기`, `결과 없이 나가기`를 표시하고, `결과 없이 나가기`는 추가 확인 없이 결과 없는 종료 API(`/exit`)를 호출합니다.
+* `readyToComplete=true`: `계속 작성하기`, `이대로 마치기`를 표시합니다. 사용자가 명시적으로 종료한 `CONFIRM_COMPLETION` 응답은 `assistantMessage=null`일 수 있습니다. `이대로 마치기`는 결과 생성 API(`/finish`)를 호출합니다.
+* `readyToComplete=false`: AI 안내에 결과 미생성과 이용 횟수 1회 차감 내용이 포함됩니다. `계속 작성하기`, `이대로 마치기`를 표시하고, `이대로 마치기`는 추가 확인 없이 결과 없는 종료 API(`/exit`)를 호출합니다.
 
 `계속 작성하기`는 현재 대화를 유지합니다. `OFFER_COMPLETION`에서 계속 작성하기를 선택한 경우에만 새 메시지와 `conversationIntent=CONTINUE_AFTER_COMPLETION`을 전송합니다.
 상단 종료 경고 상태는 새 메시지 제출, `CONTINUE_AFTER_COMPLETION` 전송, 화면 재진입, `readyToComplete=true` 전환 시 초기화합니다.
