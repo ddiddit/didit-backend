@@ -75,7 +75,9 @@ class AdminPromptPreviewService(
                 currentMessageId = command.userMessageId,
                 consecutiveIrrelevantCount =
                     turnPolicy.consecutiveIrrelevantCount(
-                        messagesBeforeGeneration.map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance) },
+                        messagesBeforeGeneration.map {
+                            ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance, it.content)
+                        },
                         command.userMessageId,
                     ),
                 eligibleQuestionTargets = eligibleQuestionTargets,
@@ -111,14 +113,20 @@ class AdminPromptPreviewService(
                 policyGenerated.analysisUpdates,
                 classifiedMessages,
             )
-        val hasMeaningfulAnalysisUpdate =
-            analyzedItems.zip(priorState.analysisItems).any { (after, before) ->
-                after.status != before.status || after.summary != before.summary
-            }
         val analysisItems =
             analyzedItems.applyDeclinedQuestion(currentQuestionTarget, policyGenerated.declinedItemTypes)
         val updatedItemSnapshots = analysisItems.map { it.toSnapshot() }
         val readyToComplete = turnPolicy.readyToComplete(updatedItemSnapshots)
+        val consecutiveItemDeclineCount =
+            if (currentQuestionTarget != null && currentQuestionTarget in policyGenerated.declinedItemTypes) {
+                turnPolicy.consecutiveItemDeclineCount(
+                    classifiedMessages.map {
+                        ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance, it.content)
+                    },
+                )
+            } else {
+                0
+            }
         val decided =
             turnPolicy.decideTurn(
                 generated = policyGenerated,
@@ -133,9 +141,7 @@ class AdminPromptPreviewService(
                         ),
                 completionPreviouslyOffered = priorState.completionPreviouslyOffered,
                 continuationRequested = continuationRequested,
-                hasMeaningfulAnalysisUpdate = hasMeaningfulAnalysisUpdate,
-                completedQuestionCount = priorState.completedQuestionCount,
-                consecutiveAskCount = priorState.consecutiveAskCount,
+                consecutiveItemDeclineCount = consecutiveItemDeclineCount,
                 readyToComplete = readyToComplete,
                 userMessageContent = command.message,
             )
@@ -149,20 +155,21 @@ class AdminPromptPreviewService(
                     previouslyAskedTargets = priorState.askedQuestionTargets,
                     userMessageContent = command.message,
                 )?.toResult()
-        val assistantSnapshot = turnPolicy.assistantSnapshot(decided)
-        check(assistantSnapshot.content.isNotBlank()) { "AI 응답이 비어 있습니다." }
         val assistantMessage =
-            AdminPromptPreviewMessage(
-                id = UUID.randomUUID(),
-                sender = Sender.AI,
-                content = assistantSnapshot.content,
-                messageType = assistantSnapshot.messageType,
-                supportingContent = assistantSnapshot.supportingContent,
-                answerGuide = answerGuide,
-            )
+            decided.content().takeIf(String::isNotBlank)?.let {
+                val assistantSnapshot = turnPolicy.assistantSnapshot(decided)
+                AdminPromptPreviewMessage(
+                    id = UUID.randomUUID(),
+                    sender = Sender.AI,
+                    content = assistantSnapshot.content,
+                    messageType = assistantSnapshot.messageType,
+                    supportingContent = assistantSnapshot.supportingContent,
+                    answerGuide = answerGuide,
+                )
+            }
         val nextState =
             AdminPromptPreviewState(
-                messages = classifiedMessages + assistantMessage,
+                messages = classifiedMessages + listOfNotNull(assistantMessage),
                 analysisItems = analysisItems,
                 currentQuestionTarget = decided.questionTarget,
                 recentQuestionTargets =
@@ -259,7 +266,7 @@ class AdminPromptPreviewService(
             .applyAnalysisUpdates(
                 items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary) },
                 updates,
-                messages.map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance) },
+                messages.map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance, it.content) },
             ).filter { it.applied }
             .forEach { decision ->
                 val after = checkNotNull(decision.after)

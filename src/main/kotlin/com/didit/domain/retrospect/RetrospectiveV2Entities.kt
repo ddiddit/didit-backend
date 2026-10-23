@@ -160,7 +160,7 @@ class RetrospectiveConversationTurn(
     }
 
     fun complete(
-        assistantMessageId: UUID,
+        assistantMessageId: UUID?,
         questionTarget: RetrospectiveItemType?,
         inputTokens: Int,
         outputTokens: Int,
@@ -169,6 +169,9 @@ class RetrospectiveConversationTurn(
         answerExamples: List<String> = emptyList(),
     ) {
         check(status == ConversationTurnStatus.PROCESSING)
+        require(assistantMessageId != null || action == ConversationTurnAction.CONFIRM_COMPLETION) {
+            "종료 확인 턴만 AI 메시지 없이 완료할 수 있습니다."
+        }
         require(action == ConversationTurnAction.ASK || action == ConversationTurnAction.REFLECT || questionTarget == null) {
             "ASK 또는 선택형 REFLECT에만 질문 대상을 저장할 수 있습니다."
         }

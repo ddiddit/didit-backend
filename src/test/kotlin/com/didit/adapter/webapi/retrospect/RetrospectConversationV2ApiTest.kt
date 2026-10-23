@@ -136,7 +136,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.turnId").type(JsonFieldType.STRING).description("대화 턴 ID"),
                         fieldWithPath("data.turnNumber").type(JsonFieldType.NUMBER).description("서버 기준 대화 턴 번호"),
                         fieldWithPath("data.userMessageId").type(JsonFieldType.STRING).description("저장된 사용자 메시지 ID"),
-                        *messageFields("data.assistantMessage", "AI 후속 대화"),
+                        *messageFields("data.assistantMessage", "AI 후속 대화").map { it.optional() }.toTypedArray(),
                         fieldWithPath(
                             "data.readyToComplete",
                         ).type(JsonFieldType.BOOLEAN).description("결과 생성 가능 여부. 종료 액션에서 true이면 /finish, false이면 /exit 사용"),

@@ -95,7 +95,7 @@ class ConversationV2PromptsTest {
             .contains("continuationRequested가 true이면")
             .contains("질문 가능한 다른 항목")
             .contains("'모르겠어' 또는 '생각나지 않아'")
-            .contains("말을 이어가려는 표현")
+            .contains("자유 입력을 유도하지 말고")
     }
 
     @Test
@@ -144,13 +144,13 @@ class ConversationV2PromptsTest {
     }
 
     @Test
-    fun `build - default prompt gives REFLECT a contextual continuation cue without forcing a question`() {
+    fun `build - default prompt forbids generic free input guidance`() {
         val rendered = prompts.build(request())
 
         assertThat(rendered)
-            .contains("맥락에 맞는 이어가기 단서")
-            .contains("한두 가지")
-            .contains("질문형으로 강요하지 마세요")
+            .contains("'더 남기고 싶은 내용', '자유롭게 이어서'")
+            .contains("자유 입력 안내를 작성하지 마세요")
+            .contains("짧거나 단순한 답변에는 빈 문자열")
     }
 
     private fun request() =

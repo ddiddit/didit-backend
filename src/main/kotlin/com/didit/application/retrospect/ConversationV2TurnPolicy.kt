@@ -18,20 +18,12 @@ class ConversationV2TurnPolicy {
     companion object {
         private const val MIN_RETROSPECTIVE_MESSAGES_FOR_READY_COMPLETION = 2
         private const val MAX_QUESTION_TURNS = 5
+        private const val MAX_CONSECUTIVE_ITEM_DECLINES = 3
         private const val DEFAULT_REFLECT_ACKNOWLEDGEMENT = "알겠어요."
-        private const val FREE_INPUT_GUIDE = "더 남기고 싶은 내용이 있다면 자유롭게 이어서 말씀해주세요."
         private const val READY_COMPLETION_GUIDE = "지금까지 나눈 내용으로 회고를 마칠 수 있어요."
         private const val INSUFFICIENT_COMPLETION_GUIDE =
             "지금까지 나눈 내용만으로는 회고 결과를 만들기 어려워요. 조금 더 이야기해볼까요? " +
                 "여기서 나가면 결과는 생성되지 않고, 회고 이용 횟수는 1회 차감돼요."
-        private val CONTINUATION_GUIDE_PHRASES =
-            listOf(
-                "더 말하고 싶",
-                "더 이어가고 싶",
-                "자유롭게 말씀",
-                "자유롭게 이어서",
-                "편하게 말씀",
-            )
     }
 
     fun initialIntro(): ConversationV2MessageSnapshot =
@@ -63,6 +55,13 @@ class ConversationV2TurnPolicy {
             .asReversed()
             .takeWhile { it.relevance != MessageRelevance.RETROSPECTIVE }
             .count { it.relevance != null }
+
+    fun consecutiveItemDeclineCount(messages: List<ConversationV2ConversationMessageSnapshot>): Int =
+        messages
+            .filter { it.sender == Sender.USER }
+            .asReversed()
+            .takeWhile { it.content.declinesCurrentQuestion() && !it.content.requestsCompletionConfirmation() }
+            .count()
 
     fun evidenceDecision(
         messages: List<ConversationV2ConversationMessageSnapshot>,
@@ -131,9 +130,7 @@ class ConversationV2TurnPolicy {
         completionRecommended: Boolean,
         completionPreviouslyOffered: Boolean,
         continuationRequested: Boolean = false,
-        hasMeaningfulAnalysisUpdate: Boolean = false,
-        completedQuestionCount: Int = 0,
-        consecutiveAskCount: Int = 0,
+        consecutiveItemDeclineCount: Int = 0,
         readyToComplete: Boolean = false,
         userMessageContent: String? = null,
     ): GeneratedConversationTurn =
@@ -143,9 +140,7 @@ class ConversationV2TurnPolicy {
             completionRecommended = completionRecommended,
             completionPreviouslyOffered = completionPreviouslyOffered,
             continuationRequested = continuationRequested,
-            hasMeaningfulAnalysisUpdate = hasMeaningfulAnalysisUpdate,
-            completedQuestionCount = completedQuestionCount,
-            consecutiveAskCount = consecutiveAskCount,
+            consecutiveItemDeclineCount = consecutiveItemDeclineCount,
             readyToComplete = readyToComplete,
             completionConfirmationRequested = userMessageContent.requestsCompletionConfirmation(),
         ).ensureVisibleContent()
@@ -156,9 +151,7 @@ class ConversationV2TurnPolicy {
         completionRecommended: Boolean,
         completionPreviouslyOffered: Boolean,
         continuationRequested: Boolean,
-        hasMeaningfulAnalysisUpdate: Boolean,
-        completedQuestionCount: Int,
-        consecutiveAskCount: Int,
+        consecutiveItemDeclineCount: Int,
         readyToComplete: Boolean,
         completionConfirmationRequested: Boolean,
     ): GeneratedConversationTurn {
@@ -170,8 +163,8 @@ class ConversationV2TurnPolicy {
                     ?: eligibleQuestionTargets.firstOrNull()
             return if (target == null) {
                 generated.copy(
-                    action = ConversationTurnAction.REFLECT,
-                    acknowledgement = "좋아요. 더 남기고 싶은 내용을 이어서 말씀해주세요.",
+                    action = ConversationTurnAction.CONFIRM_COMPLETION,
+                    acknowledgement = completionGuide(readyToComplete),
                     interpretation = "",
                     question = null,
                     questionTarget = null,
@@ -179,7 +172,7 @@ class ConversationV2TurnPolicy {
             } else {
                 generated.copy(
                     action = ConversationTurnAction.ASK,
-                    acknowledgement = "좋아요.",
+                    acknowledgement = "",
                     interpretation = "",
                     question =
                         generated.question?.takeIf {
@@ -194,7 +187,22 @@ class ConversationV2TurnPolicy {
         if (completionConfirmationRequested) {
             return generated.copy(
                 action = ConversationTurnAction.CONFIRM_COMPLETION,
-                acknowledgement = completionGuide(readyToComplete),
+                acknowledgement = completionGuide(readyToComplete).takeUnless { readyToComplete }.orEmpty(),
+                interpretation = "",
+                question = null,
+                questionTarget = null,
+            )
+        }
+        if (
+            !readyToComplete &&
+            (
+                consecutiveItemDeclineCount >= MAX_CONSECUTIVE_ITEM_DECLINES ||
+                    (eligibleQuestionTargets.isEmpty() && generated.relevance == MessageRelevance.RETROSPECTIVE)
+            )
+        ) {
+            return generated.copy(
+                action = ConversationTurnAction.CONFIRM_COMPLETION,
+                acknowledgement = INSUFFICIENT_COMPLETION_GUIDE,
                 interpretation = "",
                 question = null,
                 questionTarget = null,
@@ -213,7 +221,7 @@ class ConversationV2TurnPolicy {
             } else {
                 generated.copy(
                     action = ConversationTurnAction.ASK,
-                    acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT,
+                    acknowledgement = "",
                     interpretation = "",
                     question = fallbackQuestion(target),
                     questionTarget = target,
@@ -233,28 +241,6 @@ class ConversationV2TurnPolicy {
                 questionTarget = null,
             )
         }
-        if (
-            generated.relevance == MessageRelevance.RETROSPECTIVE &&
-            hasMeaningfulAnalysisUpdate &&
-            completedQuestionCount > 0 &&
-            consecutiveAskCount == 0
-        ) {
-            return generated.asReflect(freeInputGuide = true, optionalContinuationQuestion = generated.question)
-        }
-        if (
-            generated.relevance == MessageRelevance.RETROSPECTIVE &&
-            hasMeaningfulAnalysisUpdate &&
-            consecutiveAskCount >= 2
-        ) {
-            return generated.asReflect(freeInputGuide = true, optionalContinuationQuestion = generated.question)
-        }
-        if (
-            generated.relevance == MessageRelevance.RETROSPECTIVE &&
-            hasMeaningfulAnalysisUpdate &&
-            generated.action == ConversationTurnAction.REFLECT
-        ) {
-            return generated.asReflect(freeInputGuide = true)
-        }
         val fallbackTarget = eligibleQuestionTargets.firstOrNull()
         val shouldContinueWithQuestion =
             fallbackTarget != null &&
@@ -273,41 +259,11 @@ class ConversationV2TurnPolicy {
             }
             return generated.asReflect()
         }
-        return generated
+        return generated.withoutDuplicatedQuestion()
     }
 
-    private fun GeneratedConversationTurn.asReflect(
-        freeInputGuide: Boolean = false,
-        optionalContinuationQuestion: String? = null,
-    ): GeneratedConversationTurn {
-        val baseInterpretation =
-            optionalContinuationQuestion
-                ?.takeIf(String::isNotBlank)
-                ?.let { interpretation.replace(it, "").trim() }
-                ?: interpretation
-        val reflectInterpretation =
-            if (freeInputGuide) {
-                when {
-                    interpretation.hasContinuationGuide() -> interpretation
-                    !optionalContinuationQuestion.isNullOrBlank() ->
-                        listOf(
-                            baseInterpretation,
-                            "더 이어가고 싶다면 이 부분도 편하게 말씀해주세요. $optionalContinuationQuestion",
-                        ).filter(String::isNotBlank).joinToString(" ")
-                    interpretation.isBlank() -> FREE_INPUT_GUIDE
-                    else -> "$interpretation $FREE_INPUT_GUIDE"
-                }
-            } else {
-                interpretation
-            }
-        val reflected =
-            copy(
-                action = ConversationTurnAction.REFLECT,
-                acknowledgement = acknowledgement,
-                interpretation = reflectInterpretation,
-                question = null,
-                questionTarget = questionTarget.takeIf { !optionalContinuationQuestion.isNullOrBlank() },
-            )
+    private fun GeneratedConversationTurn.asReflect(): GeneratedConversationTurn {
+        val reflected = copy(action = ConversationTurnAction.REFLECT, question = null, questionTarget = null)
         return if (reflected.content().isBlank()) {
             reflected.copy(acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT)
         } else {
@@ -315,7 +271,10 @@ class ConversationV2TurnPolicy {
         }
     }
 
-    private fun String.hasContinuationGuide(): Boolean = CONTINUATION_GUIDE_PHRASES.any(::contains)
+    private fun GeneratedConversationTurn.withoutDuplicatedQuestion(): GeneratedConversationTurn {
+        val currentQuestion = question?.takeIf(String::isNotBlank) ?: return this
+        return copy(interpretation = interpretation.replace(currentQuestion, "").trim())
+    }
 
     fun normalizeItemDecline(
         generated: GeneratedConversationTurn,
@@ -357,20 +316,14 @@ class ConversationV2TurnPolicy {
     private fun GeneratedConversationTurn.ensureVisibleContent(): GeneratedConversationTurn {
         if (content().isNotBlank()) return this
         return when (action) {
-            ConversationTurnAction.CONFIRM_COMPLETION ->
-                copy(
-                    acknowledgement = "회고를 마칠까요?",
-                    interpretation = "",
-                    question = null,
-                    questionTarget = null,
-                )
+            ConversationTurnAction.CONFIRM_COMPLETION -> this
             else -> asReflect()
         }
     }
 
     private fun fallbackQuestion(target: RetrospectiveItemType): String =
         when (target) {
-            RetrospectiveItemType.FACT -> "오늘 진행한 일에서 더 남기고 싶은 내용은 무엇인가요?"
+            RetrospectiveItemType.FACT -> "오늘 진행한 일을 시작하게 된 계기는 무엇이었나요?"
             RetrospectiveItemType.FEEL -> "그 일을 진행하면서 어떤 느낌이 들었나요?"
             RetrospectiveItemType.STRENGTH -> "이번 일에서 스스로 잘했다고 생각하는 점은 무엇인가요?"
             RetrospectiveItemType.BLOCK -> "진행하면서 어려웠거나 막혔던 점은 무엇이었나요?"
@@ -474,9 +427,12 @@ private val RETROSPECTIVE_COMPLETION_INTENT_PATTERN =
 
 private val CURRENT_QUESTION_DECLINE_PATTERN =
     Regex(
-        "(?:(?:더\\s*|딱히\\s*|특별한\\s*(?:건|것은)\\s*)?(?:없어(?:요)?|없습니다|없다|없음|없는\\s*것\\s*같아(?:요)?)|" +
+        "(?:(?:(?:이|그)\\s*(?:질문|이야기|주제)(?:은|는|를)?\\s*)?(?:" +
+            "(?:더\\s*|딱히\\s*|특별한\\s*(?:건|것은)\\s*)?(?:없어(?:요)?|없습니다|없다|없음|없는\\s*것\\s*같아(?:요)?)|" +
             "모르겠어(?:요)?|모르겠습니다|생각나지\\s*않아(?:요)?|생각나지\\s*않습니다|" +
-            "넘어갈게(?:요)?|다음으로\\s*(?:가요|가자)|네|그냥(?:요)?|그랬죠)[\\s.!?…]*",
+            "넘어갈게(?:요)?|넘어가고\\s*싶어(?:요)?|건너뛸게(?:요)?|" +
+            "말하고\\s*싶지\\s*않아(?:요)?|말하고\\s*싶지\\s*않습니다|" +
+            "다음으로\\s*(?:가요|가자)|네|그냥(?:요)?|그랬죠))[\\s.!?…]*",
     )
 
 data class ConversationV2MessageSnapshot(
@@ -489,6 +445,7 @@ data class ConversationV2ConversationMessageSnapshot(
     val id: UUID,
     val sender: Sender,
     val relevance: MessageRelevance?,
+    val content: String = "",
 )
 
 data class ConversationV2AnalysisItemSnapshot(
