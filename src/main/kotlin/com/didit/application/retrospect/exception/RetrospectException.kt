@@ -129,6 +129,20 @@ class RetrospectiveResultGenerationFailedException(
     }
 }
 
+class RetrospectiveNotReadyToCompleteException(
+    retrospectiveId: UUID,
+) : BusinessException(
+        RetrospectErrorCode.RETROSPECTIVE_NOT_READY_TO_COMPLETE,
+        "retrospectiveId: $retrospectiveId",
+    )
+
+class RetrospectiveReadyToCompleteException(
+    retrospectiveId: UUID,
+) : BusinessException(
+        RetrospectErrorCode.RETROSPECTIVE_READY_TO_COMPLETE,
+        "retrospectiveId: $retrospectiveId",
+    )
+
 class AttachmentNotFoundException(
     attachmentId: UUID,
 ) : BusinessException(RetrospectErrorCode.ATTACHMENT_NOT_FOUND, "attachmentId: $attachmentId")

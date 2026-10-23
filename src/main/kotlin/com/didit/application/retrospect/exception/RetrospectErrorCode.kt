@@ -14,6 +14,8 @@ enum class RetrospectErrorCode(
     DUPLICATE_MESSAGE_CONTENT_MISMATCH(HttpStatus.CONFLICT, "동일한 메시지 ID에 다른 내용을 사용할 수 없습니다."),
     CONVERSATION_AI_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "AI 응답 생성에 실패했습니다. 다시 시도해주세요."),
     RESULT_GENERATION_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "회고 결과 생성에 실패했습니다. 다시 시도해주세요."),
+    RETROSPECTIVE_NOT_READY_TO_COMPLETE(HttpStatus.CONFLICT, "아직 회고 결과를 생성하기에 내용이 충분하지 않습니다."),
+    RETROSPECTIVE_READY_TO_COMPLETE(HttpStatus.CONFLICT, "완료할 수 있는 회고는 결과 없이 종료할 수 없습니다."),
     ATTACHMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "첨부파일을 찾을 수 없습니다."),
     ATTACHMENT_UNSUPPORTED_FILE(HttpStatus.BAD_REQUEST, "지원하지 않는 파일 형식입니다."),
     ATTACHMENT_SIZE_EXCEEDED(HttpStatus.BAD_REQUEST, "파일 크기가 너무 큽니다. 10MB 이하 파일을 첨부해주세요."),

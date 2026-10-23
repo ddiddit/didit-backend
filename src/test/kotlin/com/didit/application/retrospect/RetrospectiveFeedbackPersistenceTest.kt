@@ -7,6 +7,7 @@ import com.didit.domain.retrospect.FeedbackRating
 import com.didit.domain.retrospect.FeedbackReason
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveFeedback
+import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.RetrospectiveResultV2
 import com.didit.support.RepositoryTestSupport
 import com.didit.support.RetrospectiveFixture
@@ -157,7 +158,18 @@ class RetrospectiveFeedbackPersistenceTest : RepositoryTestSupport() {
             Retrospective.createV2(userId).apply {
                 startProgress()
                 finishConversation()
-                saveV2Result("V2 회고", RetrospectiveResultV2(null, null, null, null, null, null, null))
+                saveV2Result(
+                    "V2 회고",
+                    RetrospectiveResultV2(
+                        summary = "회고를 마쳤다.",
+                        strengths = null,
+                        improvements = null,
+                        processes = null,
+                        learnings = null,
+                        insight = RetrospectiveResultDetail("반복 제출 확인", "평가 갱신 동작을 확인했다."),
+                        nextActions = listOf(RetrospectiveResultDetail("평가 결과 확인하기", "마지막 제출 값이 유지되는지 확인한다.")),
+                    ),
+                )
             }
         listOf(legacy, v2).forEach { retrospective ->
             retrospectives.save(retrospective)

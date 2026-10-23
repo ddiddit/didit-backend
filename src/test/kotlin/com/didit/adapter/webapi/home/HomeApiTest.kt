@@ -13,6 +13,11 @@ import com.didit.docs.ApiDocumentUtils
 import com.didit.docs.AuthenticatedRestDocsSupport
 import com.didit.domain.organization.Project
 import com.didit.domain.organization.Tag
+import com.didit.domain.retrospect.RetroStatus
+import com.didit.domain.retrospect.Retrospective
+import com.didit.domain.retrospect.RetrospectiveFlowVersion
+import com.didit.domain.retrospect.RetrospectiveResultDetail
+import com.didit.domain.retrospect.RetrospectiveResultV2
 import com.didit.domain.shared.ServiceTime
 import com.didit.support.RetrospectiveFixture
 import com.didit.support.UserFixture
@@ -25,6 +30,7 @@ import org.springframework.restdocs.payload.JsonFieldType
 import org.springframework.restdocs.payload.PayloadDocumentation.fieldWithPath
 import org.springframework.restdocs.payload.PayloadDocumentation.responseFields
 import org.springframework.restdocs.payload.PayloadDocumentation.subsectionWithPath
+import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import java.util.UUID
 
@@ -88,9 +94,27 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
     @Test
     fun `홈 조회 v2`() {
         val user = UserFixture.createOnboarded()
+        val retrospective =
+            Retrospective.createV2(userId).apply {
+                startProgress()
+                finishConversation()
+                saveV2Result(
+                    title = "배포 오류 롤백 회고",
+                    result =
+                        RetrospectiveResultV2(
+                            summary = "배포 오류를 발견하고 롤백했어요.",
+                            strengths = null,
+                            improvements = null,
+                            processes = null,
+                            learnings = null,
+                            insight = RetrospectiveResultDetail("복구 순서", "원인을 나누어 확인하면 복구가 빨라져요."),
+                            nextActions = listOf(RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리해요.")),
+                        ),
+                )
+            }
         val result =
             RetrospectiveDetailResult(
-                retrospective = RetrospectiveFixture.createCompleted(userId),
+                retrospective = retrospective,
                 project = Project(UUID.randomUUID(), userId, "프로젝트 이름"),
                 tags = listOf(Tag(UUID.randomUUID(), userId, "태그1"), Tag(UUID.randomUUID(), userId, "태그2")),
             )
@@ -104,6 +128,9 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
         mockMvc
             .perform(get("/api/v2/home"))
             .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.recentRetrospectives[0].nextAction").value("배포 체크리스트 작성하기"))
+            .andExpect(jsonPath("$.data.recentRetrospectives[0].title").value("배포 오류 롤백 회고"))
+            .andExpect(jsonPath("$.data.recentRetrospectives[0].projectName").value("프로젝트 이름"))
             .andDo(
                 document(
                     "home/v2/get",
@@ -119,7 +146,7 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.recentRetrospectives[].title").type(JsonFieldType.STRING).description("회고 제목").optional(),
                         fieldWithPath(
                             "data.recentRetrospectives[].nextAction",
-                        ).type(JsonFieldType.STRING).description("다음 행동 제안 요약구").optional(),
+                        ).type(JsonFieldType.STRING).description("다음 행동 제안. 항상 1개"),
                         fieldWithPath("data.recentRetrospectives[].completedAt")
                             .type(JsonFieldType.STRING)
                             .description("완료 시간")
@@ -134,5 +161,57 @@ class HomeApiTest : AuthenticatedRestDocsSupport() {
                     ),
                 ),
             )
+    }
+
+    @Test
+    fun `홈 조회 v2는 마이그레이션된 다음 행동의 설명을 행동 문구로 노출한다`() {
+        val user = UserFixture.createOnboarded()
+        val retrospective =
+            Retrospective(
+                userId = userId,
+                title = "인증 회고",
+                status = RetroStatus.COMPLETED,
+                resultV2 =
+                    RetrospectiveResultV2(
+                        summary = "인증 만료 조건을 점검했어요.",
+                        strengths = null,
+                        improvements = null,
+                        processes = null,
+                        learnings = null,
+                        insight = RetrospectiveResultDetail("경계값 확인", "만료 경계값을 명시해야 해요."),
+                        nextActions = listOf(RetrospectiveResultDetail("다음 행동", "인증 만료 조건을 검증한다.")),
+                    ),
+                flowVersion = RetrospectiveFlowVersion.V2,
+            )
+        val result = RetrospectiveDetailResult(retrospective = retrospective, project = null, tags = emptyList())
+
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(retrospectiveFinder.findRecentWithProjectAndTagsByUserId(userId, 5)).thenReturn(listOf(result))
+        whenever(retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())).thenReturn(1)
+        whenever(notificationHistoryFinder.hasUnread(userId)).thenReturn(false)
+        whenever(missionFinder.getCurrentMission(userId)).thenReturn(currentMission())
+
+        mockMvc
+            .perform(get("/api/v2/home"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.recentRetrospectives[0].nextAction").value("인증 만료 조건을 검증하기"))
+    }
+
+    @Test
+    fun `홈 조회 v2는 v1 회고의 다음 행동도 행동 문구로 정규화한다`() {
+        val user = UserFixture.createOnboarded()
+        val retrospective = RetrospectiveFixture.createCompleted(userId)
+        val result = RetrospectiveDetailResult(retrospective = retrospective, project = null, tags = emptyList())
+
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(user)
+        whenever(retrospectiveFinder.findRecentWithProjectAndTagsByUserId(userId, 5)).thenReturn(listOf(result))
+        whenever(retrospectiveFinder.countByUserIdAndDate(userId, ServiceTime.today())).thenReturn(1)
+        whenever(notificationHistoryFinder.hasUnread(userId)).thenReturn(false)
+        whenever(missionFinder.getCurrentMission(userId)).thenReturn(currentMission())
+
+        mockMvc
+            .perform(get("/api/v2/home"))
+            .andExpect(status().isOk)
+            .andExpect(jsonPath("$.data.recentRetrospectives[0].nextAction").value("토큰 만료 엣지 케이스 테스트 작성하기"))
     }
 }

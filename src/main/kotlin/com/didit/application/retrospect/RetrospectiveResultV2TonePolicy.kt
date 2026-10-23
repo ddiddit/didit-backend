@@ -9,16 +9,16 @@ class RetrospectiveResultV2TonePolicy {
     fun normalize(generated: GeneratedRetrospectiveResultV2): GeneratedRetrospectiveResultV2 =
         generated.copy(
             summary = generated.summary?.toPoliteStyle(),
-            strengths = generated.strengths?.map { it.toPoliteStyle() },
-            improvements = generated.improvements?.map { it.toPoliteStyle() },
-            processes = generated.processes?.map { it.toPoliteStyle() },
-            learnings = generated.learnings?.map { it.toPoliteStyle() },
+            strengths = generated.strengths,
+            improvements = generated.improvements,
+            processes = generated.processes,
+            learnings = generated.learnings,
             insight = generated.insight?.toPoliteStyle(),
             nextActions = generated.nextActions?.map { it.toPoliteStyle() },
         )
 
     fun requiresRegeneration(generated: GeneratedRetrospectiveResultV2): Boolean =
-        generated.userFacingNarratives().any { narrative ->
+        generated.userFacingSentences().any { narrative ->
             REPORT_STYLE_REMAINDER.containsMatchIn(narrative) || narrative.endsWithNominalMieum()
         }
 
@@ -57,13 +57,9 @@ class RetrospectiveResultV2TonePolicy {
         code in HANGUL_SYLLABLE_START..HANGUL_SYLLABLE_END &&
             (code - HANGUL_SYLLABLE_START) % HANGUL_FINAL_COUNT == MIEUM_FINAL_INDEX
 
-    private fun GeneratedRetrospectiveResultV2.userFacingNarratives(): List<String> =
+    private fun GeneratedRetrospectiveResultV2.userFacingSentences(): List<String> =
         buildList {
             summary?.let(::add)
-            strengths?.let(::addAll)
-            improvements?.let(::addAll)
-            processes?.let(::addAll)
-            learnings?.let(::addAll)
             insight?.description?.let(::add)
             nextActions?.mapTo(this) { it.description }
         }

@@ -99,6 +99,20 @@ class ConversationV2PromptsTest {
     }
 
     @Test
+    fun `build - default prompt distinguishes current question refusal from whole retrospective completion`() {
+        val rendered = prompts.build(request())
+
+        assertThat(rendered)
+            .contains("'없어', '없는 것 같아', '딱히 없어'")
+            .contains("회고 전체를 마치려는 의사로 해석하지 마세요")
+            .contains("질문 가능한 다른 항목")
+            .contains("'더 할 말 없어', '그만할게', '끝내자', '회고 마칠게'")
+            .contains("CONFIRM_COMPLETION")
+            .contains("declinedItemTypes")
+            .doesNotContain("해당 항목을 declinedItemTypes에 넣고 CONFIRM_COMPLETION")
+    }
+
+    @Test
     fun `build - default prompt treats empty items as candidates instead of mandatory questions`() {
         val rendered = prompts.build(request())
 

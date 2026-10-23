@@ -8,6 +8,7 @@ import com.didit.domain.retrospect.RetrospectiveResultDetail
 import com.didit.domain.retrospect.RetrospectiveResultV2
 import com.didit.domain.retrospect.RetrospectiveSummary
 import com.didit.support.RepositoryTestSupport
+import com.didit.support.RetrospectiveFixture
 import jakarta.persistence.EntityManager
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -126,11 +127,10 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
                             improvements = listOf("배포 전 확인이 부족했다."),
                             processes = listOf("로그를 확인해 원인을 좁혔다."),
                             learnings = listOf("체크리스트가 필요하다."),
-                            insight = null,
+                            insight = RetrospectiveResultDetail("복구 순서", "로그 순서를 따라가면 원인을 좁힐 수 있어요."),
                             nextActions =
                                 listOf(
                                     RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리한다."),
-                                    RetrospectiveResultDetail("알림 기준 점검", "장애 알림 임계값을 확인한다."),
                                 ),
                         ),
                 )
@@ -145,24 +145,39 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
         assertThat(saved.resultV2?.strengths).isNull()
         assertThat(saved.resultV2?.nextActions)
             .containsExactly(
-                RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리한다."),
-                RetrospectiveResultDetail("알림 기준 점검", "장애 알림 임계값을 확인한다."),
+                RetrospectiveResultDetail("배포 체크리스트 작성하기", "배포 전 확인 항목을 정리한다."),
             )
         assertThat(listItem.summary).isEqualTo("배포 직후 장애를 발견하고 롤백했다.")
     }
 
     @Test
-    fun `V2 결과 항목이 모두 비어 있어도 생성된 결과 객체를 보존한다`() {
+    fun `과거 V2 결과 항목이 모두 비어 있어도 생성된 결과 객체를 읽는다`() {
         val retrospective =
             Retrospective.createV2(userId).apply {
                 startProgress()
                 finishConversation()
                 saveV2Result(
                     title = "확인된 내용이 적은 회고",
-                    result = RetrospectiveResultV2(null, null, null, null, null, null, null),
+                    result = validV2Result(),
                 )
             }
         retrospectiveRepository.save(retrospective)
+        entityManager.flush()
+        entityManager
+            .createNativeQuery(
+                """
+                UPDATE retrospectives
+                SET result_summary = NULL,
+                    result_strength = NULL,
+                    result_improvement = NULL,
+                    result_process = NULL,
+                    result_learning = NULL,
+                    result_insight = NULL,
+                    result_next_actions = NULL
+                WHERE id = :id
+                """.trimIndent(),
+            ).setParameter("id", retrospective.id)
+            .executeUpdate()
         entityManager.flush()
         entityManager.clear()
 
@@ -180,7 +195,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
                 finishConversation()
                 saveV2Result(
                     title = "기존 회고",
-                    result = RetrospectiveResultV2(null, null, null, null, null, null, null),
+                    result = validV2Result(),
                 )
             }
         retrospectiveRepository.save(retrospective)
@@ -230,6 +245,17 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
             )
     }
 
+    private fun validV2Result() =
+        RetrospectiveResultV2(
+            summary = "회고 요약",
+            strengths = null,
+            improvements = null,
+            processes = null,
+            learnings = null,
+            insight = RetrospectiveResultDetail("인사이트", "회고에서 확인한 인사이트예요."),
+            nextActions = listOf(RetrospectiveResultDetail("다음 행동", "바로 이어서 실행해요.")),
+        )
+
     @Test
     fun `findRecentCompletedByUserId - limit만큼만 반환한다`() {
         repeat(5) { retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고 $it")) }
@@ -244,10 +270,33 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
     }
 
     @Test
+    fun `findRecentCompletedWithNextActionByUserId - 행동이 있는 완료 회고만 완료 시각 최신순으로 반환한다`() {
+        val older = RetrospectiveFixture.createCompleted(userId).apply { completedAt = LocalDateTime.of(2026, 10, 20, 10, 0) }
+        val newer =
+            RetrospectiveFixture.createCompleted(userId).apply {
+                updateTitle("최신 행동 회고")
+                completedAt = LocalDateTime.of(2026, 10, 21, 10, 0)
+            }
+        retrospectiveRepository.save(older)
+        retrospectiveRepository.save(newer)
+        retrospectiveRepository.save(completedRetrospective(userId, "행동 없는 회고"))
+        retrospectiveRepository.save(Retrospective.createV2(userId).apply { abandonConversationWithoutResult() })
+
+        val found =
+            retrospectiveRepository.findRecentCompletedWithNextActionByUserId(
+                userId = userId,
+                pageable = PageRequest.of(0, 5),
+            )
+
+        assertThat(found).extracting<String> { it.title }.containsExactly("최신 행동 회고", "로그인 API 연동 회고")
+    }
+
+    @Test
     fun `countByUserIdAndCreatedAtInPeriod - PENDING 상태는 카운트에서 제외된다`() {
         retrospectiveRepository.save(Retrospective.create(userId))
         retrospectiveRepository.save(Retrospective.create(userId).apply { startProgress() })
         retrospectiveRepository.save(completedRetrospective(userId, "완료된 회고"))
+        retrospectiveRepository.save(Retrospective.createV2(userId).apply { abandonConversationWithoutResult() })
 
         val count =
             retrospectiveRepository.countByUserIdAndCreatedAtInPeriod(
@@ -262,7 +311,7 @@ class RetrospectiveRepositoryTest : RepositoryTestSupport() {
                         .atStartOfDay(),
             )
 
-        assertThat(count).isEqualTo(2)
+        assertThat(count).isEqualTo(3)
     }
 
     @Test

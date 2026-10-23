@@ -34,6 +34,7 @@ data class AdminPromptPreviewCommand(
 data class AdminPromptPreviewState(
     val messages: List<AdminPromptPreviewMessage>,
     val analysisItems: List<AdminPromptPreviewAnalysisItem>,
+    val currentQuestionTarget: RetrospectiveItemType? = null,
     val recentQuestionTargets: List<RetrospectiveItemType> = emptyList(),
     val askedQuestionTargets: Set<RetrospectiveItemType> = emptySet(),
     val completedQuestionCount: Int = 0,

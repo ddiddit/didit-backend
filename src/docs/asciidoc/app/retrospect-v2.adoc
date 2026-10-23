@@ -5,7 +5,7 @@
 === 대화형 회고
 
 첫 안내 메시지만 `title`과 `body`를 사용하고, 이후 대화 메시지는 `content`만 사용합니다.
-`readyToComplete`는 내부 수집 상태를 나타내는 참고 값입니다. 화면 동작은 `action`을 기준으로 처리합니다.
+`readyToComplete`는 결과 생성 가능 여부를 나타냅니다. 종료 메뉴와 호출 API는 `action`과 `readyToComplete`를 함께 보고 결정합니다.
 
 ==== 대화 액션
 
@@ -16,12 +16,12 @@
 |값 |클라이언트 처리
 |`ASK` |AI 질문을 표시하고 사용자 입력을 계속 받습니다.
 |`REFLECT` |질문 없는 AI 반응을 표시하고 사용자 입력을 계속 받습니다.
-|`OFFER_COMPLETION` |회고 종료를 제안합니다. 사용자가 종료를 선택하면 대화 종료 API를 호출하고, 계속하기를 선택하면 `conversationIntent=CONTINUE_AFTER_COMPLETION`으로 메시지를 전송합니다.
-|`CONFIRM_COMPLETION` |사용자가 종료 의사를 표현한 상태입니다. 종료 여부를 한 번 확인하고, 동의하면 대화 종료 API를 호출합니다.
+|`OFFER_COMPLETION` |서버가 회고 종료를 제안한 상태입니다. 아래 종료 메뉴 계약에 따라 처리하고, 계속하기를 선택하면 `conversationIntent=CONTINUE_AFTER_COMPLETION`으로 메시지를 전송합니다.
+|`CONFIRM_COMPLETION` |사용자가 `더 할 말 없어`, `그만할게`, `끝내자`처럼 회고 전체를 마치려는 의사를 명확히 표현한 상태입니다. `없어`, `없는 것 같아`처럼 현재 질문에 답할 내용이 없다는 표현만으로는 반환하지 않습니다.
 |===
 
 첨부파일을 비동기로 분석하는 동안 메시지 전송 응답의 `action`은 `null`입니다. 분석 완료 후 대화 조회 응답에서 해당 턴의 `action`을 확인합니다.
-`readyToComplete`가 `false`여도 질문 횟수 기준에 따라 `OFFER_COMPLETION`이 반환될 수 있으므로, 종료 UI는 `readyToComplete`가 아닌 `action`으로 결정합니다.
+`readyToComplete`가 `false`여도 질문 횟수 기준에 따라 `OFFER_COMPLETION`이 반환될 수 있습니다. 따라서 종료 메뉴 노출은 `action`으로, 메뉴 문구와 종료 API는 `readyToComplete`로 결정합니다.
 
 ==== 답변 예시
 
@@ -114,15 +114,46 @@ include::{snippets}/retrospect-v2/get-conversation/path-parameters.adoc[]
 include::{snippets}/retrospect-v2/get-conversation/http-response.adoc[]
 include::{snippets}/retrospect-v2/get-conversation/response-fields.adoc[]
 
+==== 대화 종료 선택 계약
+
+상단 `회고 마치기`에서 `readyToComplete=false`이면 기존 2단계 경고를 사용합니다. 첫 번째 시도에는 `아직 내용이 충분하지 않아요.` 안내와 `확인`을 표시하고, 두 번째 시도에는 `아직 회고 결과 생성이 어려워요.` 안내와 `계속하기`, `나가기`를 표시합니다. `나가기`는 아래 결과 없는 종료 API를 호출합니다.
+
+대화 응답의 `action`이 `OFFER_COMPLETION` 또는 `CONFIRM_COMPLETION`이면 다음 계약을 사용하며 상단 버튼의 2단계 경고 상태와 공유하지 않습니다.
+
+* `readyToComplete=true`: `계속 작성하기`, `이대로 마치기`를 표시합니다. `이대로 마치기`는 결과 생성 API(`/finish`)를 호출합니다.
+* `readyToComplete=false`: AI 안내에 결과 미생성과 이용 횟수 1회 차감 내용이 포함됩니다. `계속 작성하기`, `결과 없이 나가기`를 표시하고, `결과 없이 나가기`는 추가 확인 없이 결과 없는 종료 API(`/exit`)를 호출합니다.
+
+`계속 작성하기`는 현재 대화를 유지합니다. `OFFER_COMPLETION`에서 계속 작성하기를 선택한 경우에만 새 메시지와 `conversationIntent=CONTINUE_AFTER_COMPLETION`을 전송합니다.
+상단 종료 경고 상태는 새 메시지 제출, `CONTINUE_AFTER_COMPLETION` 전송, 화면 재진입, `readyToComplete=true` 전환 시 초기화합니다.
+두 API를 호출하는 동안 종료 버튼과 메시지 입력을 비활성화하고, 실패하면 현재 화면과 선택창을 유지해 재시도할 수 있게 합니다.
+
+===== 결과 없는 종료 Request
+
+include::{snippets}/retrospect-v2/exit/http-request.adoc[]
+include::{snippets}/retrospect-v2/exit/path-parameters.adoc[]
+
+===== 결과 없는 종료 Response
+
+include::{snippets}/retrospect-v2/exit/http-response.adoc[]
+include::{snippets}/retrospect-v2/exit/response-fields.adoc[]
+
+성공하면 회고 채팅 화면을 back stack에서 제거하고 홈으로 이동합니다.
+결과 없는 종료도 당일 회고 횟수에는 포함되지만 회고 결과, 완료 목록, 캘린더, 최근 제안 받은 행동에는 나타나지 않습니다.
+`readyToComplete=true`인 회고에 결과 없는 종료를 요청하면 `409 Conflict`가 반환됩니다.
+
 ==== 대화 종료 및 결과 생성
 
-대화 종료 요청 한 번으로 확인된 대화 내용을 바탕으로 구조화 회고 결과를 생성하고 저장합니다.
-회고 내용이 충분하지 않아도 종료할 수 있으며, 대화에서 확인되지 않은 결과 항목은 확인되지 않았다는 안내 문구로 반환합니다.
-내용이 부족한 상태에서 사용자가 직접 종료를 누르면 클라이언트는 한 번의 안내에서 `계속 작성하기`와 `이대로 마치기`를 함께 제공합니다. `이대로 마치기`를 선택하면 추가 확인 없이 이 API를 호출합니다.
+`readyToComplete=true`인 대화만 확인된 내용을 바탕으로 구조화 회고 결과를 생성하고 저장합니다.
+내용이 부족한 상태에서 직접 호출하면 `409 Conflict`가 반환되므로, 클라이언트의 `readyToComplete`는 화면 힌트이고 서버가 최종 준비도를 다시 검증합니다.
 
 완료된 회고에 같은 요청을 다시 보내면 저장된 결과를 반환하며, 생성 실패 시에는 다시 시도할 수 있도록 생성 상태를 복구합니다.
 
 성공 시 `resultGenerationStatus`는 `GENERATED`이며 자동 생성된 제목과 구조화 결과를 함께 반환합니다.
+`summary`, `insight`, `nextActions`는 항상 존재하고 `insight`와 `nextActions`는 각각 정확히 1개입니다.
+다음 행동 제목은 홈에서도 그대로 사용하는 `~하기` 형태입니다.
+
+결과 화면은 `summary` → `strengths` → `improvements` → `processes` → `learnings` → `insight` → `nextActions` 순서로 렌더링합니다.
+`strengths`, `improvements`, `processes`, `learnings`는 실제 대화에서 수집된 경우에만 응답에 포함되므로, 누락된 필드는 빈 카드나 `대화에서 확인되지 않았어요` 문구로 대체하지 않고 섹션 전체를 생략합니다.
 
 ===== Request
 

@@ -53,6 +53,23 @@ class RetrospectiveResultV2(
             ?.takeIf { it.isNotEmpty() }
             ?.also { require(it.size <= MAX_ITEMS) { "다음 행동은 최대 2개까지 저장할 수 있습니다." } }
 
+    fun validatedForNewGeneration(): RetrospectiveResultV2 {
+        require(!summary.isNullOrBlank()) { "회고 요약은 비어 있을 수 없습니다." }
+        require(insight != null) { "인사이트는 반드시 하나 생성해야 합니다." }
+        require(nextActions?.size == 1) { "다음 행동은 반드시 하나 생성해야 합니다." }
+        val nextAction = checkNotNull(nextActions).single()
+
+        return RetrospectiveResultV2(
+            summary = summary,
+            strengths = strengths,
+            improvements = improvements,
+            processes = processes,
+            learnings = learnings,
+            insight = insight,
+            nextActions = listOf(nextAction.copy(title = nextAction.title.toActionTitle())),
+        )
+    }
+
     companion object {
         private const val CURRENT_SCHEMA_VERSION = 3
         private const val MAX_ITEMS = 2
@@ -77,6 +94,18 @@ data class RetrospectiveResultDetail(
         val normalizedDescription = description.trim()
         if (normalizedTitle.isEmpty() || normalizedDescription.isEmpty()) return null
         return RetrospectiveResultDetail(normalizedTitle, normalizedDescription)
+    }
+}
+
+internal fun RetrospectiveResultDetail.toDisplayActionTitle(): String =
+    (description.takeIf { title.trim() in LEGACY_NEXT_ACTION_TITLES } ?: title).toActionTitle()
+
+internal fun String.toActionTitle(): String {
+    val title = trim().trimEnd('.', '!', '?', '…')
+    return when {
+        title.endsWith("하기") -> title
+        title.endsWith("한다") || title.endsWith("하다") || title.endsWith("해요") -> title.dropLast(2) + "하기"
+        else -> title + "하기"
     }
 }
 
@@ -126,6 +155,7 @@ class NullableResultDetailListJsonConverter : AttributeConverter<List<Retrospect
 
 private const val LEGACY_INSIGHT_TITLE = "디딧의 인사이트"
 private const val LEGACY_NEXT_ACTION_TITLE = "다음 행동"
+private val LEGACY_NEXT_ACTION_TITLES = setOf(LEGACY_NEXT_ACTION_TITLE, "다음 행동하기")
 private val objectMapper = jacksonObjectMapper()
 
 private fun String?.normalizedPersistedValue(): String? = this?.trim()?.takeIf(String::isNotEmpty)

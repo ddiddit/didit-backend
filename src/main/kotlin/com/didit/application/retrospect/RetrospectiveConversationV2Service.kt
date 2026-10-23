@@ -6,6 +6,7 @@ import com.didit.application.retrospect.dto.ConversationMessageAttachmentResult
 import com.didit.application.retrospect.dto.ConversationMessageResult
 import com.didit.application.retrospect.dto.ConversationTurnResult
 import com.didit.application.retrospect.dto.ConversationV2Result
+import com.didit.application.retrospect.dto.ExitConversationV2Result
 import com.didit.application.retrospect.dto.FinishConversationV2Result
 import com.didit.application.retrospect.dto.StartConversationV2Result
 import com.didit.application.retrospect.dto.SubmitConversationMessageResult
@@ -20,6 +21,7 @@ import com.didit.application.retrospect.exception.DailyLimitExceededException
 import com.didit.application.retrospect.exception.DuplicateMessageContentMismatchException
 import com.didit.application.retrospect.exception.RetrospectiveFlowVersionMismatchException
 import com.didit.application.retrospect.exception.RetrospectiveNotFoundException
+import com.didit.application.retrospect.exception.RetrospectiveReadyToCompleteException
 import com.didit.application.retrospect.provided.RetrospectiveConversationV2
 import com.didit.application.retrospect.provided.RetrospectiveFinder
 import com.didit.application.retrospect.required.ChatMessageRepository
@@ -214,6 +216,26 @@ class RetrospectiveConversationV2Service(
         retrospectiveId: UUID,
         userId: UUID,
     ): FinishConversationV2Result = resultCompletionCoordinator.complete(retrospectiveId, userId)
+
+    override fun exit(
+        retrospectiveId: UUID,
+        userId: UUID,
+    ): ExitConversationV2Result =
+        transactionTemplate.execute {
+            val retrospective = findV2ForUpdate(retrospectiveId, userId)
+            if (retrospective.status == com.didit.domain.retrospect.RetroStatus.ABANDONED) {
+                return@execute ExitConversationV2Result(retrospective.id, ConversationStatus.FINISHED)
+            }
+            if (turnRepository.findFirstByRetrospectiveIdAndStatus(retrospectiveId, ConversationTurnStatus.PROCESSING) != null) {
+                throw AnotherConversationTurnInProgressException(retrospectiveId)
+            }
+            val items = analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)
+            if (calculateReadyToComplete(items)) throw RetrospectiveReadyToCompleteException(retrospectiveId)
+
+            retrospective.abandonConversationWithoutResult()
+            retrospectiveRepository.save(retrospective)
+            ExitConversationV2Result(retrospective.id, ConversationStatus.FINISHED)
+        }!!
 
     fun processAttachedTurn(event: AttachmentConversationRequestedEvent) {
         val preparation =
@@ -441,7 +463,7 @@ class RetrospectiveConversationV2Service(
         val continuationRequested =
             conversationIntent == ConversationUserIntent.CONTINUE_AFTER_COMPLETION &&
                 conversationState.completionPreviouslyOffered
-        val itemSnapshots = items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary, it.questionAllowed) }
+        val itemSnapshots = items.map { it.toConversationSnapshot() }
         val eligibleQuestionTargets = turnPolicy.eligibleQuestionTargets(itemSnapshots, conversationState.recentQuestionTargets)
         val currentAttachments =
             attachmentRepository
@@ -531,22 +553,28 @@ class RetrospectiveConversationV2Service(
 
             val items = findOrInitializeItems(preparation.retrospectiveId)
             val conversationState = findConversationPolicyState(preparation.retrospectiveId)
+            val normalizedGenerated =
+                turnPolicy.normalizeItemDecline(
+                    generated = generated,
+                    lastQuestionTarget = conversationState.currentQuestionTarget,
+                    userMessageContent = userMessage.content,
+                )
             val updatedItemTypes =
-                if (generated.relevance == MessageRelevance.RETROSPECTIVE) {
-                    applyAnalysisUpdates(items, preparation.retrospectiveId, generated)
+                if (normalizedGenerated.relevance == MessageRelevance.RETROSPECTIVE) {
+                    applyAnalysisUpdates(items, preparation.retrospectiveId, normalizedGenerated)
                 } else {
                     emptySet()
                 }
-            applyDeclinedItems(items, conversationState.recentQuestionTargets.lastOrNull(), generated)
+            applyDeclinedItems(items, conversationState.currentQuestionTarget, normalizedGenerated)
             val eligibleQuestionTargets =
                 turnPolicy.eligibleQuestionTargets(
-                    items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary, it.questionAllowed) },
+                    items.map { it.toConversationSnapshot() },
                     conversationState.recentQuestionTargets,
                 )
             val ready = calculateReadyToComplete(items)
             val decided =
                 turnPolicy.decideTurn(
-                    generated = generated,
+                    generated = normalizedGenerated,
                     eligibleQuestionTargets = eligibleQuestionTargets,
                     completionRecommended =
                         !preparation.continuationRequested &&
@@ -560,13 +588,14 @@ class RetrospectiveConversationV2Service(
                     hasMeaningfulAnalysisUpdate = updatedItemTypes.isNotEmpty(),
                     completedQuestionCount = conversationState.completedQuestionCount,
                     consecutiveAskCount = conversationState.consecutiveAskCount,
+                    readyToComplete = ready,
                     userMessageContent = userMessage.content,
                 )
             val answerGuide =
                 answerGuidePolicy.decide(
-                    generated = generated,
+                    generated = normalizedGenerated,
                     decided = decided,
-                    items = items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary, it.questionAllowed) },
+                    items = items.map { it.toConversationSnapshot() },
                     sensitiveDataDetected = preparation.sensitiveDataDetected,
                     previouslyAskedTargets = conversationState.askedQuestionTargets,
                     userMessageContent = userMessage.content,
@@ -650,7 +679,7 @@ class RetrospectiveConversationV2Service(
                 .map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance) }
         val decisions =
             turnPolicy.applyAnalysisUpdates(
-                items.values.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary, it.questionAllowed) },
+                items.values.map { it.toConversationSnapshot() },
                 generated.analysisUpdates,
                 messages,
             )
@@ -706,7 +735,7 @@ class RetrospectiveConversationV2Service(
         userId: UUID,
     ): Retrospective {
         val retrospective =
-            retrospectiveRepository.findByIdAndUserIdForUpdate(retrospectiveId, userId)
+            retrospectiveRepository.findByIdAndUserIdAndDeletedAtIsNullForUpdate(retrospectiveId, userId)
                 ?: throw RetrospectiveNotFoundException(retrospectiveId)
         if (!retrospective.isV2()) throw RetrospectiveFlowVersionMismatchException(retrospectiveId)
         return retrospective
@@ -722,7 +751,7 @@ class RetrospectiveConversationV2Service(
 
     private fun calculateReadyToComplete(items: List<RetrospectiveAnalysisItem>): Boolean =
         turnPolicy.readyToComplete(
-            items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary, it.questionAllowed) },
+            items.map { it.toConversationSnapshot() },
         )
 
     private fun findConversationPolicyState(retrospectiveId: UUID): ConversationPolicyState {
@@ -733,6 +762,10 @@ class RetrospectiveConversationV2Service(
         val recentCompletedTurns =
             completedTurns.asReversed().take(3)
         return ConversationPolicyState(
+            currentQuestionTarget =
+                completedTurns
+                    .lastOrNull()
+                    ?.questionTarget,
             recentQuestionTargets =
                 completedTurns.mapNotNull { it.questionTarget }.takeLast(3),
             askedQuestionTargets = completedTurns.mapNotNull { it.questionTarget }.toSet(),
@@ -838,6 +871,7 @@ private data class TurnPreparation(
 }
 
 private data class ConversationPolicyState(
+    val currentQuestionTarget: RetrospectiveItemType?,
     val recentQuestionTargets: List<RetrospectiveItemType>,
     val askedQuestionTargets: Set<RetrospectiveItemType>,
     val completedQuestionCount: Int,
