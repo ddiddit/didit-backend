@@ -184,12 +184,13 @@ class ConversationV2TurnPolicyTest {
                 eligibleQuestionTargets = listOf(RetrospectiveItemType.FACT),
                 completionRecommended = true,
                 completionPreviouslyOffered = false,
+                readyToComplete = true,
             )
 
         assertThat(decided.action).isEqualTo(ConversationTurnAction.OFFER_COMPLETION)
         assertThat(decided.question).isNull()
         assertThat(decided.questionTarget).isNull()
-        assertThat(decided.content()).contains("회고를 마칠까요")
+        assertThat(decided.content()).isEqualTo("지금까지 나눈 내용으로 회고를 마칠 수 있어요.")
     }
 
     @Test
@@ -242,7 +243,7 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `종료 확인 액션은 모델이 만든 추가 질문을 제거한다`() {
+    fun `명시적인 종료 의사가 없으면 모델의 종료 확인 액션을 다음 질문으로 보정한다`() {
         val decided =
             policy.decideTurn(
                 generated = generated(MessageRelevance.RETROSPECTIVE).copy(action = ConversationTurnAction.CONFIRM_COMPLETION),
@@ -251,9 +252,9 @@ class ConversationV2TurnPolicyTest {
                 completionPreviouslyOffered = false,
             )
 
-        assertThat(decided.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
-        assertThat(decided.question).isNull()
-        assertThat(decided.questionTarget).isNull()
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(decided.question).isNotBlank()
+        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.FACT)
     }
 
     @Test
@@ -415,7 +416,7 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `거부한 항목이 있으면 추가 질문 없이 종료 확인으로 전환한다`() {
+    fun `항목을 거부해도 질문 후보가 남아 있으면 다음 항목을 질문한다`() {
         val decided =
             policy.decideTurn(
                 generated =
@@ -430,14 +431,13 @@ class ConversationV2TurnPolicyTest {
                 completionPreviouslyOffered = false,
             )
 
-        assertThat(decided.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
-        assertThat(decided.questionTarget).isNull()
-        assertThat(decided.question).isNull()
-        assertThat(decided.content()).doesNotContain("이어", "자유롭게")
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.ACTION)
+        assertThat(decided.question).isNotBlank()
     }
 
     @Test
-    fun `모델이 거절 항목을 누락해도 사용자의 없음 응답은 종료 확인으로 전환한다`() {
+    fun `사용자의 없음 응답만으로는 종료 확인으로 전환하지 않는다`() {
         val decided =
             policy.decideTurn(
                 generated =
@@ -455,10 +455,72 @@ class ConversationV2TurnPolicyTest {
                 userMessageContent = "없는 것 같아.",
             )
 
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.ACTION)
+        assertThat(decided.question).isNotBlank()
+    }
+
+    @Test
+    fun `결과를 만들기 어려울 때 전체 종료 의사를 밝히면 결과 없는 종료 안내를 반환한다`() {
+        val decided =
+            policy.decideTurn(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.ACTION),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                readyToComplete = false,
+                userMessageContent = "더 할 말 없어",
+            )
+
         assertThat(decided.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
         assertThat(decided.questionTarget).isNull()
         assertThat(decided.question).isNull()
-        assertThat(decided.content()).doesNotContain("이어", "자유롭게")
+        assertThat(decided.content())
+            .isEqualTo(
+                "지금까지 나눈 내용만으로는 회고 결과를 만들기 어려워요. 조금 더 이야기해볼까요? " +
+                    "여기서 나가면 결과는 생성되지 않고, 회고 이용 횟수는 1회 차감돼요.",
+            )
+    }
+
+    @Test
+    fun `결과를 만들 수 있을 때 전체 종료 의사를 밝히면 정상 종료 안내를 반환한다`() {
+        listOf(
+            "그만할게",
+            "끝내자",
+            "끝내자고",
+            "끝낼게",
+            "회고 마칠게",
+            "마칠래요",
+            "오늘 회고는 여기까지 할게요",
+            "종료할게",
+        ).forEach { content ->
+            val decided =
+                policy.decideTurn(
+                    generated = generated(MessageRelevance.RETROSPECTIVE),
+                    eligibleQuestionTargets = emptyList(),
+                    completionRecommended = false,
+                    completionPreviouslyOffered = false,
+                    readyToComplete = true,
+                    userMessageContent = content,
+                )
+
+            assertThat(decided.action).describedAs(content).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
+            assertThat(decided.content()).describedAs(content).isEqualTo("지금까지 나눈 내용으로 회고를 마칠 수 있어요.")
+        }
+    }
+
+    @Test
+    fun `업무를 끝내려는 다음 행동은 회고 종료 의사로 해석하지 않는다`() {
+        val decided =
+            policy.decideTurn(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.ACTION),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                userMessageContent = "이번 주 안에 배포 작업을 끝내고 싶어요",
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
     }
 
     @Test
@@ -572,11 +634,12 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `회고 연결 응답에서 항목을 거부하면 종료 확인으로 전환한다`() {
+    fun `회고 연결 응답에서 항목을 거부해도 종료 확인으로 전환하지 않는다`() {
         val decided =
             policy.decideTurn(
                 generated =
                     generated(MessageRelevance.BRIDGEABLE).copy(
+                        action = ConversationTurnAction.CONFIRM_COMPLETION,
                         question = "다음에는 무엇을 다르게 해보고 싶나요?",
                         questionTarget = RetrospectiveItemType.ACTION,
                         declinedItemTypes = listOf(RetrospectiveItemType.BLOCK),
@@ -586,9 +649,9 @@ class ConversationV2TurnPolicyTest {
                 completionPreviouslyOffered = false,
             )
 
-        assertThat(decided.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
-        assertThat(decided.questionTarget).isNull()
-        assertThat(decided.question).isNull()
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.ACTION)
+        assertThat(decided.question).isNotBlank()
     }
 
     @Test

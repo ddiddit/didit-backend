@@ -148,7 +148,11 @@ class AdminPromptPreviewServiceTest {
         assertThat(requestCaptor.firstValue.eligibleQuestionTargets).doesNotContain(RetrospectiveItemType.FACT)
         assertThat(requestCaptor.firstValue.completionRecommended).isTrue()
         assertThat(requestCaptor.firstValue.completionPreviouslyOffered).isFalse()
-        assertThat(result.assistantMessage.content).contains("회고를 마칠까요?")
+        assertThat(result.assistantMessage.content)
+            .isEqualTo(
+                "지금까지 나눈 내용만으로는 회고 결과를 만들기 어려워요. 조금 더 이야기해볼까요? " +
+                    "여기서 나가면 결과는 생성되지 않고, 회고 이용 횟수는 1회 차감돼요.",
+            )
         assertThat(result.nextState.completedQuestionCount).isEqualTo(6)
         assertThat(result.nextState.completionPreviouslyOffered).isTrue()
     }
@@ -193,6 +197,7 @@ class AdminPromptPreviewServiceTest {
                         AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.EMPTY, null)
                     },
                 recentQuestionTargets = listOf(RetrospectiveItemType.FACT),
+                consecutiveAskCount = 1,
             )
         whenever(aiClient.preview(any(), any())).thenReturn(
             generatedTurn().copy(
@@ -213,6 +218,47 @@ class AdminPromptPreviewServiceTest {
                 .questionAllowed,
         ).isFalse()
         assertThat(requestCaptor.secondValue.eligibleQuestionTargets).doesNotContain(RetrospectiveItemType.FACT)
+    }
+
+    @Test
+    fun `모델이 거절 항목을 누락해도 없음 응답은 preview에서 직전 질문을 건너뛴다`() {
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.EMPTY, null)
+                    },
+                recentQuestionTargets = listOf(RetrospectiveItemType.BLOCK),
+                consecutiveAskCount = 1,
+            )
+        whenever(aiClient.preview(any(), any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<com.didit.application.retrospect.required.ConversationTurnAIRequest>(1)
+            generatedTurn(
+                updates = listOf(update(RetrospectiveItemType.BLOCK, request.currentMessageId, RetrospectiveItemStatus.PARTIAL)),
+            ).copy(
+                action = ConversationTurnAction.CONFIRM_COMPLETION,
+                acknowledgement = "회고를 마칠까요?",
+                question = null,
+                questionTarget = null,
+                declinedItemTypes = emptyList(),
+            )
+        }
+
+        val result = service.preview(command(priorState = priorState, message = "없는 것 같아"))
+
+        assertThat(
+            result.nextState.analysisItems
+                .single { it.itemType == RetrospectiveItemType.BLOCK }
+                .questionAllowed,
+        ).isFalse()
+        assertThat(
+            result.nextState.analysisItems
+                .single { it.itemType == RetrospectiveItemType.BLOCK }
+                .status,
+        ).isEqualTo(RetrospectiveItemStatus.EMPTY)
+        assertThat(result.nextState.recentQuestionTargets.last()).isNotEqualTo(RetrospectiveItemType.BLOCK)
+        assertThat(result.assistantMessage.content).doesNotContain("마칠까요")
     }
 
     @Test
