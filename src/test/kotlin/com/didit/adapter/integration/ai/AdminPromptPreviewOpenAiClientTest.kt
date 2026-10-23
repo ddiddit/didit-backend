@@ -34,7 +34,7 @@ class AdminPromptPreviewOpenAiClientTest {
             .andExpect(content().string(org.hamcrest.Matchers.containsString("초안 입력")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("answerExamples")))
             .andExpect(content().string(org.hamcrest.Matchers.containsString("내부 항목명")))
-            .andExpect(content().string(org.hamcrest.Matchers.containsString("맥락에 맞는 이어가기 단서")))
+            .andExpect(content().string(org.hamcrest.Matchers.containsString("자유 입력 안내를 작성하지 마세요")))
             .andRespond(withSuccess(response(), MediaType.APPLICATION_JSON))
 
         val appender = previewLogAppender()

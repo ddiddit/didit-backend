@@ -176,6 +176,28 @@ class RetrospectiveConversationV2Test {
     }
 
     @Test
+    fun `응답 말풍선이 없는 종료 확인 턴도 완료할 수 있다`() {
+        val turn =
+            RetrospectiveConversationTurn(
+                retrospectiveId = UUID.randomUUID(),
+                clientMessageId = UUID.randomUUID(),
+                userMessageId = UUID.randomUUID(),
+                turnNumber = 1,
+            )
+
+        turn.complete(
+            assistantMessageId = null,
+            questionTarget = null,
+            inputTokens = 10,
+            outputTokens = 5,
+            action = ConversationTurnAction.CONFIRM_COMPLETION,
+        )
+
+        assertThat(turn.status).isEqualTo(ConversationTurnStatus.COMPLETED)
+        assertThat(turn.assistantMessageId).isNull()
+    }
+
+    @Test
     fun `선택형 REFLECT에는 추후 거부 처리를 위한 주제를 저장한다`() {
         val turn =
             RetrospectiveConversationTurn(

@@ -65,7 +65,7 @@ data class AdminPromptPreviewProgress(
 )
 
 data class AdminPromptPreviewResult(
-    val assistantMessage: AdminPromptPreviewMessage,
+    val assistantMessage: AdminPromptPreviewMessage?,
     val progress: AdminPromptPreviewProgress,
     val nextState: AdminPromptPreviewState,
 )
