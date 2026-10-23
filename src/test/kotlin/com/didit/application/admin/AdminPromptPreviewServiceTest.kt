@@ -65,7 +65,7 @@ class AdminPromptPreviewServiceTest {
 
         verify(aiClient).preview(org.mockito.kotlin.eq("저장 템플릿"), requestCaptor.capture())
         assertThat(requestCaptor.firstValue.job).isEqualTo(Job.DEVELOPER)
-        assertThat(result.assistantMessage.content).isEqualTo("확인했어요.\n다음은 무엇인가요?")
+        assertThat(result.assistantMessage!!.content).isEqualTo("확인했어요.\n다음은 무엇인가요?")
         verify(promptRepository, never()).save(any())
     }
 
@@ -148,7 +148,7 @@ class AdminPromptPreviewServiceTest {
         assertThat(requestCaptor.firstValue.eligibleQuestionTargets).doesNotContain(RetrospectiveItemType.FACT)
         assertThat(requestCaptor.firstValue.completionRecommended).isTrue()
         assertThat(requestCaptor.firstValue.completionPreviouslyOffered).isFalse()
-        assertThat(result.assistantMessage.content)
+        assertThat(result.assistantMessage!!.content)
             .isEqualTo(
                 "지금까지 나눈 내용만으로는 회고 결과를 만들기 어려워요. 조금 더 이야기해볼까요? " +
                     "여기서 나가면 결과는 생성되지 않고, 회고 이용 횟수는 1회 차감돼요.",
@@ -183,7 +183,7 @@ class AdminPromptPreviewServiceTest {
         verify(aiClient).preview(any(), requestCaptor.capture())
         assertThat(requestCaptor.firstValue.continuationRequested).isTrue()
         assertThat(requestCaptor.firstValue.completionRecommended).isFalse()
-        assertThat(result.assistantMessage.content).doesNotContain("마칠까요")
+        assertThat(result.assistantMessage!!.content).doesNotContain("마칠까요")
     }
 
     @Test
@@ -258,7 +258,59 @@ class AdminPromptPreviewServiceTest {
                 .status,
         ).isEqualTo(RetrospectiveItemStatus.EMPTY)
         assertThat(result.nextState.recentQuestionTargets.last()).isNotEqualTo(RetrospectiveItemType.BLOCK)
-        assertThat(result.assistantMessage.content).doesNotContain("마칠까요")
+        assertThat(result.assistantMessage!!.content).doesNotContain("마칠까요")
+    }
+
+    @Test
+    fun `preview에서도 항목을 세 번 연속 거부하면 결과 없는 종료를 안내한다`() {
+        val priorState =
+            AdminPromptPreviewState(
+                messages =
+                    listOf(
+                        message(UUID.randomUUID()).copy(content = "없어"),
+                        message(UUID.randomUUID()).copy(content = "없는 것 같아"),
+                    ),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.EMPTY, null)
+                    },
+                currentQuestionTarget = RetrospectiveItemType.BLOCK,
+            )
+
+        val result = service.preview(command(priorState = priorState, message = "딱히 없어"))
+
+        assertThat(result.assistantMessage!!.content).contains("회고 결과를 만들기 어려워요")
+    }
+
+    @Test
+    fun `결과를 만들 수 있는 preview에서 종료 의사를 밝히면 AI 말풍선을 반환하지 않는다`() {
+        val collectedTypes =
+            setOf(
+                RetrospectiveItemType.FACT,
+                RetrospectiveItemType.PROCESS,
+                RetrospectiveItemType.LEARN,
+            )
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID()), message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map { type ->
+                        AdminPromptPreviewAnalysisItem(
+                            itemType = type,
+                            status = if (type in collectedTypes) RetrospectiveItemStatus.PARTIAL else RetrospectiveItemStatus.EMPTY,
+                            summary = type.takeIf { it in collectedTypes }?.let { "$it 요약" },
+                        )
+                    },
+            )
+
+        val result = service.preview(command(priorState = priorState, message = "끝내자"))
+
+        assertThat(result.assistantMessage).isNull()
+        assertThat(
+            result.nextState.messages
+                .last()
+                .sender,
+        ).isEqualTo(Sender.USER)
     }
 
     @Test
@@ -307,12 +359,12 @@ class AdminPromptPreviewServiceTest {
 
         val result = service.preview(command(priorState = priorState))
 
-        assertThat(result.assistantMessage.answerGuide?.mode).isEqualTo(ConversationAnswerGuideMode.ON_DEMAND)
-        assertThat(result.assistantMessage.answerGuide?.examples).hasSize(2)
+        assertThat(result.assistantMessage!!.answerGuide?.mode).isEqualTo(ConversationAnswerGuideMode.ON_DEMAND)
+        assertThat(result.assistantMessage!!.answerGuide?.examples).hasSize(2)
     }
 
     @Test
-    fun `preview도 두 번 연속 질문 뒤 유효한 답변에는 질문 없이 쉬어간다`() {
+    fun `preview도 두 번 연속 질문 뒤 유효한 답변에는 다음 회고 질문을 제공한다`() {
         val priorState =
             AdminPromptPreviewState(
                 messages = listOf(message(UUID.randomUUID())),
@@ -331,8 +383,8 @@ class AdminPromptPreviewServiceTest {
 
         val result = service.preview(command(priorState = priorState))
 
-        assertThat(result.assistantMessage.content).contains("이어")
-        assertThat(result.nextState.consecutiveAskCount).isZero()
+        assertThat(result.assistantMessage!!.content).doesNotContain("더 남기고", "더 이어가고", "자유롭게")
+        assertThat(result.nextState.consecutiveAskCount).isEqualTo(3)
     }
 
     @Test
@@ -364,7 +416,7 @@ class AdminPromptPreviewServiceTest {
 
         val result = service.preview(command())
 
-        assertThat(result.assistantMessage.content).isEqualTo("알겠어요.")
+        assertThat(result.assistantMessage!!.content).isEqualTo("알겠어요.")
         assertThat(
             result.nextState.messages
                 .last()

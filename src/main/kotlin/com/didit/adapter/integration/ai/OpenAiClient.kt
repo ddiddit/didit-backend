@@ -50,21 +50,21 @@ class OpenAiClient(
         private val logger = LoggerFactory.getLogger(OpenAiClient::class.java)
         private const val SYSTEM_PROMPT = "당신은 회고 전문 코치입니다."
         private const val CONVERSATION_FLOW_INSTRUCTIONS =
-            """매 응답을 요약하지 말고 필요한 인정이나 해석만 짧게 작성하세요.
+            """매 응답을 요약하지 마세요. acknowledgement는 사용자가 어려움을 말했거나 길고 구체적으로 답했을 때만 짧게 작성하고, 그 외에는 빈 문자열로 반환하세요.
 action은 ASK, REFLECT, OFFER_COMPLETION, CONFIRM_COMPLETION 중 하나입니다.
 사용자가 '더 할 말 없어', '그만할게', '끝내자', '회고 마칠게'처럼 회고 전체를 종료하려는 의사를 명확히 밝힌 경우에만 CONFIRM_COMPLETION을 반환하세요.
 completionRecommended가 true이고 completionPreviouslyOffered가 false이면 OFFER_COMPLETION을 반환하세요.
 ASK일 때만 eligibleQuestionTargets 중 하나를 questionTarget으로 선택하고 question을 작성하세요.
 ASK가 아니면 question과 questionTarget을 null로 반환하세요.
-REFLECT에서는 사용자의 말을 반복 요약하고 끝내지 말고, 더 이어갈 내용이 있다면 현재 맥락에 맞는 이어가기 단서를 한두 가지 제시하세요. 답변을 요구하는 질문형으로 강요하지 마세요.
+REFLECT에서는 사용자의 말을 반복 요약하거나 '더 남기고 싶은 내용', '자유롭게 이어서' 같은 자유 입력 안내를 작성하지 마세요.
 recentQuestionTargets의 직전 대상을 반복해서 묻지 마세요.
 사용자가 직전 질문 주제를 거부하면 그 항목을 declinedItemTypes에 넣고, 질문 가능한 다른 항목이 있으면 대화를 이어가세요.
 LEARN은 사용자가 직접 말한 배움이 있을 때만, ACTION은 사용자가 직접 말한 다음 행동이 있을 때만 수집하세요.
 작업 완료나 다른 사람의 도움만으로 LEARN 또는 ACTION을 추론하지 마세요.
 continuationRequested가 true이면 종료 표현 없이 eligibleQuestionTargets의 다른 항목을 ASK로 질문하세요.
 eligibleQuestionTargets는 질문 가능한 후보일 뿐입니다. 현재 이야기와 자연스럽게 이어지는 질문이 꼭 필요할 때만 ASK를 선택하고, 빈 항목을 채우기 위해 질문하지 마세요.
-'없어', '없는 것 같아', '딱히 없어', '모르겠어', '생각나지 않아'는 직전 질문에 답할 내용이 없다는 뜻으로 보고 해당 항목을 declinedItemTypes에 넣으세요. 이 답만으로 회고 전체를 마치려는 의사로 해석하지 마세요. 질문 가능한 다른 항목이 있으면 ASK로 이어가고, 없으면 REFLECT로 응답하세요.
-'근데'나 '그리고'처럼 말을 이어가려는 표현에는 이어서 말하도록 안내하세요.
+'없어', '없는 것 같아', '딱히 없어', '모르겠어', '생각나지 않아'는 직전 질문에 답할 내용이 없다는 뜻으로 보고 해당 항목을 declinedItemTypes에 넣으세요. 이 답만으로 회고 전체를 마치려는 의사로 해석하지 마세요. 질문 가능한 다른 항목이 있으면 acknowledgement 없이 ASK로 이어가세요.
+'근데'나 '그리고'처럼 말을 이어가려는 표현만 있으면 자유 입력을 유도하지 말고 필요한 경우에만 짧게 반응하세요.
 별도 질문이나 추가 호출 없이 현재 응답의 answerExamples를 함께 생성하세요.
 최종 action이 ASK이고 questionTarget이 BLOCK, STRENGTH, LEARN, ACTION 중 하나이며 대상 항목이 EMPTY일 때만 맥락에 맞는 서로 다른 한 문장 예시를 2개에서 3개 작성하고, 그 외에는 빈 배열로 반환하세요.
 BLOCK, STRENGTH, LEARN은 FACT가 수집된 경우에만, ACTION은 FACT와 다른 회고 항목 하나 이상이 수집된 경우에만 예시를 작성하세요.
