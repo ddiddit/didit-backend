@@ -20,6 +20,10 @@ class ConversationV2TurnPolicy {
         private const val MAX_QUESTION_TURNS = 5
         private const val DEFAULT_REFLECT_ACKNOWLEDGEMENT = "알겠어요."
         private const val FREE_INPUT_GUIDE = "더 남기고 싶은 내용이 있다면 자유롭게 이어서 말씀해주세요."
+        private const val READY_COMPLETION_GUIDE = "지금까지 나눈 내용으로 회고를 마칠 수 있어요."
+        private const val INSUFFICIENT_COMPLETION_GUIDE =
+            "지금까지 나눈 내용만으로는 회고 결과를 만들기 어려워요. 조금 더 이야기해볼까요? " +
+                "여기서 나가면 결과는 생성되지 않고, 회고 이용 횟수는 1회 차감돼요."
         private val CONTINUATION_GUIDE_PHRASES =
             listOf(
                 "더 말하고 싶",
@@ -130,6 +134,7 @@ class ConversationV2TurnPolicy {
         hasMeaningfulAnalysisUpdate: Boolean = false,
         completedQuestionCount: Int = 0,
         consecutiveAskCount: Int = 0,
+        readyToComplete: Boolean = false,
         userMessageContent: String? = null,
     ): GeneratedConversationTurn =
         decideSanitizedTurn(
@@ -141,6 +146,7 @@ class ConversationV2TurnPolicy {
             hasMeaningfulAnalysisUpdate = hasMeaningfulAnalysisUpdate,
             completedQuestionCount = completedQuestionCount,
             consecutiveAskCount = consecutiveAskCount,
+            readyToComplete = readyToComplete,
             completionConfirmationRequested = userMessageContent.requestsCompletionConfirmation(),
         ).ensureVisibleContent()
 
@@ -153,6 +159,7 @@ class ConversationV2TurnPolicy {
         hasMeaningfulAnalysisUpdate: Boolean,
         completedQuestionCount: Int,
         consecutiveAskCount: Int,
+        readyToComplete: Boolean,
         completionConfirmationRequested: Boolean,
     ): GeneratedConversationTurn {
         if (continuationRequested) {
@@ -187,13 +194,31 @@ class ConversationV2TurnPolicy {
         if (completionConfirmationRequested) {
             return generated.copy(
                 action = ConversationTurnAction.CONFIRM_COMPLETION,
+                acknowledgement = completionGuide(readyToComplete),
                 interpretation = "",
                 question = null,
                 questionTarget = null,
             )
         }
-        if (generated.action == ConversationTurnAction.CONFIRM_COMPLETION) {
-            return generated.copy(question = null, questionTarget = null)
+        if (generated.declinedItemTypes.isNotEmpty()) {
+            val target = eligibleQuestionTargets.firstOrNull()
+            return if (target == null) {
+                generated.copy(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT,
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                )
+            } else {
+                generated.copy(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = DEFAULT_REFLECT_ACKNOWLEDGEMENT,
+                    interpretation = "",
+                    question = fallbackQuestion(target),
+                    questionTarget = target,
+                )
+            }
         }
         if (
             generated.relevance == MessageRelevance.RETROSPECTIVE &&
@@ -202,14 +227,8 @@ class ConversationV2TurnPolicy {
         ) {
             return generated.copy(
                 action = ConversationTurnAction.OFFER_COMPLETION,
-                interpretation = "충분히 돌아본 것 같아요. 지금까지의 내용으로 회고를 마칠까요?",
-                question = null,
-                questionTarget = null,
-            )
-        }
-        if (generated.declinedItemTypes.isNotEmpty()) {
-            return generated.copy(
-                action = ConversationTurnAction.CONFIRM_COMPLETION,
+                acknowledgement = completionGuide(readyToComplete),
+                interpretation = "",
                 question = null,
                 questionTarget = null,
             )
@@ -298,10 +317,32 @@ class ConversationV2TurnPolicy {
 
     private fun String.hasContinuationGuide(): Boolean = CONTINUATION_GUIDE_PHRASES.any(::contains)
 
+    fun normalizeItemDecline(
+        generated: GeneratedConversationTurn,
+        lastQuestionTarget: RetrospectiveItemType?,
+        userMessageContent: String?,
+    ): GeneratedConversationTurn {
+        if (lastQuestionTarget == null || userMessageContent.requestsCompletionConfirmation()) return generated
+        if (!userMessageContent.declinesCurrentQuestion()) return generated
+        return generated.copy(
+            declinedItemTypes = (generated.declinedItemTypes + lastQuestionTarget).distinct(),
+            analysisUpdates = emptyList(),
+        )
+    }
+
+    private fun completionGuide(readyToComplete: Boolean): String =
+        if (readyToComplete) READY_COMPLETION_GUIDE else INSUFFICIENT_COMPLETION_GUIDE
+
     private fun String?.requestsCompletionConfirmation(): Boolean =
         this
             ?.trim()
-            ?.let(COMPLETION_REFUSAL_PATTERN::containsMatchIn)
+            ?.let(RETROSPECTIVE_COMPLETION_INTENT_PATTERN::matches)
+            ?: false
+
+    private fun String?.declinesCurrentQuestion(): Boolean =
+        this
+            ?.trim()
+            ?.let(CURRENT_QUESTION_DECLINE_PATTERN::matches)
             ?: false
 
     private fun GeneratedConversationTurn.sanitizeUserFacingContent(userMessageContent: String?): GeneratedConversationTurn =
@@ -419,9 +460,22 @@ internal object ConversationInternalMetadataPolicy {
             }
 }
 
-private val COMPLETION_REFUSAL_PATTERN =
+private val RETROSPECTIVE_COMPLETION_INTENT_PATTERN =
     Regex(
-        "(?:없어(?:요)?|없습니다|없다|없음|없는\\s*것\\s*같아(?:요)?|모르겠어(?:요)?|모르겠습니다|생각나지\\s*않아(?:요)?|생각나지\\s*않습니다|끝내(?:자|줘|주세요)?|마치자)[\\s.!?…]*$",
+        "(?:(?:이제|그럼|그러면|여기서|오늘은)\\s*)*(?:" +
+            "더\\s*(?:할\\s*말|말할\\s*내용|남길\\s*내용|이야기할\\s*내용)(?:이|은|가)?\\s*없(?:어(?:요)?|습니다|다|음)|" +
+            "(?:회고를?\\s*)?그만(?:할게(?:요)?|하자|해(?:요)?|하고\\s*싶어(?:요)?|해주세요)|" +
+            "(?:회고를?\\s*)?(?:끝내자(?:고)?|끝낼게(?:요)?|끝낼래(?:요)?|끝내(?:줘|주세요|고\\s*싶어(?:요)?)?)|" +
+            "(?:회고를?\\s*)?(?:마치자|마칠게(?:요)?|마치고\\s*싶어(?:요)?)|" +
+            "(?:회고를?\\s*)?(?:종료|마무리)(?:할게(?:요)?|하자|해(?:요)?|해주세요)" +
+            ")[\\s.!?…]*",
+    )
+
+private val CURRENT_QUESTION_DECLINE_PATTERN =
+    Regex(
+        "(?:(?:더\\s*|딱히\\s*|특별한\\s*(?:건|것은)\\s*)?(?:없어(?:요)?|없습니다|없다|없음|없는\\s*것\\s*같아(?:요)?)|" +
+            "모르겠어(?:요)?|모르겠습니다|생각나지\\s*않아(?:요)?|생각나지\\s*않습니다|" +
+            "넘어갈게(?:요)?|다음으로\\s*(?:가요|가자)|네|그냥(?:요)?|그랬죠)[\\s.!?…]*",
     )
 
 data class ConversationV2MessageSnapshot(

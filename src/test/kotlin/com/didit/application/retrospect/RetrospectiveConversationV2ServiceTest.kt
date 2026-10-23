@@ -234,36 +234,114 @@ class RetrospectiveConversationV2ServiceTest {
         val savedTurn = turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).single()
 
         assertThat(result.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
-        assertThat(result.assistantMessage!!.content).doesNotContain("무시되어야 하는 질문")
+        assertThat(result.readyToComplete).isFalse()
+        assertThat(result.assistantMessage!!.content)
+            .isEqualTo(
+                "지금까지 나눈 내용만으로는 회고 결과를 만들기 어려워요. 조금 더 이야기해볼까요? " +
+                    "여기서 나가면 결과는 생성되지 않고, 회고 이용 횟수는 1회 차감돼요.",
+            )
         assertThat(savedTurn.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
         assertThat(savedTurn.questionTarget).isNull()
     }
 
     @Test
-    fun `모델이 거절 의사를 놓쳐도 없음 응답은 종료 확인 액션을 저장한다`() {
+    fun `모델이 항목 거절을 놓쳐도 없음 응답은 직전 질문을 건너뛰고 대화를 이어간다`() {
         val started = service.start(userId)
-        whenever(aiClient.generateConversationTurn(any())).thenReturn(
-            GeneratedConversationTurn(
-                action = ConversationTurnAction.REFLECT,
-                acknowledgement = "알겠어요.",
-                interpretation = "더 남기고 싶은 내용이 있다면 이어서 말씀해주세요.",
-                question = null,
-                questionTarget = null,
-                relevance = MessageRelevance.RETROSPECTIVE,
-                declinedItemTypes = emptyList(),
-                analysisUpdates = emptyList(),
-                inputTokens = 10,
-                outputTokens = 5,
-            ),
-        )
+        whenever(aiClient.generateConversationTurn(any()))
+            .thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "확인했어요.",
+                    interpretation = "",
+                    question = "어려웠던 점이 있었나요?",
+                    questionTarget = RetrospectiveItemType.BLOCK,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenAnswer { invocation ->
+                val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.CONFIRM_COMPLETION,
+                    acknowledgement = "회고를 마칠까요?",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    declinedItemTypes = emptyList(),
+                    analysisUpdates = listOf(update(RetrospectiveItemType.BLOCK, request.currentMessageId)),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                )
+            }
 
-        val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "없어")
-        val savedTurn = turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).single()
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어")
+        val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "없는 것 같아")
+        val savedTurn = turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last()
+        val block =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.BLOCK }
 
-        assertThat(result.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
-        assertThat(result.assistantMessage!!.content).doesNotContain("이어", "자유롭게")
-        assertThat(savedTurn.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
-        assertThat(savedTurn.questionTarget).isNull()
+        assertThat(result.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(savedTurn.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(savedTurn.questionTarget).isNotEqualTo(RetrospectiveItemType.BLOCK)
+        assertThat(block.questionAllowed).isFalse()
+        assertThat(block.status).isEqualTo(RetrospectiveItemStatus.EMPTY)
+    }
+
+    @Test
+    fun `직전 응답이 질문이 아니면 없음 응답으로 과거 질문 항목을 거절하지 않는다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any()))
+            .thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "확인했어요.",
+                    interpretation = "",
+                    question = "어려웠던 점이 있었나요?",
+                    questionTarget = RetrospectiveItemType.BLOCK,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "알겠어요.",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.CONFIRM_COMPLETION,
+                    acknowledgement = "회고를 마칠까요?",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            )
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 과정도 정리했어")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "없어")
+
+        val block =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.BLOCK }
+        assertThat(block.questionAllowed).isTrue()
     }
 
     @Test
@@ -559,7 +637,7 @@ class RetrospectiveConversationV2ServiceTest {
 
         assertThat(result.readyToComplete).isTrue()
         assertThat(result.action).isEqualTo(ConversationTurnAction.OFFER_COMPLETION)
-        assertThat(result.assistantMessage!!.content).contains("회고를 마칠까요")
+        assertThat(result.assistantMessage!!.content).isEqualTo("지금까지 나눈 내용으로 회고를 마칠 수 있어요.")
     }
 
     @Test

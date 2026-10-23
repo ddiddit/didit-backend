@@ -137,8 +137,12 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.turnNumber").type(JsonFieldType.NUMBER).description("서버 기준 대화 턴 번호"),
                         fieldWithPath("data.userMessageId").type(JsonFieldType.STRING).description("저장된 사용자 메시지 ID"),
                         *messageFields("data.assistantMessage", "AI 후속 대화"),
-                        fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("내부 회고 항목 기준 완료 준비도"),
-                        fieldWithPath("data.action").type(JsonFieldType.STRING).description("프론트가 처리할 다음 대화 액션"),
+                        fieldWithPath(
+                            "data.readyToComplete",
+                        ).type(JsonFieldType.BOOLEAN).description("결과 생성 가능 여부. 종료 액션에서 true이면 /finish, false이면 /exit 사용"),
+                        fieldWithPath(
+                            "data.action",
+                        ).type(JsonFieldType.STRING).description("프론트가 처리할 다음 대화 액션. OFFER_COMPLETION 또는 CONFIRM_COMPLETION이면 종료 메뉴 노출"),
                     ),
                 ),
             )
@@ -405,7 +409,9 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.turns[].attemptCount").type(JsonFieldType.NUMBER).description("처리 시도 횟수"),
                         fieldWithPath("data.turns[].errorCode").type(JsonFieldType.STRING).description("실패 코드").optional(),
                         fieldWithPath("data.turns[].action").type(JsonFieldType.STRING).description("완료된 턴의 대화 액션").optional(),
-                        fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("내부 회고 항목 기준 완료 준비도"),
+                        fieldWithPath(
+                            "data.readyToComplete",
+                        ).type(JsonFieldType.BOOLEAN).description("결과 생성 가능 여부. 종료 액션에서 true이면 /finish, false이면 /exit 사용"),
                     ),
                 ),
             )
@@ -547,7 +553,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
             fieldWithPath("data.retrospectiveId").type(JsonFieldType.STRING).description("회고 ID"),
             fieldWithPath("data.conversationStatus").type(JsonFieldType.STRING).description("대화 상태"),
             *messageFields("data.initialMessage", "첫 안내 메시지"),
-            fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("내부 회고 항목 기준 완료 준비도"),
+            fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("결과 생성 가능 여부"),
         )
 
     private fun messageFields(

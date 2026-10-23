@@ -91,28 +91,43 @@ class AdminPromptPreviewService(
                 continuationRequested = continuationRequested,
             )
         val generated = aiClient.preview(template, aiRequest)
+        val currentQuestionTarget =
+            priorState.currentQuestionTarget
+                ?: priorState.recentQuestionTargets.lastOrNull().takeIf { priorState.consecutiveAskCount > 0 }
+        val policyGenerated =
+            turnPolicy.normalizeItemDecline(
+                generated = generated,
+                lastQuestionTarget = currentQuestionTarget,
+                userMessageContent = command.message,
+            )
         val classifiedMessages =
             messagesBeforeGeneration.map { message ->
                 if (message.id == command.userMessageId) message.copy(relevance = generated.relevance) else message
             }
         val analyzedItems =
-            applyAnalysisUpdates(priorState.analysisItems, generated.relevance, generated.analysisUpdates, classifiedMessages)
+            applyAnalysisUpdates(
+                priorState.analysisItems,
+                policyGenerated.relevance,
+                policyGenerated.analysisUpdates,
+                classifiedMessages,
+            )
         val hasMeaningfulAnalysisUpdate =
             analyzedItems.zip(priorState.analysisItems).any { (after, before) ->
                 after.status != before.status || after.summary != before.summary
             }
         val analysisItems =
-            analyzedItems.applyDeclinedQuestion(priorState.recentQuestionTargets.lastOrNull(), generated.declinedItemTypes)
+            analyzedItems.applyDeclinedQuestion(currentQuestionTarget, policyGenerated.declinedItemTypes)
         val updatedItemSnapshots = analysisItems.map { it.toSnapshot() }
+        val readyToComplete = turnPolicy.readyToComplete(updatedItemSnapshots)
         val decided =
             turnPolicy.decideTurn(
-                generated = generated,
+                generated = policyGenerated,
                 eligibleQuestionTargets =
                     turnPolicy.eligibleQuestionTargets(updatedItemSnapshots, priorState.recentQuestionTargets),
                 completionRecommended =
                     !continuationRequested &&
                         turnPolicy.shouldRecommendCompletion(
-                            turnPolicy.readyToComplete(updatedItemSnapshots),
+                            readyToComplete,
                             priorState.completedQuestionCount,
                             retrospectiveMessageCount(classifiedMessages),
                         ),
@@ -121,12 +136,13 @@ class AdminPromptPreviewService(
                 hasMeaningfulAnalysisUpdate = hasMeaningfulAnalysisUpdate,
                 completedQuestionCount = priorState.completedQuestionCount,
                 consecutiveAskCount = priorState.consecutiveAskCount,
+                readyToComplete = readyToComplete,
                 userMessageContent = command.message,
             )
         val answerGuide =
             answerGuidePolicy
                 .decide(
-                    generated = generated,
+                    generated = policyGenerated,
                     decided = decided,
                     items = updatedItemSnapshots,
                     sensitiveDataDetected = false,
@@ -148,6 +164,7 @@ class AdminPromptPreviewService(
             AdminPromptPreviewState(
                 messages = classifiedMessages + assistantMessage,
                 analysisItems = analysisItems,
+                currentQuestionTarget = decided.questionTarget,
                 recentQuestionTargets =
                     if (decided.action == ConversationTurnAction.ASK) {
                         (priorState.recentQuestionTargets + checkNotNull(decided.questionTarget)).takeLast(3)

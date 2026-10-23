@@ -148,6 +148,10 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.nextState.analysisItems[].questionAllowed")
                             .type(JsonFieldType.BOOLEAN)
                             .description("해당 항목에 대한 후속 질문 허용 여부"),
+                        fieldWithPath("data.nextState.currentQuestionTarget")
+                            .type(JsonFieldType.STRING)
+                            .optional()
+                            .description("직전 응답에서 사용자가 답하거나 건너뛸 수 있는 질문 항목. 다음 요청의 priorState로 그대로 전달"),
                         fieldWithPath("data.nextState.recentQuestionTargets")
                             .type(JsonFieldType.ARRAY)
                             .description("최근 질문한 회고 항목. 다음 요청의 priorState로 그대로 전달"),
