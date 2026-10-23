@@ -84,6 +84,7 @@ class OpenAiClientAttachmentSafetyTest {
         server
             .expect(method(HttpMethod.POST))
             .andExpect(jsonPath("$.instructions", containsString("해요체")))
+            .andExpect(jsonPath("$.instructions", containsString("명사형")))
             .andExpect(jsonPath("$.instructions", containsString("~했다")))
             .andExpect(jsonPath("$.instructions", containsString("인사이트를 정확히 1개")))
             .andExpect(jsonPath("$.instructions", containsString("다음 행동을 정확히 1개")))
