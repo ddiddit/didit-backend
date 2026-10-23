@@ -9,16 +9,16 @@ class RetrospectiveResultV2TonePolicyTest {
     private val policy = RetrospectiveResultV2TonePolicy()
 
     @Test
-    fun `사용자에게 보이는 결과 서술을 해요체로 보정한다`() {
+    fun `서술형 결과만 해요체로 보정하고 분석 항목의 명사형은 유지한다`() {
         val normalized =
             policy.normalize(
                 GeneratedRetrospectiveResultV2(
                     title = "배포 회고",
                     summary = "개발 서버에서 테스트했다.",
-                    strengths = listOf("팀원과 문제를 해결하였다", "문제를 해결할 수 있었다.", "직접 적용해봤다."),
-                    improvements = listOf("사전 확인이 부족했음", "좋은 경험이었다."),
-                    processes = listOf("테스트 범위를 점검함.", "준비 과정이 중요하다."),
-                    learnings = listOf("협업할 때 확인이 필요하다."),
+                    strengths = listOf("팀원과 문제를 해결한 점", "직접 적용한 경험"),
+                    improvements = listOf("사전 확인 부족"),
+                    processes = listOf("테스트 범위 점검"),
+                    learnings = listOf("협업 시 확인의 필요성"),
                     insight = RetrospectiveResultDetail("협업", "함께 확인하여 마무리했다."),
                     nextActions = listOf(RetrospectiveResultDetail("사전 점검", "다음에는 테스트 범위를 줄인다.")),
                     inputTokens = 10,
@@ -29,10 +29,10 @@ class RetrospectiveResultV2TonePolicyTest {
         assertThat(normalized.title).isEqualTo("배포 회고")
         assertThat(normalized.summary).isEqualTo("개발 서버에서 테스트했어요.")
         assertThat(normalized.strengths)
-            .containsExactly("팀원과 문제를 해결했어요", "문제를 해결할 수 있었어요.", "직접 적용해봤어요.")
-        assertThat(normalized.improvements).containsExactly("사전 확인이 부족했어요", "좋은 경험이었어요.")
-        assertThat(normalized.processes).containsExactly("테스트 범위를 점검했어요.", "준비 과정이 중요해요.")
-        assertThat(normalized.learnings).containsExactly("협업할 때 확인이 필요해요.")
+            .containsExactly("팀원과 문제를 해결한 점", "직접 적용한 경험")
+        assertThat(normalized.improvements).containsExactly("사전 확인 부족")
+        assertThat(normalized.processes).containsExactly("테스트 범위 점검")
+        assertThat(normalized.learnings).containsExactly("협업 시 확인의 필요성")
         assertThat(normalized.insight).isEqualTo(RetrospectiveResultDetail("협업", "함께 확인하여 마무리했어요."))
         assertThat(normalized.nextActions)
             .containsExactly(RetrospectiveResultDetail("사전 점검", "다음에는 테스트 범위를 줄여요."))
@@ -67,6 +67,31 @@ class RetrospectiveResultV2TonePolicyTest {
 
         assertThat(normalized.summary).isEqualTo("배포 준비가 완료됨.")
         assertThat(policy.requiresRegeneration(normalized)).isTrue()
+    }
+
+    @Test
+    fun `분석 항목의 명사형 종결은 재생성을 요구하지 않는다`() {
+        val normalized =
+            policy.normalize(
+                GeneratedRetrospectiveResultV2(
+                    title = "온보딩 회고",
+                    summary = "온보딩 흐름을 개선했어요.",
+                    strengths = listOf("사용자 경험 중심 문제 재정의"),
+                    improvements = listOf("정보 우선순위 기준 설정의 어려움"),
+                    processes = listOf("핵심 기능 우선 경험 후 정보 보충 방식"),
+                    learnings = listOf("점진적 정보 제공의 중요성"),
+                    insight = RetrospectiveResultDetail("경험 중심 설계", "사용자 경험을 먼저 고려하는 것이 중요해요."),
+                    nextActions = listOf(RetrospectiveResultDetail("온보딩 개선", "개선 효과를 데이터로 검증해요.")),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            )
+
+        assertThat(normalized.strengths).containsExactly("사용자 경험 중심 문제 재정의")
+        assertThat(normalized.improvements).containsExactly("정보 우선순위 기준 설정의 어려움")
+        assertThat(normalized.processes).containsExactly("핵심 기능 우선 경험 후 정보 보충 방식")
+        assertThat(normalized.learnings).containsExactly("점진적 정보 제공의 중요성")
+        assertThat(policy.requiresRegeneration(normalized)).isFalse()
     }
 
     private fun result(summary: String) =

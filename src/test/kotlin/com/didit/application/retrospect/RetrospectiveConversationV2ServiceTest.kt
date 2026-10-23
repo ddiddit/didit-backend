@@ -1017,9 +1017,9 @@ class RetrospectiveConversationV2ServiceTest {
         assertThat(result.resultGenerationStatus.name).isEqualTo("GENERATED")
         assertThat(result.title).isEqualTo("배포 오류 롤백 회고")
         assertThat(result.result.strengths).isNull()
-        assertThat(result.result.improvements).containsExactly("배포 전 확인이 부족했어요.")
+        assertThat(result.result.improvements).containsExactly("배포 전 확인 부족")
         assertThat(result.result.processes).isNull()
-        assertThat(result.result.learnings).containsExactly("배포 체크리스트가 필요해요.")
+        assertThat(result.result.learnings).containsExactly("배포 체크리스트의 필요성")
         assertThat(result.result.insight).isNotNull()
         assertThat(result.result.nextActions).singleElement().extracting<String> { it.title }.isEqualTo("배포 체크리스트 작성하기")
         assertThat(saved.resultV2?.summary).isEqualTo("배포 오류를 발견하고 롤백했어요.")
@@ -1147,9 +1147,9 @@ class RetrospectiveConversationV2ServiceTest {
             title = "배포 오류 롤백 회고",
             summary = "배포 오류를 발견하고 롤백했다.",
             strengths = null,
-            improvements = listOf("배포 전 확인이 부족했다."),
-            processes = listOf("로그를 확인해 원인을 좁혔다."),
-            learnings = listOf("배포 체크리스트가 필요하다."),
+            improvements = listOf("배포 전 확인 부족"),
+            processes = listOf("로그 기반 원인 범위 축소"),
+            learnings = listOf("배포 체크리스트의 필요성"),
             insight = RetrospectiveResultDetail("반복 검증", "배포 전에 같은 기준으로 확인하면 오류를 줄일 수 있어요."),
             nextActions = listOf(RetrospectiveResultDetail("배포 체크리스트 작성", "배포 전 확인 항목을 정리한다.")),
             inputTokens = 120,

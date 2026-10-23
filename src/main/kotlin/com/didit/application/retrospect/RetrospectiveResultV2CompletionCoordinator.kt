@@ -95,7 +95,7 @@ class RetrospectiveResultV2CompletionCoordinator(
         if (!tonePolicy.requiresRegeneration(first)) return first
 
         val second = tonePolicy.normalize(aiClient.generateResult(request))
-        check(!tonePolicy.requiresRegeneration(second)) { "회고 결과가 해요체 규칙을 충족하지 않습니다." }
+        check(!tonePolicy.requiresRegeneration(second)) { "회고 결과가 문장 종결 규칙을 충족하지 않습니다." }
         return second.copy(
             inputTokens = first.inputTokens + second.inputTokens,
             outputTokens = first.outputTokens + second.outputTokens,

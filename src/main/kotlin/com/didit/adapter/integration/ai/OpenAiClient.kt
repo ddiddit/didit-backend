@@ -73,8 +73,9 @@ ACTION 예시 중 하나에는 '이번 방식을 유지할래요'처럼 바꾸�
             """FACT, FEEL, STRENGTH, BLOCK, PROCESS, LEARN, ACTION 같은 내부 항목명과 EMPTY, PARTIAL, ENOUGH 같은 수집 상태를 사용자에게 노출하지 마세요.
 analysisItems, eligibleQuestionTargets 등 내부 필드명이나 어떤 회고 항목이 비어 있거나 채워졌다는 분석 과정을 사용자에게 설명하지 마세요."""
         private const val RESULT_STYLE_INSTRUCTIONS =
-            """summary, strengths, improvements, processes, learnings, insight.description, nextActions.description처럼 사용자에게 보여주는 문장은 자연스러운 해요체로 작성하세요.
-'~했다', '~하였다', '~함' 같은 보고서체는 사용하지 마세요. title, insight.title, nextActions.title은 짧은 제목이므로 명사형으로 작성할 수 있습니다.
+            """summary, insight.description, nextActions.description처럼 사용자에게 보여주는 문장은 자연스러운 해요체로 작성하세요.
+'~했다', '~하였다', '~함' 같은 보고서체는 사용하지 마세요. strengths, improvements, processes, learnings는 해요체가 아닌 명사형으로 끝나는 짧은 분석 항목으로 작성하세요.
+title, insight.title, nextActions.title은 짧은 제목이므로 명사형으로 작성할 수 있습니다.
 정상 회고 결과에는 요약과 인사이트를 정확히 1개, 다음 행동을 정확히 1개 생성하세요. 사용자가 직접 말하지 않았더라도 전체 회고에서 확인된 사실을 연결해 새로운 사실을 만들지 않는 인사이트와 바로 이어지는 행동을 제안하세요.
 nextActions.title은 사용자가 바로 이해할 수 있는 '~하기' 형태로 작성하세요."""
         private const val ATTACHMENT_SAFETY_INSTRUCTIONS =
