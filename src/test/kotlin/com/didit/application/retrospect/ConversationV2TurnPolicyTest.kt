@@ -484,7 +484,16 @@ class ConversationV2TurnPolicyTest {
 
     @Test
     fun `결과를 만들 수 있을 때 전체 종료 의사를 밝히면 정상 종료 안내를 반환한다`() {
-        listOf("그만할게", "끝내자", "끝내자고", "끝낼게", "회고 마칠게", "종료할게").forEach { content ->
+        listOf(
+            "그만할게",
+            "끝내자",
+            "끝내자고",
+            "끝낼게",
+            "회고 마칠게",
+            "마칠래요",
+            "오늘 회고는 여기까지 할게요",
+            "종료할게",
+        ).forEach { content ->
             val decided =
                 policy.decideTurn(
                     generated = generated(MessageRelevance.RETROSPECTIVE),
