@@ -117,16 +117,6 @@ class AdminPromptPreviewService(
             analyzedItems.applyDeclinedQuestion(currentQuestionTarget, policyGenerated.declinedItemTypes)
         val updatedItemSnapshots = analysisItems.map { it.toSnapshot() }
         val readyToComplete = turnPolicy.readyToComplete(updatedItemSnapshots)
-        val consecutiveItemDeclineCount =
-            if (currentQuestionTarget != null && currentQuestionTarget in policyGenerated.declinedItemTypes) {
-                turnPolicy.consecutiveItemDeclineCount(
-                    classifiedMessages.map {
-                        ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance, it.content)
-                    },
-                )
-            } else {
-                0
-            }
         val decided =
             turnPolicy.decideTurn(
                 generated = policyGenerated,
@@ -141,7 +131,6 @@ class AdminPromptPreviewService(
                         ),
                 completionPreviouslyOffered = priorState.completionPreviouslyOffered,
                 continuationRequested = continuationRequested,
-                consecutiveItemDeclineCount = consecutiveItemDeclineCount,
                 readyToComplete = readyToComplete,
                 userMessageContent = command.message,
             )
