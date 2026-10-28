@@ -20,7 +20,7 @@ class RetrospectiveResultV2TonePolicy {
     fun requiresRegeneration(generated: GeneratedRetrospectiveResultV2): Boolean =
         generated.userFacingSentences().any { narrative ->
             REPORT_STYLE_REMAINDER.containsMatchIn(narrative) || narrative.endsWithNominalMieum()
-        }
+        } || generated.analysisItems().any(ANALYSIS_SENTENCE_ENDING::containsMatchIn)
 
     private fun RetrospectiveResultDetail.toPoliteStyle(): RetrospectiveResultDetail = copy(description = description.toPoliteStyle())
 
@@ -64,11 +64,21 @@ class RetrospectiveResultV2TonePolicy {
             nextActions?.mapTo(this) { it.description }
         }
 
+    private fun GeneratedRetrospectiveResultV2.analysisItems(): List<String> =
+        buildList {
+            strengths?.let(::addAll)
+            improvements?.let(::addAll)
+            processes?.let(::addAll)
+            learnings?.let(::addAll)
+        }
+
     companion object {
         private val SENTENCE_END = "(?=\\s*[.!?…]?(?:\\s|$))"
         private val PAST_NOMINAL_ENDING = Regex("([가-힣])음$SENTENCE_END")
         private val PAST_PLAIN_ENDING = Regex("([가-힣])다$SENTENCE_END")
         private val REPORT_STYLE_REMAINDER = Regex("(?:다|하였음|했음|함)$SENTENCE_END")
+        private val ANALYSIS_SENTENCE_ENDING =
+            Regex("(?:해요|했어요|이에요|예요|돼요|있어요|없어요|아요|어요|여요|할게요|입니다|습니다|다)$SENTENCE_END")
         private const val HANGUL_SYLLABLE_START = 0xAC00
         private const val HANGUL_SYLLABLE_END = 0xD7A3
         private const val HANGUL_FINAL_COUNT = 28

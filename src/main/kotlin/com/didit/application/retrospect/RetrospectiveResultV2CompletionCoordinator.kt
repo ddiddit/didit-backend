@@ -66,6 +66,7 @@ class RetrospectiveResultV2CompletionCoordinator(
             val preparation = metrics.recordStage("result_v2", "prepare") { prepare(retrospectiveId, userId) }
             preparation.cached?.let { return@recordStage it }
 
+            var failureStage = "ai_generation"
             try {
                 metrics.recordExternalCallTransactionState("result_v2")
                 val generated =
@@ -74,6 +75,7 @@ class RetrospectiveResultV2CompletionCoordinator(
                     }
                 val result =
                     metrics.recordStage("result_v2", "save") {
+                        failureStage = "persistence"
                         save(
                             retrospectiveId,
                             userId,
@@ -85,21 +87,45 @@ class RetrospectiveResultV2CompletionCoordinator(
                 result
             } catch (exception: Exception) {
                 reset(retrospectiveId, userId, preparation.attemptId)
-                logger.error("V2 회고 결과 생성 실패 - retrospectiveId: $retrospectiveId", exception)
+                logger.error(
+                    "V2 회고 결과 생성 실패 - retrospectiveId: {}, stage: {}, exceptionType: {}",
+                    retrospectiveId,
+                    failureStage,
+                    exception.javaClass.simpleName,
+                    exception,
+                )
                 throw RetrospectiveResultGenerationFailedException(retrospectiveId, exception)
             }
         }
 
     private fun generatePoliteResult(request: RetrospectiveResultV2AIRequest): GeneratedRetrospectiveResultV2 {
-        val first = tonePolicy.normalize(aiClient.generateResult(request))
+        val first = tonePolicy.normalize(generateResultWithRetry(request))
         if (!tonePolicy.requiresRegeneration(first)) return first
 
-        val second = tonePolicy.normalize(aiClient.generateResult(request))
+        val second = tonePolicy.normalize(generateResultWithRetry(request))
         check(!tonePolicy.requiresRegeneration(second)) { "회고 결과가 문장 종결 규칙을 충족하지 않습니다." }
         return second.copy(
             inputTokens = first.inputTokens + second.inputTokens,
             outputTokens = first.outputTokens + second.outputTokens,
         )
+    }
+
+    private fun generateResultWithRetry(request: RetrospectiveResultV2AIRequest): GeneratedRetrospectiveResultV2 {
+        var firstFailure: Exception? = null
+        repeat(2) { attemptIndex ->
+            try {
+                return aiClient.generateResult(request)
+            } catch (exception: Exception) {
+                if (attemptIndex == 1) throw exception
+                firstFailure = exception
+                logger.warn(
+                    "V2 회고 결과 AI 호출 재시도 - stage: ai_call, attempt: {}, exceptionType: {}",
+                    attemptIndex + 1,
+                    exception.javaClass.simpleName,
+                )
+            }
+        }
+        throw checkNotNull(firstFailure)
     }
 
     private fun prepare(
