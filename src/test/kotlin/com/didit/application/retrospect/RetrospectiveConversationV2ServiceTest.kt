@@ -1202,6 +1202,7 @@ class RetrospectiveConversationV2ServiceTest {
         markReadyToComplete(started.retrospectiveId)
         whenever(resultAIClient.generateResult(any()))
             .thenThrow(IllegalStateException("temporary failure"))
+            .thenThrow(IllegalStateException("temporary failure"))
             .thenReturn(generatedResult())
 
         assertThrows<RetrospectiveResultGenerationFailedException> {
@@ -1214,7 +1215,7 @@ class RetrospectiveConversationV2ServiceTest {
         val retried = service.finish(started.retrospectiveId, userId)
 
         assertThat(retried.resultGenerationStatus.name).isEqualTo("GENERATED")
-        verify(resultAIClient, times(2)).generateResult(any())
+        verify(resultAIClient, times(3)).generateResult(any())
     }
 
     @Test
