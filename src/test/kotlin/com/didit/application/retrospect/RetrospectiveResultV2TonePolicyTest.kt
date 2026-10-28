@@ -109,6 +109,17 @@ class RetrospectiveResultV2TonePolicyTest {
         assertThat(policy.requiresRegeneration(reportListResult)).isTrue()
     }
 
+    @Test
+    fun `분석 항목 중간 단어의 종결 어미는 항목 끝으로 오인하지 않는다`() {
+        val nominalResult =
+            result(summary = "온보딩 흐름을 개선했어요.").copy(
+                strengths = listOf("이전보다 빠른 문제 해결"),
+                processes = listOf("다 함께 협업하는 방식"),
+            )
+
+        assertThat(policy.requiresRegeneration(nominalResult)).isFalse()
+    }
+
     private fun result(summary: String) =
         GeneratedRetrospectiveResultV2(
             title = "배포 회고",
