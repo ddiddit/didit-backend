@@ -94,6 +94,32 @@ class RetrospectiveResultV2TonePolicyTest {
         assertThat(policy.requiresRegeneration(normalized)).isFalse()
     }
 
+    @Test
+    fun `분석 항목이 해요체나 보고서 문장으로 끝나면 재생성이 필요하다`() {
+        val politeListResult =
+            result(summary = "온보딩 흐름을 개선했어요.").copy(
+                strengths = listOf("사용자 경험을 중심으로 문제를 해결했어요."),
+            )
+        val reportListResult =
+            result(summary = "온보딩 흐름을 개선했어요.").copy(
+                improvements = listOf("정보 우선순위를 정하기 어려웠다."),
+            )
+
+        assertThat(policy.requiresRegeneration(politeListResult)).isTrue()
+        assertThat(policy.requiresRegeneration(reportListResult)).isTrue()
+    }
+
+    @Test
+    fun `분석 항목 중간 단어의 종결 어미는 항목 끝으로 오인하지 않는다`() {
+        val nominalResult =
+            result(summary = "온보딩 흐름을 개선했어요.").copy(
+                strengths = listOf("이전보다 빠른 문제 해결"),
+                processes = listOf("다 함께 협업하는 방식"),
+            )
+
+        assertThat(policy.requiresRegeneration(nominalResult)).isFalse()
+    }
+
     private fun result(summary: String) =
         GeneratedRetrospectiveResultV2(
             title = "배포 회고",

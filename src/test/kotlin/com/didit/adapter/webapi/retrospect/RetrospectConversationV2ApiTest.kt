@@ -142,7 +142,10 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         ).type(JsonFieldType.BOOLEAN).description("결과 생성 가능 여부. 종료 액션에서 true이면 /finish, false이면 /exit 사용"),
                         fieldWithPath(
                             "data.action",
-                        ).type(JsonFieldType.STRING).description("프론트가 처리할 다음 대화 액션. OFFER_COMPLETION 또는 CONFIRM_COMPLETION이면 종료 메뉴 노출"),
+                        ).type(JsonFieldType.STRING).description(
+                            "프론트가 처리할 다음 대화 액션. OFFER_COMPLETION·CONFIRM_COMPLETION은 결과 생성 메뉴, " +
+                                "CONFIRM_EXIT는 결과 없는 종료 메뉴 노출",
+                        ),
                     ),
                 ),
             )

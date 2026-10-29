@@ -569,19 +569,6 @@ class RetrospectiveConversationV2Service(
                     conversationState.recentQuestionTargets,
                 )
             val ready = calculateReadyToComplete(items)
-            val consecutiveItemDeclineCount =
-                if (
-                    conversationState.currentQuestionTarget != null &&
-                    conversationState.currentQuestionTarget in normalizedGenerated.declinedItemTypes
-                ) {
-                    turnPolicy.consecutiveItemDeclineCount(
-                        chatMessageRepository
-                            .findAllByRetrospectiveIdOrderByCreatedAtAsc(preparation.retrospectiveId)
-                            .map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance, it.content) },
-                    )
-                } else {
-                    0
-                }
             val decided =
                 turnPolicy.decideTurn(
                     generated = normalizedGenerated,
@@ -595,7 +582,6 @@ class RetrospectiveConversationV2Service(
                             ),
                     completionPreviouslyOffered = conversationState.completionPreviouslyOffered,
                     continuationRequested = preparation.continuationRequested,
-                    consecutiveItemDeclineCount = consecutiveItemDeclineCount,
                     readyToComplete = ready,
                     userMessageContent = userMessage.content,
                 )

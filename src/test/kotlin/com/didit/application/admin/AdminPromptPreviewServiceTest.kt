@@ -149,12 +149,9 @@ class AdminPromptPreviewServiceTest {
         assertThat(requestCaptor.firstValue.completionRecommended).isTrue()
         assertThat(requestCaptor.firstValue.completionPreviouslyOffered).isFalse()
         assertThat(result.assistantMessage!!.content)
-            .isEqualTo(
-                "지금까지 나눈 내용만으로는 회고 결과를 만들기 어려워요. 조금 더 이야기해볼까요? " +
-                    "여기서 나가면 결과는 생성되지 않고, 회고 이용 횟수는 1회 차감돼요.",
-            )
-        assertThat(result.nextState.completedQuestionCount).isEqualTo(6)
-        assertThat(result.nextState.completionPreviouslyOffered).isTrue()
+            .isEqualTo("확인했어요.\n그 일을 진행하면서 어떤 느낌이 들었나요?")
+        assertThat(result.nextState.completedQuestionCount).isEqualTo(7)
+        assertThat(result.nextState.completionPreviouslyOffered).isFalse()
     }
 
     @Test
@@ -262,7 +259,7 @@ class AdminPromptPreviewServiceTest {
     }
 
     @Test
-    fun `preview에서도 항목을 세 번 연속 거부하면 결과 없는 종료를 안내한다`() {
+    fun `preview에서도 항목을 연속 거부하면 다른 항목 질문을 이어간다`() {
         val priorState =
             AdminPromptPreviewState(
                 messages =
@@ -279,7 +276,8 @@ class AdminPromptPreviewServiceTest {
 
         val result = service.preview(command(priorState = priorState, message = "딱히 없어"))
 
-        assertThat(result.assistantMessage!!.content).contains("회고 결과를 만들기 어려워요")
+        assertThat(result.assistantMessage!!.content).doesNotContain("회고 결과를 만들기 어려워요")
+        assertThat(result.nextState.currentQuestionTarget).isNotNull()
     }
 
     @Test
