@@ -147,6 +147,48 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
+    fun `과거에 질문한 항목은 최근 질문 목록에서 벗어나도 기본 후보로 다시 선택하지 않는다`() {
+        val candidates =
+            policy.eligibleQuestionTargets(
+                items = listOf(analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "진행 중")),
+                recentQuestionTargets = emptyList(),
+                questionTargetCounts = mapOf(RetrospectiveItemType.PROCESS to 1),
+            )
+
+        assertThat(candidates).isEmpty()
+    }
+
+    @Test
+    fun `다른 질문에 답하며 과거 항목에 새 근거를 더하면 후속 질문을 한 번 허용한다`() {
+        val candidates =
+            policy.eligibleQuestionTargets(
+                items = listOf(analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "진행 중")),
+                recentQuestionTargets = listOf(RetrospectiveItemType.BLOCK),
+                questionTargetCounts =
+                    mapOf(
+                        RetrospectiveItemType.PROCESS to 1,
+                        RetrospectiveItemType.BLOCK to 1,
+                    ),
+                updatedItemTypes = setOf(RetrospectiveItemType.PROCESS),
+            )
+
+        assertThat(candidates).containsExactly(RetrospectiveItemType.PROCESS)
+    }
+
+    @Test
+    fun `이미 두 번 질문한 항목은 새 근거가 생겨도 다시 질문하지 않는다`() {
+        val candidates =
+            policy.eligibleQuestionTargets(
+                items = listOf(analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "진행 중")),
+                recentQuestionTargets = listOf(RetrospectiveItemType.BLOCK),
+                questionTargetCounts = mapOf(RetrospectiveItemType.PROCESS to 2),
+                updatedItemTypes = setOf(RetrospectiveItemType.PROCESS),
+            )
+
+        assertThat(candidates).isEmpty()
+    }
+
+    @Test
     fun `FACT와 전체 세 항목과 핵심 성찰 한 항목이 수집되면 완료 준비가 된다`() {
         val ready =
             policy.readyToComplete(
@@ -270,6 +312,60 @@ class ConversationV2TurnPolicyTest {
         assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
         assertThat(decided.question).isNotBlank()
         assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.LEARN)
+    }
+
+    @Test
+    fun `질문 대상이 바뀌면 연결어로 새 주제를 이어간다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        question = "진행하면서 어려웠던 점은 무엇이었나요?",
+                        questionTarget = RetrospectiveItemType.BLOCK,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.BLOCK),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                previousQuestionTarget = RetrospectiveItemType.PROCESS,
+            )
+
+        assertThat(decided.question).isEqualTo("그렇다면 진행하면서 어려웠던 점은 무엇이었나요?")
+    }
+
+    @Test
+    fun `같은 항목의 후속 질문에는 주제 전환 연결어를 붙이지 않는다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        question = "그 방식에서 특히 효과적이었던 부분은 무엇인가요?",
+                        questionTarget = RetrospectiveItemType.PROCESS,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.PROCESS),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                previousQuestionTarget = RetrospectiveItemType.PROCESS,
+            )
+
+        assertThat(decided.question).isEqualTo("그 방식에서 특히 효과적이었던 부분은 무엇인가요?")
+    }
+
+    @Test
+    fun `모델 질문에 연결어가 있으면 중복해서 붙이지 않는다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        question = "그럼 다음에는 무엇을 다르게 해보고 싶나요?",
+                        questionTarget = RetrospectiveItemType.ACTION,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.ACTION),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                previousQuestionTarget = RetrospectiveItemType.LEARN,
+            )
+
+        assertThat(decided.question).isEqualTo("그럼 다음에는 무엇을 다르게 해보고 싶나요?")
     }
 
     @Test
@@ -542,6 +638,30 @@ class ConversationV2TurnPolicyTest {
             assertThat(decided.action).describedAs(content).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
             assertThat(decided.content()).describedAs(content).isEmpty()
         }
+    }
+
+    @Test
+    fun `설명 뒤에 종료 의사를 밝히면 모델의 추가 질문을 제거하고 종료 확인을 반환한다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.ASK,
+                        acknowledgement = "업무 내용과 어려웠던 점이 잘 보여서 결과를 만들 수 있어요.",
+                        question = "그 일을 진행할 때는 어떤 느낌이었나요?",
+                        questionTarget = RetrospectiveItemType.FEEL,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.FEEL),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                readyToComplete = true,
+                userMessageContent = "이 정도면 충분한 것 같으니 회고를 마치자",
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
+        assertThat(decided.content()).isEmpty()
+        assertThat(decided.question).isNull()
+        assertThat(decided.questionTarget).isNull()
     }
 
     @Test

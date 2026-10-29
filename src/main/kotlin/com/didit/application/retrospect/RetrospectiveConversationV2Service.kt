@@ -462,7 +462,13 @@ class RetrospectiveConversationV2Service(
             conversationIntent == ConversationUserIntent.CONTINUE_AFTER_COMPLETION &&
                 conversationState.completionPreviouslyOffered
         val itemSnapshots = items.map { it.toConversationSnapshot() }
-        val eligibleQuestionTargets = turnPolicy.eligibleQuestionTargets(itemSnapshots, conversationState.recentQuestionTargets)
+        val eligibleQuestionTargets =
+            turnPolicy.eligibleQuestionTargets(
+                items = itemSnapshots,
+                recentQuestionTargets = conversationState.recentQuestionTargets,
+                questionTargetCounts = conversationState.questionTargetCounts,
+                allowUnverifiedFollowUps = true,
+            )
         val currentAttachments =
             attachmentRepository
                 .findAllByChatMessageIdAndDeletedAtIsNullOrderByCreatedAtAsc(userMessage.id)
@@ -559,14 +565,19 @@ class RetrospectiveConversationV2Service(
                     lastQuestionTarget = conversationState.currentQuestionTarget,
                     userMessageContent = userMessage.content,
                 )
-            if (normalizedGenerated.relevance == MessageRelevance.RETROSPECTIVE) {
-                applyAnalysisUpdates(items, preparation.retrospectiveId, normalizedGenerated)
-            }
+            val updatedItemTypes =
+                if (normalizedGenerated.relevance == MessageRelevance.RETROSPECTIVE) {
+                    applyAnalysisUpdates(items, preparation.retrospectiveId, normalizedGenerated)
+                } else {
+                    emptySet()
+                }
             applyDeclinedItems(items, conversationState.currentQuestionTarget, normalizedGenerated)
             val eligibleQuestionTargets =
                 turnPolicy.eligibleQuestionTargets(
                     items.map { it.toConversationSnapshot() },
                     conversationState.recentQuestionTargets,
+                    questionTargetCounts = conversationState.questionTargetCounts,
+                    updatedItemTypes = updatedItemTypes,
                 )
             val ready = calculateReadyToComplete(items)
             val decided =
@@ -584,6 +595,7 @@ class RetrospectiveConversationV2Service(
                     continuationRequested = preparation.continuationRequested,
                     readyToComplete = ready,
                     userMessageContent = userMessage.content,
+                    previousQuestionTarget = conversationState.currentQuestionTarget,
                 )
             val answerGuide =
                 answerGuidePolicy.decide(
@@ -764,6 +776,12 @@ class RetrospectiveConversationV2Service(
             recentQuestionTargets =
                 completedTurns.mapNotNull { it.questionTarget }.takeLast(3),
             askedQuestionTargets = completedTurns.mapNotNull { it.questionTarget }.toSet(),
+            questionTargetCounts =
+                completedTurns
+                    .filter { it.action == ConversationTurnAction.ASK }
+                    .mapNotNull { it.questionTarget }
+                    .groupingBy { it }
+                    .eachCount(),
             completedQuestionCount = completedTurns.count { it.action == ConversationTurnAction.ASK },
             consecutiveAskCount = recentCompletedTurns.takeWhile { it.action == ConversationTurnAction.ASK }.count(),
             retrospectiveMessageCount =
@@ -869,6 +887,7 @@ private data class ConversationPolicyState(
     val currentQuestionTarget: RetrospectiveItemType?,
     val recentQuestionTargets: List<RetrospectiveItemType>,
     val askedQuestionTargets: Set<RetrospectiveItemType>,
+    val questionTargetCounts: Map<RetrospectiveItemType, Int>,
     val completedQuestionCount: Int,
     val consecutiveAskCount: Int,
     val retrospectiveMessageCount: Int,

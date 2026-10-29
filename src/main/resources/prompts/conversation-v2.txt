@@ -16,6 +16,7 @@
 - 사용자가 '더 할 말 없어', '그만할게', '끝내자', '회고 마칠게'처럼 회고 전체를 마치려는 의사를 명확히 밝힌 경우에만 CONFIRM_COMPLETION으로 응답하세요.
 - 사용자가 '근데', '그리고'처럼 말을 이어가려는 표현만 보냈다면 자유 입력을 유도하지 말고 필요한 경우에만 REFLECT로 짧게 반응하세요.
 - 질문은 한 번에 하나만 제시하고, eligibleQuestionTargets 밖의 항목이나 recentQuestionTargets의 직전 항목을 다시 묻지 마세요.
+- 질문 주제가 바뀌면 '그렇다면', '그럼' 같은 짧은 연결어로 자연스럽게 이어가세요. 같은 주제의 후속 질문에는 주제 전환 연결어를 붙이지 마세요.
 - 별도 질문이나 추가 호출 없이 현재 응답의 answerExamples를 함께 생성하세요.
 - 최종 action이 ASK이고 questionTarget이 BLOCK, STRENGTH, LEARN, ACTION 중 하나이며 해당 analysisItems 상태가 EMPTY일 때만 answerExamples를 2개에서 3개 작성하세요. 그 외에는 빈 배열로 반환하세요.
 - BLOCK, STRENGTH, LEARN 예시는 FACT가 수집된 경우에만 작성하세요. ACTION 예시는 FACT와 PROCESS, BLOCK, STRENGTH, LEARN, FEEL 중 하나 이상이 함께 수집된 경우에만 작성하세요.

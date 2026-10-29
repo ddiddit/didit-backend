@@ -517,6 +517,43 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `과거에 이미 질문한 항목을 모델이 다시 선택해도 다른 항목으로 보정한다`() {
+        val started = service.start(userId)
+        val targets =
+            listOf(
+                RetrospectiveItemType.PROCESS,
+                RetrospectiveItemType.BLOCK,
+                RetrospectiveItemType.FEEL,
+                RetrospectiveItemType.PROCESS,
+            )
+        var turnIndex = 0
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer {
+            val target = targets[turnIndex++]
+            GeneratedConversationTurn(
+                action = ConversationTurnAction.ASK,
+                acknowledgement = "확인했어요.",
+                interpretation = "",
+                question = "$target 질문",
+                questionTarget = target,
+                relevance = MessageRelevance.RETROSPECTIVE,
+                analysisUpdates = emptyList(),
+                inputTokens = 10,
+                outputTokens = 5,
+            )
+        }
+
+        repeat(3) { index ->
+            service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "회고 답변 $index")
+        }
+        val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "추가 답변")
+
+        assertThat(result.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(
+            turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
+        ).isNotEqualTo(RetrospectiveItemType.PROCESS)
+    }
+
+    @Test
     fun `유효한 분석 갱신이 있는 REFLECT도 남은 회고 질문으로 이어간다`() {
         val started = service.start(userId)
         whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
