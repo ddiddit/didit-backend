@@ -101,14 +101,72 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
         assertThat(synchronizationActiveWhenPublished).isTrue()
     }
 
+    @Test
+    fun `complete - 일시적인 AI 호출 실패는 한 번 재시도하고 결과를 저장한다`() {
+        val retrospectiveId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val retrospective =
+            Retrospective(
+                id = retrospectiveId,
+                userId = userId,
+                flowVersion = com.didit.domain.retrospect.RetrospectiveFlowVersion.V2,
+                conversationStatus = com.didit.domain.retrospect.ConversationStatus.ACTIVE,
+            )
+        val repository = mock<RetrospectiveRepository>()
+        val chatMessageRepository = mock<ChatMessageRepository>()
+        val attachmentRepository = mock<RetrospectiveAttachmentRepository>()
+        val analysisItemRepository = mock<RetrospectiveAnalysisItemRepository>()
+        val turnRepository = mock<RetrospectiveConversationTurnRepository>()
+        val userFinder = mock<UserFinder>()
+        val aiClient = mock<RetrospectiveResultV2AIClient>()
+
+        whenever(repository.findByIdAndUserIdAndDeletedAtIsNullForUpdate(retrospectiveId, userId)).thenReturn(retrospective)
+        whenever(repository.save(any())).thenAnswer { it.arguments[0] }
+        whenever(chatMessageRepository.findAllResultEvidenceByRetrospectiveId(retrospectiveId)).thenReturn(emptyList())
+        whenever(analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)).thenReturn(
+            listOf(
+                analysisItem(retrospectiveId, RetrospectiveItemType.FACT),
+                analysisItem(retrospectiveId, RetrospectiveItemType.PROCESS),
+                analysisItem(retrospectiveId, RetrospectiveItemType.ACTION),
+            ),
+        )
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(mock<User>())
+        whenever(aiClient.generateResult(any()))
+            .thenThrow(IllegalStateException("temporary AI failure"))
+            .thenReturn(generatedResult())
+
+        val coordinator =
+            RetrospectiveResultV2CompletionCoordinator(
+                repository,
+                chatMessageRepository,
+                attachmentRepository,
+                analysisItemRepository,
+                turnRepository,
+                userFinder,
+                aiClient,
+                RetrospectiveResultV2TonePolicy(),
+                ConversationV2TurnPolicy(),
+                TransactionTemplate(TestTransactionManager()),
+                RetrospectiveAiMetrics(SimpleMeterRegistry()),
+                mock<ApplicationEventPublisher>(),
+                600,
+                30_000,
+            )
+
+        coordinator.complete(retrospectiveId, userId)
+
+        verify(aiClient, times(2)).generateResult(any())
+        assertThat(retrospective.resultV2?.summary).isEqualTo("배포 자동화를 점검했어요.")
+    }
+
     private fun generatedResult() =
         GeneratedRetrospectiveResultV2(
             title = "배포 자동화 회고",
             summary = "배포 자동화를 점검했어요.",
-            strengths = listOf("문제를 빠르게 확인했어요."),
-            improvements = listOf("사전 점검이 필요해요."),
-            processes = listOf("배포 단계를 확인했어요."),
-            learnings = listOf("자동화 검증 방법을 배웠어요."),
+            strengths = listOf("문제를 빠르게 확인한 점이 돋보임"),
+            improvements = listOf("사전 점검의 필요성"),
+            processes = listOf("배포 단계를 순서대로 확인하는 방식"),
+            learnings = listOf("자동화 검증 방법에 대한 이해"),
             insight = RetrospectiveResultDetail("인사이트", "반복 검증이 중요해요."),
             nextActions = listOf(RetrospectiveResultDetail("다음 행동", "배포 전 점검을 이어갈게요.")),
             inputTokens = 10,

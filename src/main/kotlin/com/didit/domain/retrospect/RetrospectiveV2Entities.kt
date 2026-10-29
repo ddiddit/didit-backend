@@ -26,6 +26,7 @@ enum class ConversationTurnAction {
     REFLECT,
     OFFER_COMPLETION,
     CONFIRM_COMPLETION,
+    CONFIRM_EXIT,
 }
 
 enum class ConversationAnswerGuideMode {
@@ -169,7 +170,11 @@ class RetrospectiveConversationTurn(
         answerExamples: List<String> = emptyList(),
     ) {
         check(status == ConversationTurnStatus.PROCESSING)
-        require(assistantMessageId != null || action == ConversationTurnAction.CONFIRM_COMPLETION) {
+        require(
+            assistantMessageId != null ||
+                action == ConversationTurnAction.CONFIRM_COMPLETION ||
+                action == ConversationTurnAction.CONFIRM_EXIT,
+        ) {
             "종료 확인 턴만 AI 메시지 없이 완료할 수 있습니다."
         }
         require(action == ConversationTurnAction.ASK || action == ConversationTurnAction.REFLECT || questionTarget == null) {

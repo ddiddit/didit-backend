@@ -233,14 +233,14 @@ class RetrospectiveConversationV2ServiceTest {
         val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "이제 회고 끝내줘")
         val savedTurn = turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).single()
 
-        assertThat(result.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
+        assertThat(result.action).isEqualTo(ConversationTurnAction.CONFIRM_EXIT)
         assertThat(result.readyToComplete).isFalse()
         assertThat(result.assistantMessage!!.content)
             .isEqualTo(
-                "지금까지 나눈 내용만으로는 회고 결과를 만들기 어려워요. 조금 더 이야기해볼까요? " +
-                    "여기서 나가면 결과는 생성되지 않고, 회고 이용 횟수는 1회 차감돼요.",
+                "현재 내용만으로는 회고 결과를 만들기 어려워요. " +
+                    "더 남기고 싶은 내용을 이야기하거나, 회고를 끝내려면 상단의 ‘회고 마치기’를 눌러주세요.",
             )
-        assertThat(savedTurn.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
+        assertThat(savedTurn.action).isEqualTo(ConversationTurnAction.CONFIRM_EXIT)
         assertThat(savedTurn.questionTarget).isNull()
     }
 
@@ -265,7 +265,7 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
-    fun `결과를 만들기 어려울 때 항목을 세 번 연속 거부하면 결과 없는 종료를 안내한다`() {
+    fun `결과를 만들기 어려울 때 항목을 세 번 연속 거부해도 다음 항목으로 대화를 이어간다`() {
         val started = service.start(userId)
         whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
             val request = invocation.getArgument<ConversationTurnAIRequest>(0)
@@ -294,8 +294,8 @@ class RetrospectiveConversationV2ServiceTest {
         val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "딱히 없어")
 
         assertThat(result.readyToComplete).isFalse()
-        assertThat(result.action).isEqualTo(ConversationTurnAction.CONFIRM_COMPLETION)
-        assertThat(result.assistantMessage!!.content).contains("회고 결과를 만들기 어려워요")
+        assertThat(result.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(result.assistantMessage!!.content).doesNotContain("회고 결과를 만들기 어려워요")
     }
 
     @Test
@@ -1202,6 +1202,7 @@ class RetrospectiveConversationV2ServiceTest {
         markReadyToComplete(started.retrospectiveId)
         whenever(resultAIClient.generateResult(any()))
             .thenThrow(IllegalStateException("temporary failure"))
+            .thenThrow(IllegalStateException("temporary failure"))
             .thenReturn(generatedResult())
 
         assertThrows<RetrospectiveResultGenerationFailedException> {
@@ -1214,7 +1215,7 @@ class RetrospectiveConversationV2ServiceTest {
         val retried = service.finish(started.retrospectiveId, userId)
 
         assertThat(retried.resultGenerationStatus.name).isEqualTo("GENERATED")
-        verify(resultAIClient, times(2)).generateResult(any())
+        verify(resultAIClient, times(3)).generateResult(any())
     }
 
     @Test
