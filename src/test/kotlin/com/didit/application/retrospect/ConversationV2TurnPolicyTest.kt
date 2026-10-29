@@ -665,6 +665,27 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
+    fun `업무 설명 끝의 종료 표현은 회고 종료 의사로 해석하지 않는다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.ASK,
+                        question = "이 작업에서 배운 점은 무엇인가요?",
+                        questionTarget = RetrospectiveItemType.LEARN,
+                    ),
+                eligibleQuestionTargets = listOf(RetrospectiveItemType.LEARN),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                readyToComplete = true,
+                userMessageContent = "남은 배포 작업은 이제 끝낼게요",
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(decided.questionTarget).isEqualTo(RetrospectiveItemType.LEARN)
+    }
+
+    @Test
     fun `업무를 끝내려는 다음 행동은 회고 종료 의사로 해석하지 않는다`() {
         val decided =
             policy.decideTurn(

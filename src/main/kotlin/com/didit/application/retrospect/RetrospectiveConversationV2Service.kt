@@ -567,7 +567,12 @@ class RetrospectiveConversationV2Service(
                 )
             val updatedItemTypes =
                 if (normalizedGenerated.relevance == MessageRelevance.RETROSPECTIVE) {
-                    applyAnalysisUpdates(items, preparation.retrospectiveId, normalizedGenerated)
+                    applyAnalysisUpdates(
+                        currentItems = items,
+                        retrospectiveId = preparation.retrospectiveId,
+                        generated = normalizedGenerated,
+                        currentUserMessageId = userMessage.id,
+                    )
                 } else {
                     emptySet()
                 }
@@ -678,6 +683,7 @@ class RetrospectiveConversationV2Service(
         currentItems: List<RetrospectiveAnalysisItem>,
         retrospectiveId: UUID,
         generated: GeneratedConversationTurn,
+        currentUserMessageId: UUID,
     ): Set<RetrospectiveItemType> {
         val items = currentItems.associateBy { it.itemType }
         val messages =
@@ -704,8 +710,11 @@ class RetrospectiveConversationV2Service(
                 if (newEvidence.isNotEmpty()) evidenceRepository.saveAll(newEvidence)
             }
         return decisions
-            .filter { it.applied && it.before != it.after }
-            .map { it.update.itemType }
+            .filter {
+                it.applied &&
+                    it.before != it.after &&
+                    currentUserMessageId in it.acceptedEvidenceMessageIds
+            }.map { it.update.itemType }
             .toSet()
     }
 
