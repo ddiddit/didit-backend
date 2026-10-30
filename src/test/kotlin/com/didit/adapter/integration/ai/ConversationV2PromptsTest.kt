@@ -123,6 +123,16 @@ class ConversationV2PromptsTest {
     }
 
     @Test
+    fun `build - default prompt connects a changed question topic naturally`() {
+        val rendered = prompts.build(request())
+
+        assertThat(rendered)
+            .contains("질문 주제가 바뀌면")
+            .contains("'그렇다면', '그럼'")
+            .contains("같은 주제의 후속 질문에는")
+    }
+
+    @Test
     fun `build - default prompt generates bounded contextual answer examples in the same response`() {
         val rendered = prompts.build(request())
 

@@ -133,6 +133,7 @@ class AdminPromptPreviewService(
                 continuationRequested = continuationRequested,
                 readyToComplete = readyToComplete,
                 userMessageContent = command.message,
+                previousQuestionTarget = currentQuestionTarget,
             )
         val answerGuide =
             answerGuidePolicy

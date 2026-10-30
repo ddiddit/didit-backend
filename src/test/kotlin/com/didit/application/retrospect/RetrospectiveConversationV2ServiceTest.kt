@@ -517,6 +517,106 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `과거에 이미 질문한 항목을 모델이 다시 선택해도 다른 항목으로 보정한다`() {
+        val started = service.start(userId)
+        val targets =
+            listOf(
+                RetrospectiveItemType.PROCESS,
+                RetrospectiveItemType.BLOCK,
+                RetrospectiveItemType.FEEL,
+                RetrospectiveItemType.PROCESS,
+            )
+        var turnIndex = 0
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer {
+            val target = targets[turnIndex++]
+            GeneratedConversationTurn(
+                action = ConversationTurnAction.ASK,
+                acknowledgement = "확인했어요.",
+                interpretation = "",
+                question = "$target 질문",
+                questionTarget = target,
+                relevance = MessageRelevance.RETROSPECTIVE,
+                analysisUpdates = emptyList(),
+                inputTokens = 10,
+                outputTokens = 5,
+            )
+        }
+
+        repeat(3) { index ->
+            service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "회고 답변 $index")
+        }
+        val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "추가 답변")
+
+        assertThat(result.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(
+            turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
+        ).isNotEqualTo(RetrospectiveItemType.PROCESS)
+    }
+
+    @Test
+    fun `과거 증거만 재요약한 항목은 반복 질문 근거로 인정하지 않는다`() {
+        val started = service.start(userId)
+        var firstMessageId: UUID? = null
+        var turnIndex = 0
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+            when (turnIndex++) {
+                0 -> {
+                    firstMessageId = request.currentMessageId
+                    GeneratedConversationTurn(
+                        action = ConversationTurnAction.ASK,
+                        acknowledgement = "확인했어요.",
+                        interpretation = "",
+                        question = "어떤 방식으로 진행했나요?",
+                        questionTarget = RetrospectiveItemType.PROCESS,
+                        relevance = MessageRelevance.RETROSPECTIVE,
+                        analysisUpdates = listOf(update(RetrospectiveItemType.PROCESS, request.currentMessageId)),
+                        inputTokens = 10,
+                        outputTokens = 5,
+                    )
+                }
+                1 ->
+                    GeneratedConversationTurn(
+                        action = ConversationTurnAction.ASK,
+                        acknowledgement = "확인했어요.",
+                        interpretation = "",
+                        question = "어려웠던 점은 무엇인가요?",
+                        questionTarget = RetrospectiveItemType.BLOCK,
+                        relevance = MessageRelevance.RETROSPECTIVE,
+                        analysisUpdates = listOf(update(RetrospectiveItemType.BLOCK, request.currentMessageId)),
+                        inputTokens = 10,
+                        outputTokens = 5,
+                    )
+                else ->
+                    GeneratedConversationTurn(
+                        action = ConversationTurnAction.ASK,
+                        acknowledgement = "확인했어요.",
+                        interpretation = "",
+                        question = "진행 방식을 더 설명해주시겠어요?",
+                        questionTarget = RetrospectiveItemType.PROCESS,
+                        relevance = MessageRelevance.RETROSPECTIVE,
+                        analysisUpdates =
+                            listOf(
+                                update(RetrospectiveItemType.PROCESS, checkNotNull(firstMessageId)).copy(
+                                    summary = "과거 증거를 다시 정리한 내용",
+                                ),
+                            ),
+                        inputTokens = 10,
+                        outputTokens = 5,
+                    )
+            }
+        }
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 자동화를 진행했어요")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "권한 설정이 어려웠어요")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "그래도 해결했습니다")
+
+        assertThat(
+            turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
+        ).isNotEqualTo(RetrospectiveItemType.PROCESS)
+    }
+
+    @Test
     fun `유효한 분석 갱신이 있는 REFLECT도 남은 회고 질문으로 이어간다`() {
         val started = service.start(userId)
         whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
