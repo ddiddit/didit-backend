@@ -554,6 +554,49 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `내용 부족 안내를 이미 보낸 대화에서는 같은 안내를 반복하지 않는다`() {
+        val started = service.start(userId)
+        analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId).forEach {
+            it.declineQuestion()
+            analysisItemRepository.save(it)
+        }
+        whenever(aiClient.generateConversationTurn(any()))
+            .thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "알겠어요.",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "앞으로 테스트를 더 진행할 계획이군요.",
+                    interpretation = "반복 질문 문제를 바로잡기 위한 다음 행동이 구체적이에요.",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            )
+
+        val first = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "없어")
+        val second = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "앞으로 테스트를 더 할 거야")
+
+        assertThat(first.assistantMessage!!.content).contains("현재 내용만으로는 회고 결과를 만들기 어려워요")
+        assertThat(second.assistantMessage!!.content)
+            .contains("앞으로 테스트를 더 진행할 계획이군요.")
+            .doesNotContain("현재 내용만으로는 회고 결과를 만들기 어려워요")
+    }
+
+    @Test
     fun `과거 증거만 재요약한 항목은 반복 질문 근거로 인정하지 않는다`() {
         val started = service.start(userId)
         var firstMessageId: UUID? = null

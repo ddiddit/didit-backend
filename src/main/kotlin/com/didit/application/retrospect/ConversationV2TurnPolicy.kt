@@ -86,8 +86,6 @@ class ConversationV2TurnPolicy {
         items: List<ConversationV2AnalysisItemSnapshot>,
         recentQuestionTargets: List<RetrospectiveItemType>,
         questionTargetCounts: Map<RetrospectiveItemType, Int> = emptyMap(),
-        updatedItemTypes: Set<RetrospectiveItemType> = emptySet(),
-        allowUnverifiedFollowUps: Boolean = false,
     ): List<RetrospectiveItemType> {
         val candidates =
             items
@@ -95,16 +93,7 @@ class ConversationV2TurnPolicy {
                 .map { it.itemType }
         val observedCounts = recentQuestionTargets.groupingBy { it }.eachCount().toMutableMap()
         questionTargetCounts.forEach { (target, count) -> observedCounts[target] = maxOf(observedCounts[target] ?: 0, count) }
-        val currentQuestionTarget = recentQuestionTargets.lastOrNull()
-        return candidates.filter { target ->
-            when (observedCounts[target] ?: 0) {
-                0 -> true
-                1 ->
-                    target != currentQuestionTarget &&
-                        (allowUnverifiedFollowUps || target in updatedItemTypes)
-                else -> false
-            }
-        }
+        return candidates.filter { target -> (observedCounts[target] ?: 0) == 0 }
     }
 
     fun shouldRecommendCompletion(
@@ -138,6 +127,7 @@ class ConversationV2TurnPolicy {
         readyToComplete: Boolean = false,
         userMessageContent: String? = null,
         previousQuestionTarget: RetrospectiveItemType? = null,
+        insufficientGuidancePreviouslyShown: Boolean = false,
     ): GeneratedConversationTurn =
         decideSanitizedTurn(
             generated = generated.sanitizeUserFacingContent(userMessageContent),
@@ -147,6 +137,7 @@ class ConversationV2TurnPolicy {
             continuationRequested = continuationRequested,
             readyToComplete = readyToComplete,
             completionConfirmationRequested = userMessageContent.requestsCompletionConfirmation(),
+            insufficientGuidancePreviouslyShown = insufficientGuidancePreviouslyShown,
         ).withTopicTransition(previousQuestionTarget)
             .ensureVisibleContent()
 
@@ -158,6 +149,7 @@ class ConversationV2TurnPolicy {
         continuationRequested: Boolean,
         readyToComplete: Boolean,
         completionConfirmationRequested: Boolean,
+        insufficientGuidancePreviouslyShown: Boolean,
     ): GeneratedConversationTurn {
         if (continuationRequested) {
             val target =
@@ -202,7 +194,12 @@ class ConversationV2TurnPolicy {
                 questionTarget = null,
             )
         }
-        if (!readyToComplete && eligibleQuestionTargets.isEmpty() && generated.relevance == MessageRelevance.RETROSPECTIVE) {
+        if (
+            !readyToComplete &&
+            eligibleQuestionTargets.isEmpty() &&
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            !insufficientGuidancePreviouslyShown
+        ) {
             return generated.copy(
                 action = ConversationTurnAction.REFLECT,
                 acknowledgement = INSUFFICIENT_COMPLETION_GUIDE,
@@ -305,6 +302,8 @@ class ConversationV2TurnPolicy {
 
     private fun completionGuide(readyToComplete: Boolean): String =
         if (readyToComplete) READY_COMPLETION_GUIDE else INSUFFICIENT_COMPLETION_GUIDE
+
+    fun isInsufficientCompletionGuide(content: String): Boolean = content == INSUFFICIENT_COMPLETION_GUIDE
 
     private fun String?.requestsCompletionConfirmation(): Boolean =
         this
