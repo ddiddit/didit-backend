@@ -58,7 +58,12 @@ class AdminPromptPreviewService(
             )
         val messagesBeforeGeneration = priorState.messages + userMessage
         val priorItemSnapshots = priorState.analysisItems.map { it.toSnapshot() }
-        val eligibleQuestionTargets = turnPolicy.eligibleQuestionTargets(priorItemSnapshots, priorState.recentQuestionTargets)
+        val eligibleQuestionTargets =
+            turnPolicy.eligibleQuestionTargets(
+                items = priorItemSnapshots,
+                recentQuestionTargets = priorState.recentQuestionTargets,
+                questionTargetCounts = priorState.askedQuestionTargets.associateWith { 1 },
+            )
         val continuationRequested =
             command.conversationIntent == ConversationUserIntent.CONTINUE_AFTER_COMPLETION &&
                 priorState.completionPreviouslyOffered
@@ -121,7 +126,11 @@ class AdminPromptPreviewService(
             turnPolicy.decideTurn(
                 generated = policyGenerated,
                 eligibleQuestionTargets =
-                    turnPolicy.eligibleQuestionTargets(updatedItemSnapshots, priorState.recentQuestionTargets),
+                    turnPolicy.eligibleQuestionTargets(
+                        items = updatedItemSnapshots,
+                        recentQuestionTargets = priorState.recentQuestionTargets,
+                        questionTargetCounts = priorState.askedQuestionTargets.associateWith { 1 },
+                    ),
                 completionRecommended =
                     !continuationRequested &&
                         turnPolicy.shouldRecommendCompletion(
@@ -134,6 +143,10 @@ class AdminPromptPreviewService(
                 readyToComplete = readyToComplete,
                 userMessageContent = command.message,
                 previousQuestionTarget = currentQuestionTarget,
+                insufficientGuidancePreviouslyShown =
+                    priorState.messages.any { message ->
+                        message.sender == Sender.AI && turnPolicy.isInsufficientCompletionGuide(message.content)
+                    },
             )
         val answerGuide =
             answerGuidePolicy

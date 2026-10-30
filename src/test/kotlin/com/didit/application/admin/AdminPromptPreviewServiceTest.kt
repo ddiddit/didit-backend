@@ -218,6 +218,36 @@ class AdminPromptPreviewServiceTest {
     }
 
     @Test
+    fun `preview도 과거에 질문한 항목을 다시 질문 후보에 넣지 않는다`() {
+        val requestCaptor = argumentCaptor<com.didit.application.retrospect.required.ConversationTurnAIRequest>()
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map { type ->
+                        AdminPromptPreviewAnalysisItem(
+                            itemType = type,
+                            status =
+                                if (type ==
+                                    RetrospectiveItemType.PROCESS
+                                ) {
+                                    RetrospectiveItemStatus.PARTIAL
+                                } else {
+                                    RetrospectiveItemStatus.ENOUGH
+                                },
+                            summary = "$type 요약",
+                        )
+                    },
+                askedQuestionTargets = setOf(RetrospectiveItemType.PROCESS),
+            )
+
+        service.preview(command(priorState = priorState, message = "추가 답변"))
+
+        verify(aiClient).preview(any(), requestCaptor.capture())
+        assertThat(requestCaptor.firstValue.eligibleQuestionTargets).doesNotContain(RetrospectiveItemType.PROCESS)
+    }
+
+    @Test
     fun `모델이 거절 항목을 누락해도 없음 응답은 preview에서 직전 질문을 건너뛴다`() {
         val priorState =
             AdminPromptPreviewState(

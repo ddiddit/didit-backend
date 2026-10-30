@@ -159,7 +159,7 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `다른 질문에 답하며 과거 항목에 새 근거를 더하면 후속 질문을 한 번 허용한다`() {
+    fun `과거 항목에 새 근거를 더해도 이미 질문한 항목은 다시 질문하지 않는다`() {
         val candidates =
             policy.eligibleQuestionTargets(
                 items = listOf(analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "진행 중")),
@@ -169,10 +169,9 @@ class ConversationV2TurnPolicyTest {
                         RetrospectiveItemType.PROCESS to 1,
                         RetrospectiveItemType.BLOCK to 1,
                     ),
-                updatedItemTypes = setOf(RetrospectiveItemType.PROCESS),
             )
 
-        assertThat(candidates).containsExactly(RetrospectiveItemType.PROCESS)
+        assertThat(candidates).isEmpty()
     }
 
     @Test
@@ -182,7 +181,6 @@ class ConversationV2TurnPolicyTest {
                 items = listOf(analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "진행 중")),
                 recentQuestionTargets = listOf(RetrospectiveItemType.BLOCK),
                 questionTargetCounts = mapOf(RetrospectiveItemType.PROCESS to 2),
-                updatedItemTypes = setOf(RetrospectiveItemType.PROCESS),
             )
 
         assertThat(candidates).isEmpty()
@@ -551,6 +549,56 @@ class ConversationV2TurnPolicyTest {
                 "현재 내용만으로는 회고 결과를 만들기 어려워요. " +
                     "더 남기고 싶은 내용을 이야기하거나, 회고를 끝내려면 상단의 ‘회고 마치기’를 눌러주세요.",
             )
+    }
+
+    @Test
+    fun `내용 부족 안내 이후 새 내용을 입력하면 같은 안내를 반복하지 않는다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.ASK,
+                        acknowledgement = "앞으로 테스트를 더 진행할 계획이군요.",
+                        interpretation = "반복 질문 문제를 바로잡기 위한 다음 행동이 구체적이에요.",
+                        question = "언제부터 테스트를 시작할 예정인가요?",
+                        questionTarget = RetrospectiveItemType.ACTION,
+                    ),
+                eligibleQuestionTargets = emptyList(),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                readyToComplete = false,
+                insufficientGuidancePreviouslyShown = true,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.content())
+            .contains("앞으로 테스트를 더 진행할 계획이군요.")
+            .doesNotContain("현재 내용만으로는 회고 결과를 만들기 어려워요")
+        assertThat(decided.question).isNull()
+        assertThat(decided.questionTarget).isNull()
+    }
+
+    @Test
+    fun `내용 부족 안내 이후 짧은 응답에도 같은 안내를 반복하지 않는다`() {
+        val decided =
+            policy.decideTurn(
+                generated =
+                    generated(MessageRelevance.RETROSPECTIVE).copy(
+                        action = ConversationTurnAction.REFLECT,
+                        acknowledgement = "알겠어요.",
+                        interpretation = "",
+                        question = null,
+                        questionTarget = null,
+                    ),
+                eligibleQuestionTargets = emptyList(),
+                completionRecommended = false,
+                completionPreviouslyOffered = false,
+                readyToComplete = false,
+                insufficientGuidancePreviouslyShown = true,
+            )
+
+        assertThat(decided.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(decided.content()).isEqualTo("알겠어요.")
     }
 
     @Test
