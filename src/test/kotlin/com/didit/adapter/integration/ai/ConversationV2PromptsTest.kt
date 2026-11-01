@@ -123,6 +123,25 @@ class ConversationV2PromptsTest {
     }
 
     @Test
+    fun `build - default prompt connects a changed question topic naturally`() {
+        val rendered = prompts.build(request())
+
+        assertThat(rendered)
+            .contains("질문 주제가 바뀌면")
+            .contains("'그렇다면', '그럼'")
+            .contains("같은 주제의 후속 질문에는")
+    }
+
+    @Test
+    fun `build - default prompt forbids semantically repeated questions`() {
+        val rendered = prompts.build(request())
+
+        assertThat(rendered)
+            .contains("이미 답한 내용과 의미가 같은 질문을 표현만 바꿔 다시 묻지 마세요")
+            .contains("다른 후보를 질문하거나 REFLECT")
+    }
+
+    @Test
     fun `build - default prompt generates bounded contextual answer examples in the same response`() {
         val rendered = prompts.build(request())
 

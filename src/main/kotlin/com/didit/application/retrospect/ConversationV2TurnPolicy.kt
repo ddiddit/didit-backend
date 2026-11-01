@@ -85,13 +85,39 @@ class ConversationV2TurnPolicy {
     fun eligibleQuestionTargets(
         items: List<ConversationV2AnalysisItemSnapshot>,
         recentQuestionTargets: List<RetrospectiveItemType>,
+        questionTargetCounts: Map<RetrospectiveItemType, Int> = emptyMap(),
     ): List<RetrospectiveItemType> {
         val candidates =
             items
                 .filter { it.questionAllowed && it.status != RetrospectiveItemStatus.ENOUGH }
                 .map { it.itemType }
-        val recentTargets = recentQuestionTargets.takeLast(3).toSet()
-        return candidates.filterNot { it in recentTargets }
+        val observedCounts = recentQuestionTargets.groupingBy { it }.eachCount().toMutableMap()
+        questionTargetCounts.forEach { (target, count) -> observedCounts[target] = maxOf(observedCounts[target] ?: 0, count) }
+        return candidates.filter { target -> (observedCounts[target] ?: 0) == 0 }
+    }
+
+    fun minimumCompletionQuestionTargets(items: List<ConversationV2AnalysisItemSnapshot>): List<RetrospectiveItemType> {
+        if (readyToComplete(items)) return emptyList()
+
+        val statuses = items.associate { it.itemType to it.status }
+
+        fun collected(type: RetrospectiveItemType) = statuses[type] != null && statuses[type] != RetrospectiveItemStatus.EMPTY
+
+        if (!collected(RetrospectiveItemType.FACT)) return listOf(RetrospectiveItemType.FACT)
+
+        val reflectionTypes =
+            listOf(
+                RetrospectiveItemType.STRENGTH,
+                RetrospectiveItemType.BLOCK,
+                RetrospectiveItemType.LEARN,
+                RetrospectiveItemType.ACTION,
+            )
+        if (reflectionTypes.none(::collected)) return reflectionTypes.filterNot(::collected)
+
+        if (statuses.values.count { it != RetrospectiveItemStatus.EMPTY } < 3) {
+            return RetrospectiveItemType.entries.filterNot(::collected)
+        }
+        return emptyList()
     }
 
     fun shouldRecommendCompletion(
@@ -124,6 +150,8 @@ class ConversationV2TurnPolicy {
         continuationRequested: Boolean = false,
         readyToComplete: Boolean = false,
         userMessageContent: String? = null,
+        previousQuestionTarget: RetrospectiveItemType? = null,
+        insufficientGuidancePreviouslyShown: Boolean = false,
     ): GeneratedConversationTurn =
         decideSanitizedTurn(
             generated = generated.sanitizeUserFacingContent(userMessageContent),
@@ -133,7 +161,9 @@ class ConversationV2TurnPolicy {
             continuationRequested = continuationRequested,
             readyToComplete = readyToComplete,
             completionConfirmationRequested = userMessageContent.requestsCompletionConfirmation(),
-        ).ensureVisibleContent()
+            insufficientGuidancePreviouslyShown = insufficientGuidancePreviouslyShown,
+        ).withTopicTransition(previousQuestionTarget)
+            .ensureVisibleContent()
 
     private fun decideSanitizedTurn(
         generated: GeneratedConversationTurn,
@@ -143,6 +173,7 @@ class ConversationV2TurnPolicy {
         continuationRequested: Boolean,
         readyToComplete: Boolean,
         completionConfirmationRequested: Boolean,
+        insufficientGuidancePreviouslyShown: Boolean,
     ): GeneratedConversationTurn {
         if (continuationRequested) {
             val target =
@@ -187,7 +218,12 @@ class ConversationV2TurnPolicy {
                 questionTarget = null,
             )
         }
-        if (!readyToComplete && eligibleQuestionTargets.isEmpty() && generated.relevance == MessageRelevance.RETROSPECTIVE) {
+        if (
+            !readyToComplete &&
+            eligibleQuestionTargets.isEmpty() &&
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            !insufficientGuidancePreviouslyShown
+        ) {
             return generated.copy(
                 action = ConversationTurnAction.REFLECT,
                 acknowledgement = INSUFFICIENT_COMPLETION_GUIDE,
@@ -265,6 +301,16 @@ class ConversationV2TurnPolicy {
         return copy(interpretation = interpretation.replace(currentQuestion, "").trim())
     }
 
+    private fun GeneratedConversationTurn.withTopicTransition(previousQuestionTarget: RetrospectiveItemType?): GeneratedConversationTurn {
+        val currentTarget = questionTarget ?: return this
+        val currentQuestion = question?.takeIf(String::isNotBlank) ?: return this
+        if (action != ConversationTurnAction.ASK || previousQuestionTarget == null || previousQuestionTarget == currentTarget) {
+            return this
+        }
+        if (QUESTION_TRANSITION_PATTERN.containsMatchIn(currentQuestion)) return this
+        return copy(question = "그렇다면 $currentQuestion")
+    }
+
     fun normalizeItemDecline(
         generated: GeneratedConversationTurn,
         lastQuestionTarget: RetrospectiveItemType?,
@@ -281,10 +327,15 @@ class ConversationV2TurnPolicy {
     private fun completionGuide(readyToComplete: Boolean): String =
         if (readyToComplete) READY_COMPLETION_GUIDE else INSUFFICIENT_COMPLETION_GUIDE
 
+    fun isInsufficientCompletionGuide(content: String): Boolean = content == INSUFFICIENT_COMPLETION_GUIDE
+
     private fun String?.requestsCompletionConfirmation(): Boolean =
         this
             ?.trim()
-            ?.let(RETROSPECTIVE_COMPLETION_INTENT_PATTERN::matches)
+            ?.let { content ->
+                RETROSPECTIVE_COMPLETION_INTENT_PATTERN.matches(content) ||
+                    RETROSPECTIVE_COMPLETION_SUFFIX_PATTERN.containsMatchIn(content)
+            }
             ?: false
 
     private fun String?.declinesCurrentQuestion(): Boolean =
@@ -416,6 +467,15 @@ private val RETROSPECTIVE_COMPLETION_INTENT_PATTERN =
             ")[\\s.!?…]*",
     )
 
+private val RETROSPECTIVE_COMPLETION_SUFFIX_PATTERN =
+    Regex(
+        "(?:회고는?|회고를)\\s*" +
+            "(?:그만(?:할게(?:요)?|하자|해(?:요)?|하고\\s*싶어(?:요)?|해주세요)|" +
+            "끝내자(?:고)?|끝낼게(?:요)?|끝낼래(?:요)?|끝내(?:줘|주세요|고\\s*싶어(?:요)?)?|" +
+            "마치자|마칠게(?:요)?|마칠래(?:요)?|마치고\\s*싶어(?:요)?|" +
+            "(?:종료|마무리)(?:할게(?:요)?|하자|해(?:요)?|해주세요))[\\s.!?…]*$",
+    )
+
 private val CURRENT_QUESTION_DECLINE_PATTERN =
     Regex(
         "(?:(?:(?:이|그)\\s*(?:질문|이야기|주제)(?:은|는|를)?\\s*)?(?:" +
@@ -426,6 +486,8 @@ private val CURRENT_QUESTION_DECLINE_PATTERN =
             "말하고\\s*싶지\\s*않아(?:요)?|말하고\\s*싶지\\s*않습니다|" +
             "다음으로\\s*(?:가요|가자)|네|그냥(?:요)?|그랬죠))[\\s.!?…]*",
     )
+
+private val QUESTION_TRANSITION_PATTERN = Regex("^(?:그럼|그렇다면|그러면|이번에는|이어서)(?:\\s|,)")
 
 data class ConversationV2MessageSnapshot(
     val content: String,

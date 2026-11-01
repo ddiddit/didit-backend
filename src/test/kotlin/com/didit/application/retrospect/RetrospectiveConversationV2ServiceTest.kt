@@ -517,6 +517,210 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `과거에 이미 질문한 항목을 모델이 다시 선택해도 다른 항목으로 보정한다`() {
+        val started = service.start(userId)
+        val targets =
+            listOf(
+                RetrospectiveItemType.PROCESS,
+                RetrospectiveItemType.BLOCK,
+                RetrospectiveItemType.FEEL,
+                RetrospectiveItemType.PROCESS,
+            )
+        var turnIndex = 0
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer {
+            val target = targets[turnIndex++]
+            GeneratedConversationTurn(
+                action = ConversationTurnAction.ASK,
+                acknowledgement = "확인했어요.",
+                interpretation = "",
+                question = "$target 질문",
+                questionTarget = target,
+                relevance = MessageRelevance.RETROSPECTIVE,
+                analysisUpdates = emptyList(),
+                inputTokens = 10,
+                outputTokens = 5,
+            )
+        }
+
+        repeat(3) { index ->
+            service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "회고 답변 $index")
+        }
+        val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "추가 답변")
+
+        assertThat(result.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(
+            turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
+        ).isNotEqualTo(RetrospectiveItemType.PROCESS)
+    }
+
+    @Test
+    fun `내용 부족 안내를 이미 보낸 대화에서는 같은 안내를 반복하지 않는다`() {
+        val started = service.start(userId)
+        analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId).forEach {
+            it.declineQuestion()
+            analysisItemRepository.save(it)
+        }
+        whenever(aiClient.generateConversationTurn(any()))
+            .thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "알겠어요.",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "앞으로 테스트를 더 진행할 계획이군요.",
+                    interpretation = "반복 질문 문제를 바로잡기 위한 다음 행동이 구체적이에요.",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            )
+
+        val first = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "없어")
+        val second = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "앞으로 테스트를 더 할 거야")
+
+        assertThat(first.assistantMessage!!.content).contains("현재 내용만으로는 회고 결과를 만들기 어려워요")
+        assertThat(second.action).isEqualTo(ConversationTurnAction.REFLECT)
+        assertThat(second.assistantMessage!!.content)
+            .contains("앞으로 테스트를 더 진행할 계획이군요.")
+            .doesNotContain("현재 내용만으로는 회고 결과를 만들기 어려워요")
+    }
+
+    @Test
+    fun `질문을 모두 소진한 뒤 새 분석 내용이 생기면 완료에 필요한 최소 질문을 재개한다`() {
+        // Break caught: meaningful content after exhaustion is only reflected and can never reach completion readiness.
+        val started = service.start(userId)
+        var turnIndex = 0
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+            if (turnIndex < RetrospectiveItemType.entries.size) {
+                val target = RetrospectiveItemType.entries[turnIndex++]
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "확인했어요.",
+                    interpretation = "",
+                    question = "$target 질문",
+                    questionTarget = target,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                )
+            } else {
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "CORS의 동작 원리를 이해했군요.",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = listOf(update(RetrospectiveItemType.LEARN, request.currentMessageId)),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                )
+            }
+        }
+        RetrospectiveItemType.entries.forEachIndexed { index, _ ->
+            service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "회고 답변 $index")
+        }
+        analysisItemRepository
+            .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+            .single { it.itemType == RetrospectiveItemType.FACT }
+            .also {
+                it.update(RetrospectiveItemStatus.ENOUGH, "CORS를 공부함")
+                analysisItemRepository.save(it)
+            }
+
+        val result =
+            service.submitMessage(
+                started.retrospectiveId,
+                userId,
+                UUID.randomUUID(),
+                "CORS가 Origin을 기준으로 교차 출처 요청을 제어한다는 걸 배웠어",
+            )
+
+        assertThat(result.readyToComplete).isFalse()
+        assertThat(result.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(
+            turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
+        ).isEqualTo(RetrospectiveItemType.FEEL)
+    }
+
+    @Test
+    fun `과거 증거만 재요약한 항목은 반복 질문 근거로 인정하지 않는다`() {
+        val started = service.start(userId)
+        var firstMessageId: UUID? = null
+        var turnIndex = 0
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+            when (turnIndex++) {
+                0 -> {
+                    firstMessageId = request.currentMessageId
+                    GeneratedConversationTurn(
+                        action = ConversationTurnAction.ASK,
+                        acknowledgement = "확인했어요.",
+                        interpretation = "",
+                        question = "어떤 방식으로 진행했나요?",
+                        questionTarget = RetrospectiveItemType.PROCESS,
+                        relevance = MessageRelevance.RETROSPECTIVE,
+                        analysisUpdates = listOf(update(RetrospectiveItemType.PROCESS, request.currentMessageId)),
+                        inputTokens = 10,
+                        outputTokens = 5,
+                    )
+                }
+                1 ->
+                    GeneratedConversationTurn(
+                        action = ConversationTurnAction.ASK,
+                        acknowledgement = "확인했어요.",
+                        interpretation = "",
+                        question = "어려웠던 점은 무엇인가요?",
+                        questionTarget = RetrospectiveItemType.BLOCK,
+                        relevance = MessageRelevance.RETROSPECTIVE,
+                        analysisUpdates = listOf(update(RetrospectiveItemType.BLOCK, request.currentMessageId)),
+                        inputTokens = 10,
+                        outputTokens = 5,
+                    )
+                else ->
+                    GeneratedConversationTurn(
+                        action = ConversationTurnAction.ASK,
+                        acknowledgement = "확인했어요.",
+                        interpretation = "",
+                        question = "진행 방식을 더 설명해주시겠어요?",
+                        questionTarget = RetrospectiveItemType.PROCESS,
+                        relevance = MessageRelevance.RETROSPECTIVE,
+                        analysisUpdates =
+                            listOf(
+                                update(RetrospectiveItemType.PROCESS, checkNotNull(firstMessageId)).copy(
+                                    summary = "과거 증거를 다시 정리한 내용",
+                                ),
+                            ),
+                        inputTokens = 10,
+                        outputTokens = 5,
+                    )
+            }
+        }
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 자동화를 진행했어요")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "권한 설정이 어려웠어요")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "그래도 해결했습니다")
+
+        assertThat(
+            turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
+        ).isNotEqualTo(RetrospectiveItemType.PROCESS)
+    }
+
+    @Test
     fun `유효한 분석 갱신이 있는 REFLECT도 남은 회고 질문으로 이어간다`() {
         val started = service.start(userId)
         whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
