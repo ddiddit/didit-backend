@@ -58,7 +58,7 @@ class AdminPromptPreviewService(
             )
         val messagesBeforeGeneration = priorState.messages + userMessage
         val priorItemSnapshots = priorState.analysisItems.map { it.toSnapshot() }
-        val eligibleQuestionTargets =
+        val initialEligibleQuestionTargets =
             turnPolicy.eligibleQuestionTargets(
                 items = priorItemSnapshots,
                 recentQuestionTargets = priorState.recentQuestionTargets,
@@ -85,7 +85,7 @@ class AdminPromptPreviewService(
                         },
                         command.userMessageId,
                     ),
-                eligibleQuestionTargets = eligibleQuestionTargets,
+                eligibleQuestionTargets = initialEligibleQuestionTargets,
                 recentQuestionTargets = priorState.recentQuestionTargets,
                 completionRecommended =
                     !continuationRequested &&
@@ -111,26 +111,36 @@ class AdminPromptPreviewService(
             messagesBeforeGeneration.map { message ->
                 if (message.id == command.userMessageId) message.copy(relevance = generated.relevance) else message
             }
-        val analyzedItems =
+        val analysisUpdateResult =
             applyAnalysisUpdates(
                 priorState.analysisItems,
                 policyGenerated.relevance,
                 policyGenerated.analysisUpdates,
                 classifiedMessages,
+                command.userMessageId,
             )
+        val analyzedItems = analysisUpdateResult.items
+        val updatedItemTypes = analysisUpdateResult.currentMessageUpdatedItemTypes
         val analysisItems =
             analyzedItems.applyDeclinedQuestion(currentQuestionTarget, policyGenerated.declinedItemTypes)
         val updatedItemSnapshots = analysisItems.map { it.toSnapshot() }
         val readyToComplete = turnPolicy.readyToComplete(updatedItemSnapshots)
+        val standardQuestionTargets =
+            turnPolicy.eligibleQuestionTargets(
+                items = updatedItemSnapshots,
+                recentQuestionTargets = priorState.recentQuestionTargets,
+                questionTargetCounts = priorState.askedQuestionTargets.associateWith { 1 },
+            )
+        val eligibleQuestionTargets =
+            if (standardQuestionTargets.isEmpty() && updatedItemTypes.isNotEmpty() && !readyToComplete) {
+                turnPolicy.minimumCompletionQuestionTargets(updatedItemSnapshots)
+            } else {
+                standardQuestionTargets
+            }
         val decided =
             turnPolicy.decideTurn(
                 generated = policyGenerated,
-                eligibleQuestionTargets =
-                    turnPolicy.eligibleQuestionTargets(
-                        items = updatedItemSnapshots,
-                        recentQuestionTargets = priorState.recentQuestionTargets,
-                        questionTargetCounts = priorState.askedQuestionTargets.associateWith { 1 },
-                    ),
+                eligibleQuestionTargets = eligibleQuestionTargets,
                 completionRecommended =
                     !continuationRequested &&
                         turnPolicy.shouldRecommendCompletion(
@@ -262,22 +272,41 @@ class AdminPromptPreviewService(
         relevance: MessageRelevance,
         updates: List<com.didit.application.retrospect.required.ConversationAnalysisUpdate>,
         messages: List<AdminPromptPreviewMessage>,
-    ): List<AdminPromptPreviewAnalysisItem> {
-        if (relevance != MessageRelevance.RETROSPECTIVE) return items
+        currentUserMessageId: UUID,
+    ): PreviewAnalysisUpdateResult {
+        if (relevance != MessageRelevance.RETROSPECTIVE) return PreviewAnalysisUpdateResult(items, emptySet())
         val currentItems = items.associateBy { it.itemType }.toMutableMap()
-        turnPolicy
-            .applyAnalysisUpdates(
+        val decisions =
+            turnPolicy.applyAnalysisUpdates(
                 items.map { ConversationV2AnalysisItemSnapshot(it.itemType, it.status, it.summary) },
                 updates,
                 messages.map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance, it.content) },
-            ).filter { it.applied }
+            )
+        decisions
+            .filter { it.applied }
             .forEach { decision ->
                 val after = checkNotNull(decision.after)
                 currentItems[after.itemType] =
                     AdminPromptPreviewAnalysisItem(after.itemType, after.status, after.summary, questionAllowed = true)
             }
-        return items.map { checkNotNull(currentItems[it.itemType]) }
+        val updatedItemTypes =
+            decisions
+                .filter {
+                    it.applied &&
+                        it.before != it.after &&
+                        currentUserMessageId in it.acceptedEvidenceMessageIds
+                }.map { it.update.itemType }
+                .toSet()
+        return PreviewAnalysisUpdateResult(
+            items = items.map { checkNotNull(currentItems[it.itemType]) },
+            currentMessageUpdatedItemTypes = updatedItemTypes,
+        )
     }
+
+    private data class PreviewAnalysisUpdateResult(
+        val items: List<AdminPromptPreviewAnalysisItem>,
+        val currentMessageUpdatedItemTypes: Set<RetrospectiveItemType>,
+    )
 
     private fun AdminPromptPreviewAnalysisItem.toSnapshot() = ConversationV2AnalysisItemSnapshot(itemType, status, summary, questionAllowed)
 

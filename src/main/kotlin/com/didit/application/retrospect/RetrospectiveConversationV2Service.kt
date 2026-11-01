@@ -568,22 +568,31 @@ class RetrospectiveConversationV2Service(
                     lastQuestionTarget = conversationState.currentQuestionTarget,
                     userMessageContent = userMessage.content,
                 )
-            if (normalizedGenerated.relevance == MessageRelevance.RETROSPECTIVE) {
-                applyAnalysisUpdates(
-                    currentItems = items,
-                    retrospectiveId = preparation.retrospectiveId,
-                    generated = normalizedGenerated,
-                    currentUserMessageId = userMessage.id,
-                )
-            }
+            val updatedItemTypes =
+                if (normalizedGenerated.relevance == MessageRelevance.RETROSPECTIVE) {
+                    applyAnalysisUpdates(
+                        currentItems = items,
+                        retrospectiveId = preparation.retrospectiveId,
+                        generated = normalizedGenerated,
+                        currentUserMessageId = userMessage.id,
+                    )
+                } else {
+                    emptySet()
+                }
             applyDeclinedItems(items, conversationState.currentQuestionTarget, normalizedGenerated)
-            val eligibleQuestionTargets =
+            val standardQuestionTargets =
                 turnPolicy.eligibleQuestionTargets(
                     items.map { it.toConversationSnapshot() },
                     conversationState.recentQuestionTargets,
                     questionTargetCounts = conversationState.questionTargetCounts,
                 )
             val ready = calculateReadyToComplete(items)
+            val eligibleQuestionTargets =
+                if (standardQuestionTargets.isEmpty() && updatedItemTypes.isNotEmpty() && !ready) {
+                    turnPolicy.minimumCompletionQuestionTargets(items.map { it.toConversationSnapshot() })
+                } else {
+                    standardQuestionTargets
+                }
             val decided =
                 turnPolicy.decideTurn(
                     generated = normalizedGenerated,

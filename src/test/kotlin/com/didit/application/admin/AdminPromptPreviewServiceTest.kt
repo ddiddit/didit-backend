@@ -248,6 +248,102 @@ class AdminPromptPreviewServiceTest {
     }
 
     @Test
+    fun `preview도 질문 소진 뒤 새 분석 내용이 생기면 최소 질문을 재개한다`() {
+        // Break caught: admin preview diverges from production and reflects forever after all targets were asked.
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map { type ->
+                        AdminPromptPreviewAnalysisItem(
+                            itemType = type,
+                            status =
+                                if (type == RetrospectiveItemType.FACT) {
+                                    RetrospectiveItemStatus.ENOUGH
+                                } else {
+                                    RetrospectiveItemStatus.EMPTY
+                                },
+                            summary = if (type == RetrospectiveItemType.FACT) "CORS 공부" else null,
+                            questionAllowed = false,
+                        )
+                    },
+                askedQuestionTargets = RetrospectiveItemType.entries.toSet(),
+                completedQuestionCount = RetrospectiveItemType.entries.size,
+            )
+        whenever(aiClient.preview(any(), any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<com.didit.application.retrospect.required.ConversationTurnAIRequest>(1)
+            generatedTurn(
+                relevance = MessageRelevance.RETROSPECTIVE,
+                updates = listOf(update(RetrospectiveItemType.LEARN, request.currentMessageId, RetrospectiveItemStatus.PARTIAL)),
+            ).copy(
+                action = ConversationTurnAction.REFLECT,
+                question = null,
+                questionTarget = null,
+            )
+        }
+
+        val result =
+            service.preview(
+                command(
+                    priorState = priorState,
+                    message = "CORS가 Origin을 기준으로 교차 출처 요청을 제어한다는 걸 배웠어",
+                ),
+            )
+
+        assertThat(result.nextState.currentQuestionTarget).isEqualTo(RetrospectiveItemType.FEEL)
+        assertThat(result.assistantMessage!!.content).contains("그 일을 진행하면서 어떤 느낌이 들었나요?")
+    }
+
+    @Test
+    fun `preview는 과거 메시지만 근거로 재요약한 분석으로 질문을 재개하지 않는다`() {
+        val historicalMessageId = UUID.randomUUID()
+        val currentMessageId = UUID.randomUUID()
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(historicalMessageId)),
+                analysisItems =
+                    RetrospectiveItemType.entries.map { type ->
+                        AdminPromptPreviewAnalysisItem(
+                            itemType = type,
+                            status =
+                                if (type ==
+                                    RetrospectiveItemType.FACT
+                                ) {
+                                    RetrospectiveItemStatus.ENOUGH
+                                } else {
+                                    RetrospectiveItemStatus.EMPTY
+                                },
+                            summary = if (type == RetrospectiveItemType.FACT) "CORS 공부" else null,
+                            questionAllowed = false,
+                        )
+                    },
+                askedQuestionTargets = RetrospectiveItemType.entries.toSet(),
+                completedQuestionCount = RetrospectiveItemType.entries.size,
+            )
+        whenever(aiClient.preview(any(), any())).thenReturn(
+            generatedTurn(
+                relevance = MessageRelevance.RETROSPECTIVE,
+                updates = listOf(update(RetrospectiveItemType.LEARN, historicalMessageId, RetrospectiveItemStatus.PARTIAL)),
+            ).copy(
+                action = ConversationTurnAction.REFLECT,
+                question = null,
+                questionTarget = null,
+            ),
+        )
+
+        val result =
+            service.preview(
+                command(
+                    priorState = priorState,
+                    userMessageId = currentMessageId,
+                    message = "맞아",
+                ),
+            )
+
+        assertThat(result.nextState.currentQuestionTarget).isNull()
+    }
+
+    @Test
     fun `모델이 거절 항목을 누락해도 없음 응답은 preview에서 직전 질문을 건너뛴다`() {
         val priorState =
             AdminPromptPreviewState(
@@ -516,13 +612,14 @@ class AdminPromptPreviewServiceTest {
         priorState: AdminPromptPreviewState? = null,
         message: String = "첫 업무 회고",
         conversationIntent: ConversationUserIntent = ConversationUserIntent.NORMAL,
+        userMessageId: UUID = UUID.randomUUID(),
     ) = AdminPromptPreviewCommand(
         job = Job.DEVELOPER,
         experience = UserExperience.YEARS_1_TO_2,
         promptSource = promptSource,
         draftPrompt = draftPrompt,
         priorState = priorState,
-        userMessageId = UUID.randomUUID(),
+        userMessageId = userMessageId,
         message = message,
         conversationIntent = conversationIntent,
     )
