@@ -58,7 +58,7 @@ class AdminPromptPreviewService(
             )
         val messagesBeforeGeneration = priorState.messages + userMessage
         val priorItemSnapshots = priorState.analysisItems.map { it.toSnapshot() }
-        val eligibleQuestionTargets =
+        val initialEligibleQuestionTargets =
             turnPolicy.eligibleQuestionTargets(
                 items = priorItemSnapshots,
                 recentQuestionTargets = priorState.recentQuestionTargets,
@@ -85,7 +85,7 @@ class AdminPromptPreviewService(
                         },
                         command.userMessageId,
                     ),
-                eligibleQuestionTargets = eligibleQuestionTargets,
+                eligibleQuestionTargets = initialEligibleQuestionTargets,
                 recentQuestionTargets = priorState.recentQuestionTargets,
                 completionRecommended =
                     !continuationRequested &&
@@ -118,19 +118,34 @@ class AdminPromptPreviewService(
                 policyGenerated.analysisUpdates,
                 classifiedMessages,
             )
+        val priorItemsByType = priorState.analysisItems.associateBy { it.itemType }
+        val updatedItemTypes =
+            analyzedItems
+                .filter { item ->
+                    val prior = priorItemsByType[item.itemType]
+                    prior == null || prior.status != item.status || prior.summary != item.summary
+                }.map { it.itemType }
+                .toSet()
         val analysisItems =
             analyzedItems.applyDeclinedQuestion(currentQuestionTarget, policyGenerated.declinedItemTypes)
         val updatedItemSnapshots = analysisItems.map { it.toSnapshot() }
         val readyToComplete = turnPolicy.readyToComplete(updatedItemSnapshots)
+        val standardQuestionTargets =
+            turnPolicy.eligibleQuestionTargets(
+                items = updatedItemSnapshots,
+                recentQuestionTargets = priorState.recentQuestionTargets,
+                questionTargetCounts = priorState.askedQuestionTargets.associateWith { 1 },
+            )
+        val eligibleQuestionTargets =
+            if (standardQuestionTargets.isEmpty() && updatedItemTypes.isNotEmpty() && !readyToComplete) {
+                turnPolicy.minimumCompletionQuestionTargets(updatedItemSnapshots)
+            } else {
+                standardQuestionTargets
+            }
         val decided =
             turnPolicy.decideTurn(
                 generated = policyGenerated,
-                eligibleQuestionTargets =
-                    turnPolicy.eligibleQuestionTargets(
-                        items = updatedItemSnapshots,
-                        recentQuestionTargets = priorState.recentQuestionTargets,
-                        questionTargetCounts = priorState.askedQuestionTargets.associateWith { 1 },
-                    ),
+                eligibleQuestionTargets = eligibleQuestionTargets,
                 completionRecommended =
                     !continuationRequested &&
                         turnPolicy.shouldRecommendCompletion(

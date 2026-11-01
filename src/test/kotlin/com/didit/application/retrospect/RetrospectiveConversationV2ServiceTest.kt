@@ -591,9 +591,70 @@ class RetrospectiveConversationV2ServiceTest {
         val second = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "앞으로 테스트를 더 할 거야")
 
         assertThat(first.assistantMessage!!.content).contains("현재 내용만으로는 회고 결과를 만들기 어려워요")
+        assertThat(second.action).isEqualTo(ConversationTurnAction.REFLECT)
         assertThat(second.assistantMessage!!.content)
             .contains("앞으로 테스트를 더 진행할 계획이군요.")
             .doesNotContain("현재 내용만으로는 회고 결과를 만들기 어려워요")
+    }
+
+    @Test
+    fun `질문을 모두 소진한 뒤 새 분석 내용이 생기면 완료에 필요한 최소 질문을 재개한다`() {
+        // Break caught: meaningful content after exhaustion is only reflected and can never reach completion readiness.
+        val started = service.start(userId)
+        var turnIndex = 0
+        whenever(aiClient.generateConversationTurn(any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+            if (turnIndex < RetrospectiveItemType.entries.size) {
+                val target = RetrospectiveItemType.entries[turnIndex++]
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "확인했어요.",
+                    interpretation = "",
+                    question = "$target 질문",
+                    questionTarget = target,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                )
+            } else {
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "CORS의 동작 원리를 이해했군요.",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = listOf(update(RetrospectiveItemType.LEARN, request.currentMessageId)),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                )
+            }
+        }
+        RetrospectiveItemType.entries.forEachIndexed { index, _ ->
+            service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "회고 답변 $index")
+        }
+        analysisItemRepository
+            .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+            .single { it.itemType == RetrospectiveItemType.FACT }
+            .also {
+                it.update(RetrospectiveItemStatus.ENOUGH, "CORS를 공부함")
+                analysisItemRepository.save(it)
+            }
+
+        val result =
+            service.submitMessage(
+                started.retrospectiveId,
+                userId,
+                UUID.randomUUID(),
+                "CORS가 Origin을 기준으로 교차 출처 요청을 제어한다는 걸 배웠어",
+            )
+
+        assertThat(result.readyToComplete).isFalse()
+        assertThat(result.action).isEqualTo(ConversationTurnAction.ASK)
+        assertThat(
+            turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
+        ).isEqualTo(RetrospectiveItemType.FEEL)
     }
 
     @Test

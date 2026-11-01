@@ -187,6 +187,87 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
+    fun `최소 질문 재개는 FACT가 비어 있으면 FACT를 우선한다`() {
+        // Break caught: an exhausted conversation asks an optional reflection before learning what happened.
+        val candidates =
+            policy.minimumCompletionQuestionTargets(
+                listOf(
+                    analysisItem(RetrospectiveItemType.FACT, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                    analysisItem(RetrospectiveItemType.LEARN, RetrospectiveItemStatus.PARTIAL, "CORS 원리 이해"),
+                    analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "면접 복습"),
+                ),
+            )
+
+        assertThat(candidates).containsExactly(RetrospectiveItemType.FACT)
+    }
+
+    @Test
+    fun `FACT와 세 항목이 있어도 핵심 성찰이 없으면 빈 핵심 항목만 재개한다`() {
+        // Break caught: a non-core question is reopened even though one core item is required for completion.
+        val candidates =
+            policy.minimumCompletionQuestionTargets(
+                listOf(
+                    analysisItem(RetrospectiveItemType.FACT, RetrospectiveItemStatus.ENOUGH, "CORS 공부"),
+                    analysisItem(RetrospectiveItemType.FEEL, RetrospectiveItemStatus.PARTIAL, "당황함"),
+                    analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "문서 학습"),
+                    analysisItem(RetrospectiveItemType.STRENGTH, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                    analysisItem(RetrospectiveItemType.BLOCK, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                    analysisItem(RetrospectiveItemType.LEARN, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                    analysisItem(RetrospectiveItemType.ACTION, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                ),
+            )
+
+        assertThat(candidates)
+            .containsExactly(
+                RetrospectiveItemType.STRENGTH,
+                RetrospectiveItemType.BLOCK,
+                RetrospectiveItemType.LEARN,
+                RetrospectiveItemType.ACTION,
+            )
+    }
+
+    @Test
+    fun `FACT와 핵심 성찰이 있지만 두 항목뿐이면 빈 세 번째 항목만 재개한다`() {
+        // Break caught: an already-collected item is asked again instead of filling the third required item.
+        val candidates =
+            policy.minimumCompletionQuestionTargets(
+                listOf(
+                    analysisItem(RetrospectiveItemType.FACT, RetrospectiveItemStatus.ENOUGH, "CORS 공부"),
+                    analysisItem(RetrospectiveItemType.LEARN, RetrospectiveItemStatus.PARTIAL, "동작 원리 이해"),
+                    analysisItem(RetrospectiveItemType.FEEL, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                    analysisItem(RetrospectiveItemType.STRENGTH, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                    analysisItem(RetrospectiveItemType.BLOCK, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                    analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                    analysisItem(RetrospectiveItemType.ACTION, RetrospectiveItemStatus.EMPTY, null, questionAllowed = false),
+                ),
+            )
+
+        assertThat(candidates)
+            .containsExactly(
+                RetrospectiveItemType.FEEL,
+                RetrospectiveItemType.STRENGTH,
+                RetrospectiveItemType.BLOCK,
+                RetrospectiveItemType.PROCESS,
+                RetrospectiveItemType.ACTION,
+            )
+    }
+
+    @Test
+    fun `이미 결과 생성 조건이 충족되면 최소 질문을 재개하지 않는다`() {
+        // Break caught: completion-ready content receives another question instead of a completion offer.
+        val candidates =
+            policy.minimumCompletionQuestionTargets(
+                listOf(
+                    analysisItem(RetrospectiveItemType.FACT, RetrospectiveItemStatus.ENOUGH, "CORS 공부"),
+                    analysisItem(RetrospectiveItemType.PROCESS, RetrospectiveItemStatus.PARTIAL, "문서 학습"),
+                    analysisItem(RetrospectiveItemType.LEARN, RetrospectiveItemStatus.PARTIAL, "동작 원리 이해"),
+                ),
+            )
+
+        assertThat(candidates).isEmpty()
+    }
+
+    @Test
     fun `FACT와 전체 세 항목과 핵심 성찰 한 항목이 수집되면 완료 준비가 된다`() {
         val ready =
             policy.readyToComplete(

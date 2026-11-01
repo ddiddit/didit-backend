@@ -96,6 +96,30 @@ class ConversationV2TurnPolicy {
         return candidates.filter { target -> (observedCounts[target] ?: 0) == 0 }
     }
 
+    fun minimumCompletionQuestionTargets(items: List<ConversationV2AnalysisItemSnapshot>): List<RetrospectiveItemType> {
+        if (readyToComplete(items)) return emptyList()
+
+        val statuses = items.associate { it.itemType to it.status }
+
+        fun collected(type: RetrospectiveItemType) = statuses[type] != null && statuses[type] != RetrospectiveItemStatus.EMPTY
+
+        if (!collected(RetrospectiveItemType.FACT)) return listOf(RetrospectiveItemType.FACT)
+
+        val reflectionTypes =
+            listOf(
+                RetrospectiveItemType.STRENGTH,
+                RetrospectiveItemType.BLOCK,
+                RetrospectiveItemType.LEARN,
+                RetrospectiveItemType.ACTION,
+            )
+        if (reflectionTypes.none(::collected)) return reflectionTypes.filterNot(::collected)
+
+        if (statuses.values.count { it != RetrospectiveItemStatus.EMPTY } < 3) {
+            return RetrospectiveItemType.entries.filterNot(::collected)
+        }
+        return emptyList()
+    }
+
     fun shouldRecommendCompletion(
         readyToComplete: Boolean,
         completedQuestionCount: Int,
