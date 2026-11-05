@@ -145,18 +145,17 @@ class AdminPromptPreviewServiceTest {
 
         verify(aiClient).preview(any(), requestCaptor.capture())
         assertThat(requestCaptor.firstValue.recentQuestionTargets).containsExactly(RetrospectiveItemType.FACT)
-        assertThat(requestCaptor.firstValue.eligibleQuestionTargets).doesNotContain(RetrospectiveItemType.FACT)
-        assertThat(requestCaptor.firstValue.completionRecommended).isTrue()
+        assertThat(requestCaptor.firstValue.eligibleQuestionTargets).contains(RetrospectiveItemType.FACT)
+        assertThat(requestCaptor.firstValue.completionRecommended).isFalse()
         assertThat(requestCaptor.firstValue.completionPreviouslyOffered).isFalse()
         assertThat(result.assistantMessage!!.content)
-            .isEqualTo("확인했어요.\n그 일을 진행하면서 어떤 느낌이 들었나요?")
+            .isEqualTo("확인했어요.\n다음은 무엇인가요?")
         assertThat(result.nextState.completedQuestionCount).isEqualTo(7)
         assertThat(result.nextState.completionPreviouslyOffered).isFalse()
     }
 
     @Test
-    fun `종료 제안 뒤 계속하기 preview는 완료 권장을 끄고 다음 질문을 이어간다`() {
-        val requestCaptor = argumentCaptor<com.didit.application.retrospect.required.ConversationTurnAIRequest>()
+    fun `종료 제안 뒤 계속하기 preview는 AI 호출 없이 추가 회고를 시작한다`() {
         val priorState =
             AdminPromptPreviewState(
                 messages = listOf(message(UUID.randomUUID())),
@@ -177,10 +176,36 @@ class AdminPromptPreviewServiceTest {
                 ),
             )
 
-        verify(aiClient).preview(any(), requestCaptor.capture())
-        assertThat(requestCaptor.firstValue.continuationRequested).isTrue()
-        assertThat(requestCaptor.firstValue.completionRecommended).isFalse()
-        assertThat(result.assistantMessage!!.content).doesNotContain("마칠까요")
+        verify(aiClient, org.mockito.kotlin.never()).preview(any(), any())
+        assertThat(result.assistantMessage!!.content).isEqualTo("좋아요. 이어서 말씀해주세요.")
+        assertThat(result.nextState.conversationMode)
+            .isEqualTo(com.didit.domain.retrospect.RetrospectiveConversationMode.EXTENDING)
+        assertThat(result.nextState.extensionRoundCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `추가 회고 preview는 질문을 제거하고 무근거 턴을 기록한다`() {
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(
+                            it,
+                            RetrospectiveItemStatus.EMPTY,
+                            null,
+                        )
+                    },
+                completionPreviouslyOffered = true,
+                conversationMode = com.didit.domain.retrospect.RetrospectiveConversationMode.EXTENDING,
+                extensionRoundCount = 1,
+            )
+
+        val result = service.preview(command(priorState = priorState, message = "네"))
+
+        assertThat(result.nextState.currentQuestionTarget).isNull()
+        assertThat(result.nextState.extensionConsecutiveEmptyCount).isEqualTo(1)
+        assertThat(result.assistantMessage!!.content).isEqualTo("알겠어요. 이어서 말씀해주시면 함께 정리해볼게요.")
     }
 
     @Test
@@ -248,7 +273,7 @@ class AdminPromptPreviewServiceTest {
     }
 
     @Test
-    fun `preview도 질문 소진 뒤 새 분석 내용이 생기면 최소 질문을 재개한다`() {
+    fun `preview도 모든 항목이 스킵 완료되면 종료를 제안한다`() {
         // Break caught: admin preview diverges from production and reflects forever after all targets were asked.
         val priorState =
             AdminPromptPreviewState(
@@ -290,8 +315,9 @@ class AdminPromptPreviewServiceTest {
                 ),
             )
 
-        assertThat(result.nextState.currentQuestionTarget).isEqualTo(RetrospectiveItemType.FEEL)
-        assertThat(result.assistantMessage!!.content).contains("그 일을 진행하면서 어떤 느낌이 들었나요?")
+        assertThat(result.nextState.currentQuestionTarget).isNull()
+        assertThat(result.nextState.completionPreviouslyOffered).isTrue()
+        assertThat(result.assistantMessage!!.content).contains("현재 내용만으로는 회고 결과를 만들기 어려워요")
     }
 
     @Test

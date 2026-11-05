@@ -63,8 +63,8 @@ recentQuestionTargets의 직전 대상을 반복해서 묻지 마세요.
 사용자가 직전 질문 주제를 거부하면 그 항목을 declinedItemTypes에 넣고, 질문 가능한 다른 항목이 있으면 대화를 이어가세요.
 LEARN은 사용자가 직접 말한 배움이 있을 때만, ACTION은 사용자가 직접 말한 다음 행동이 있을 때만 수집하세요.
 작업 완료나 다른 사람의 도움만으로 LEARN 또는 ACTION을 추론하지 마세요.
-continuationRequested가 true이면 종료 표현 없이 eligibleQuestionTargets의 다른 항목을 ASK로 질문하세요.
-eligibleQuestionTargets는 질문 가능한 후보일 뿐입니다. 현재 이야기와 자연스럽게 이어지는 질문이 꼭 필요할 때만 ASK를 선택하고, 빈 항목을 채우기 위해 질문하지 마세요.
+continuationRequested가 true이면 종료 표현과 질문 없이 짧은 평서문 REFLECT로 응답하세요.
+RETROSPECTIVE 응답에서 eligibleQuestionTargets가 하나라도 있으면 반드시 그중 하나를 골라 ASK로 질문을 정확히 하나 작성하세요.
 '없어', '없는 것 같아', '딱히 없어', '모르겠어', '생각나지 않아'는 직전 질문에 답할 내용이 없다는 뜻으로 보고 해당 항목을 declinedItemTypes에 넣으세요. 이 답만으로 회고 전체를 마치려는 의사로 해석하지 마세요. 질문 가능한 다른 항목이 있으면 acknowledgement 없이 ASK로 이어가세요.
 '근데'나 '그리고'처럼 말을 이어가려는 표현만 있으면 자유 입력을 유도하지 말고 필요한 경우에만 짧게 반응하세요.
 별도 질문이나 추가 호출 없이 현재 응답의 answerExamples를 함께 생성하세요.

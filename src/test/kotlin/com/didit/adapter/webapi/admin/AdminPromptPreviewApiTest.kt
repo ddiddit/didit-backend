@@ -148,6 +148,9 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.nextState.analysisItems[].questionAllowed")
                             .type(JsonFieldType.BOOLEAN)
                             .description("해당 항목에 대한 후속 질문 허용 여부"),
+                        fieldWithPath("data.nextState.analysisItems[].progressStatus")
+                            .type(JsonFieldType.STRING)
+                            .description("항목 진행 상태"),
                         fieldWithPath("data.nextState.currentQuestionTarget")
                             .type(JsonFieldType.STRING)
                             .optional()
@@ -167,6 +170,15 @@ class AdminPromptPreviewApiTest : AdminAuthenticatedRestDocsSupport() {
                         fieldWithPath("data.nextState.completionPreviouslyOffered")
                             .type(JsonFieldType.BOOLEAN)
                             .description("회고 종료 제안 이력. 다음 요청의 priorState로 그대로 전달"),
+                        fieldWithPath("data.nextState.conversationMode").type(JsonFieldType.STRING).description("대화 모드"),
+                        fieldWithPath("data.nextState.extensionRoundCount").type(JsonFieldType.NUMBER).description("추가 회고 진입 횟수"),
+                        fieldWithPath("data.nextState.extensionMeaningfulTurnCount")
+                            .type(JsonFieldType.NUMBER)
+                            .description("현재 추가 회고의 새 근거 턴 수"),
+                        fieldWithPath("data.nextState.extensionConsecutiveEmptyCount")
+                            .type(JsonFieldType.NUMBER)
+                            .description("현재 추가 회고의 연속 무근거 턴 수"),
+                        fieldWithPath("data.canContinue").type(JsonFieldType.BOOLEAN).description("추가 회고 이어가기 가능 여부"),
                     ),
                 ),
             )

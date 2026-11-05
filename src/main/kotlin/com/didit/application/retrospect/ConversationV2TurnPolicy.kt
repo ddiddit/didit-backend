@@ -7,6 +7,7 @@ import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveAnalysisItem
+import com.didit.domain.retrospect.RetrospectiveItemProgressStatus
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
@@ -16,8 +17,6 @@ import java.util.UUID
 @Component
 class ConversationV2TurnPolicy {
     companion object {
-        private const val MIN_RETROSPECTIVE_MESSAGES_FOR_READY_COMPLETION = 2
-        private const val MAX_QUESTION_TURNS = 5
         private const val DEFAULT_REFLECT_ACKNOWLEDGEMENT = "알겠어요."
         private const val READY_COMPLETION_GUIDE = "지금까지 나눈 내용으로 회고를 마칠 수 있어요."
         private const val INSUFFICIENT_COMPLETION_GUIDE =
@@ -89,11 +88,9 @@ class ConversationV2TurnPolicy {
     ): List<RetrospectiveItemType> {
         val candidates =
             items
-                .filter { it.questionAllowed && it.status != RetrospectiveItemStatus.ENOUGH }
+                .filter { it.progressStatus == RetrospectiveItemProgressStatus.PENDING }
                 .map { it.itemType }
-        val observedCounts = recentQuestionTargets.groupingBy { it }.eachCount().toMutableMap()
-        questionTargetCounts.forEach { (target, count) -> observedCounts[target] = maxOf(observedCounts[target] ?: 0, count) }
-        return candidates.filter { target -> (observedCounts[target] ?: 0) == 0 }
+        return candidates
     }
 
     fun minimumCompletionQuestionTargets(items: List<ConversationV2AnalysisItemSnapshot>): List<RetrospectiveItemType> {
@@ -120,13 +117,11 @@ class ConversationV2TurnPolicy {
         return emptyList()
     }
 
-    fun shouldRecommendCompletion(
-        readyToComplete: Boolean,
-        completedQuestionCount: Int,
-        retrospectiveMessageCount: Int = 0,
-    ): Boolean =
-        (readyToComplete && retrospectiveMessageCount >= MIN_RETROSPECTIVE_MESSAGES_FOR_READY_COMPLETION) ||
-            completedQuestionCount >= MAX_QUESTION_TURNS
+    fun shouldRecommendCompletion(items: List<ConversationV2AnalysisItemSnapshot>): Boolean = allItemsResolved(items)
+
+    fun allItemsResolved(items: List<ConversationV2AnalysisItemSnapshot>): Boolean =
+        items.size == RetrospectiveItemType.entries.size &&
+            items.none { it.progressStatus == RetrospectiveItemProgressStatus.PENDING }
 
     fun readyToComplete(items: List<ConversationV2AnalysisItemSnapshot>): Boolean {
         val statuses = items.associate { it.itemType to it.status }
@@ -219,6 +214,19 @@ class ConversationV2TurnPolicy {
             )
         }
         if (
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            completionRecommended &&
+            !completionPreviouslyOffered
+        ) {
+            return generated.copy(
+                action = ConversationTurnAction.OFFER_COMPLETION,
+                acknowledgement = completionGuide(readyToComplete),
+                interpretation = "",
+                question = null,
+                questionTarget = null,
+            )
+        }
+        if (
             !readyToComplete &&
             eligibleQuestionTargets.isEmpty() &&
             generated.relevance == MessageRelevance.RETROSPECTIVE &&
@@ -251,20 +259,6 @@ class ConversationV2TurnPolicy {
                     questionTarget = target,
                 )
             }
-        }
-        if (
-            generated.relevance == MessageRelevance.RETROSPECTIVE &&
-            completionRecommended &&
-            readyToComplete &&
-            !completionPreviouslyOffered
-        ) {
-            return generated.copy(
-                action = ConversationTurnAction.OFFER_COMPLETION,
-                acknowledgement = completionGuide(readyToComplete),
-                interpretation = "",
-                question = null,
-                questionTarget = null,
-            )
         }
         val fallbackTarget = eligibleQuestionTargets.firstOrNull()
         val shouldContinueWithQuestion =
@@ -507,6 +501,7 @@ data class ConversationV2AnalysisItemSnapshot(
     val status: RetrospectiveItemStatus,
     val summary: String?,
     val questionAllowed: Boolean = true,
+    val progressStatus: RetrospectiveItemProgressStatus = RetrospectiveItemProgressStatus.PENDING,
 )
 
 internal fun RetrospectiveAnalysisItem.toConversationSnapshot(): ConversationV2AnalysisItemSnapshot =
@@ -515,6 +510,7 @@ internal fun RetrospectiveAnalysisItem.toConversationSnapshot(): ConversationV2A
         status = status,
         summary = summary,
         questionAllowed = questionAllowed,
+        progressStatus = progressStatus,
     )
 
 data class ConversationV2EvidenceDecision(

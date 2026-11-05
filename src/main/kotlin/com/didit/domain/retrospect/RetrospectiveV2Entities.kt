@@ -39,6 +39,17 @@ enum class ConversationUserIntent {
     CONTINUE_AFTER_COMPLETION,
 }
 
+enum class RetrospectiveItemProgressStatus {
+    PENDING,
+    ANSWERED,
+    SKIPPED,
+}
+
+enum class RetrospectiveConversationMode {
+    COLLECTING,
+    EXTENDING,
+}
+
 @Table(
     name = "retrospective_analysis_items",
     uniqueConstraints = [UniqueConstraint(columnNames = ["retrospective_id", "item_type"])],
@@ -60,6 +71,9 @@ class RetrospectiveAnalysisItem(
     var summary: String? = null,
     @Column(nullable = false)
     var questionAllowed: Boolean = true,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var progressStatus: RetrospectiveItemProgressStatus = RetrospectiveItemProgressStatus.PENDING,
 ) : BaseEntity() {
     fun update(
         newStatus: RetrospectiveItemStatus,
@@ -71,6 +85,15 @@ class RetrospectiveAnalysisItem(
     }
 
     fun declineQuestion() {
+        markSkipped()
+    }
+
+    fun markAnswered() {
+        progressStatus = RetrospectiveItemProgressStatus.ANSWERED
+    }
+
+    fun markSkipped() {
+        progressStatus = RetrospectiveItemProgressStatus.SKIPPED
         questionAllowed = false
     }
 
