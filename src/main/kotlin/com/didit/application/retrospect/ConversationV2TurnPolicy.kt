@@ -160,6 +160,32 @@ class ConversationV2TurnPolicy {
         ).withTopicTransition(previousQuestionTarget)
             .ensureVisibleContent()
 
+    fun decideExplicitCompletion(
+        generated: GeneratedConversationTurn,
+        userMessageContent: String?,
+        readyToComplete: Boolean,
+    ): GeneratedConversationTurn? {
+        if (!userMessageContent.requestsCompletionConfirmation()) return null
+        return completionDecision(generated, readyToComplete)
+    }
+
+    private fun completionDecision(
+        generated: GeneratedConversationTurn,
+        readyToComplete: Boolean,
+    ): GeneratedConversationTurn =
+        generated.copy(
+            action =
+                if (readyToComplete) {
+                    ConversationTurnAction.CONFIRM_COMPLETION
+                } else {
+                    ConversationTurnAction.CONFIRM_EXIT
+                },
+            acknowledgement = completionGuide(readyToComplete).takeUnless { readyToComplete }.orEmpty(),
+            interpretation = "",
+            question = null,
+            questionTarget = null,
+        )
+
     private fun decideSanitizedTurn(
         generated: GeneratedConversationTurn,
         eligibleQuestionTargets: List<RetrospectiveItemType>,
@@ -200,18 +226,7 @@ class ConversationV2TurnPolicy {
             }
         }
         if (completionConfirmationRequested) {
-            return generated.copy(
-                action =
-                    if (readyToComplete) {
-                        ConversationTurnAction.CONFIRM_COMPLETION
-                    } else {
-                        ConversationTurnAction.CONFIRM_EXIT
-                    },
-                acknowledgement = completionGuide(readyToComplete).takeUnless { readyToComplete }.orEmpty(),
-                interpretation = "",
-                question = null,
-                questionTarget = null,
-            )
+            return completionDecision(generated, readyToComplete)
         }
         if (
             generated.relevance == MessageRelevance.RETROSPECTIVE &&

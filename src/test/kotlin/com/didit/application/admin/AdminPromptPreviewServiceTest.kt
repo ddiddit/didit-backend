@@ -209,6 +209,58 @@ class AdminPromptPreviewServiceTest {
     }
 
     @Test
+    fun `추가 회고 preview도 명시적 종료 요청을 우선하고 카운터를 유지한다`() {
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(it, RetrospectiveItemStatus.PARTIAL, "$it 요약")
+                    },
+                completionPreviouslyOffered = true,
+                conversationMode = com.didit.domain.retrospect.RetrospectiveConversationMode.EXTENDING,
+                extensionRoundCount = 1,
+                extensionMeaningfulTurnCount = 1,
+            )
+
+        val result = service.preview(command(priorState = priorState, message = "회고 마칠게"))
+
+        assertThat(result.assistantMessage).isNull()
+        assertThat(result.nextState.extensionMeaningfulTurnCount).isEqualTo(1)
+        assertThat(result.nextState.extensionConsecutiveEmptyCount).isZero()
+    }
+
+    @Test
+    fun `추가 회고 preview의 의미 있는 응답이 질문만 생성해도 보이는 평서문을 반환한다`() {
+        val priorState =
+            AdminPromptPreviewState(
+                messages = listOf(message(UUID.randomUUID())),
+                analysisItems =
+                    RetrospectiveItemType.entries.map {
+                        AdminPromptPreviewAnalysisItem(
+                            it,
+                            RetrospectiveItemStatus.EMPTY,
+                            null,
+                        )
+                    },
+                completionPreviouslyOffered = true,
+                conversationMode = com.didit.domain.retrospect.RetrospectiveConversationMode.EXTENDING,
+                extensionRoundCount = 1,
+            )
+        whenever(aiClient.preview(any(), any())).thenAnswer { invocation ->
+            val request = invocation.getArgument<com.didit.application.retrospect.required.ConversationTurnAIRequest>(1)
+            generatedTurn(
+                updates = listOf(update(RetrospectiveItemType.ACTION, request.currentMessageId, RetrospectiveItemStatus.PARTIAL)),
+            ).copy(acknowledgement = "", interpretation = "", question = "다음에는 무엇을 할까요?")
+        }
+
+        val result = service.preview(command(priorState = priorState, message = "체크리스트를 보완할게"))
+
+        assertThat(result.assistantMessage!!.content).isEqualTo("말씀해주신 내용을 회고에 반영했어요.")
+        assertThat(result.nextState.extensionMeaningfulTurnCount).isEqualTo(1)
+    }
+
+    @Test
     fun `거부한 직전 질문 항목은 후속 preview 질문 대상에서 제외한다`() {
         val requestCaptor = argumentCaptor<com.didit.application.retrospect.required.ConversationTurnAIRequest>()
         val priorState =

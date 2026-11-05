@@ -605,7 +605,7 @@ class RetrospectiveConversationV2Service(
                 }
             val decided =
                 if (retrospective.conversationMode == RetrospectiveConversationMode.EXTENDING) {
-                    decideExtensionTurn(retrospective, normalizedGenerated, updatedItemTypes)
+                    decideExtensionTurn(retrospective, normalizedGenerated, updatedItemTypes, userMessage.content, ready)
                 } else {
                     turnPolicy.decideTurn(
                         generated = normalizedGenerated,
@@ -732,7 +732,10 @@ class RetrospectiveConversationV2Service(
         retrospective: Retrospective,
         generated: GeneratedConversationTurn,
         updatedItemTypes: Set<RetrospectiveItemType>,
+        userMessageContent: String,
+        readyToComplete: Boolean,
     ): GeneratedConversationTurn {
+        turnPolicy.decideExplicitCompletion(generated, userMessageContent, readyToComplete)?.let { return it }
         if (generated.relevance == MessageRelevance.OFF_TOPIC || generated.relevance == MessageRelevance.SERVICE_HELP) {
             return generated.copy(
                 action = ConversationTurnAction.REFLECT,
@@ -770,11 +773,17 @@ class RetrospectiveConversationV2Service(
                 questionTarget = null,
             )
         }
-        return generated.copy(
-            action = ConversationTurnAction.REFLECT,
-            question = null,
-            questionTarget = null,
-        )
+        val reflected =
+            generated.copy(
+                action = ConversationTurnAction.REFLECT,
+                question = null,
+                questionTarget = null,
+            )
+        return if (reflected.content().isBlank()) {
+            reflected.copy(acknowledgement = "말씀해주신 내용을 회고에 반영했어요.")
+        } else {
+            reflected
+        }
     }
 
     private fun applyDeclinedItems(

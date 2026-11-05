@@ -157,6 +157,8 @@ class AdminPromptPreviewService(
                 val extensionDecision =
                     decideExtensionPreview(
                         generated = policyGenerated,
+                        userMessageContent = command.message,
+                        readyToComplete = readyToComplete,
                         updatedItemTypes = updatedItemTypes,
                         extensionRoundCount = priorState.extensionRoundCount,
                         meaningfulTurnCount = extensionMeaningfulTurnCount,
@@ -244,11 +246,16 @@ class AdminPromptPreviewService(
 
     private fun decideExtensionPreview(
         generated: GeneratedConversationTurn,
+        userMessageContent: String,
+        readyToComplete: Boolean,
         updatedItemTypes: Set<RetrospectiveItemType>,
         extensionRoundCount: Int,
         meaningfulTurnCount: Int,
         consecutiveEmptyCount: Int,
     ): PreviewExtensionDecision {
+        turnPolicy.decideExplicitCompletion(generated, userMessageContent, readyToComplete)?.let {
+            return PreviewExtensionDecision(it, meaningfulTurnCount, consecutiveEmptyCount)
+        }
         if (generated.relevance == MessageRelevance.OFF_TOPIC || generated.relevance == MessageRelevance.SERVICE_HELP) {
             return PreviewExtensionDecision(
                 generated.copy(action = ConversationTurnAction.REFLECT, question = null, questionTarget = null),
@@ -278,7 +285,14 @@ class AdminPromptPreviewService(
                         question = null,
                         questionTarget = null,
                     )
-                else -> generated.copy(action = ConversationTurnAction.REFLECT, question = null, questionTarget = null)
+                else -> {
+                    val reflected = generated.copy(action = ConversationTurnAction.REFLECT, question = null, questionTarget = null)
+                    if (reflected.content().isBlank()) {
+                        reflected.copy(acknowledgement = "말씀해주신 내용을 회고에 반영했어요.")
+                    } else {
+                        reflected
+                    }
+                }
             }
         return PreviewExtensionDecision(decided, nextMeaningful, nextEmpty)
     }
