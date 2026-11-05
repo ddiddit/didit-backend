@@ -88,6 +88,7 @@ jobs:
     permissions:
       contents: read
       deployments: write
+      packages: read
 
     steps:
       - name: Checkout
@@ -106,12 +107,21 @@ jobs:
         uses: appleboy/ssh-action@v0.1.6
         env:
           COMMIT_MSG: ${{ github.event.head_commit.message }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           host: ${{ secrets.DEV_HOST }}
           username: ${{ secrets.DEV_USER }}
           key: ${{ secrets.DEV_SSH_KEY }}
-          envs: COMMIT_MSG
+          envs: COMMIT_MSG,GHCR_USERNAME,GHCR_TOKEN
           script: |
+            set -e
+            trap 'docker logout ghcr.io >/dev/null 2>&1 || true' 0
+
+            echo "$GHCR_TOKEN" | docker login ghcr.io \
+              -u "$GHCR_USERNAME" \
+              --password-stdin
+
             cd /home/didit-dev/didit
 
             chmod +x deploy/dev/scripts/*.sh
