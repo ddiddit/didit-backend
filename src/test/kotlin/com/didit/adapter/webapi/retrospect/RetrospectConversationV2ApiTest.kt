@@ -146,6 +146,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                             "프론트가 처리할 다음 대화 액션. OFFER_COMPLETION·CONFIRM_COMPLETION은 결과 생성 메뉴, " +
                                 "CONFIRM_EXIT는 결과 없는 종료 메뉴 노출",
                         ),
+                        fieldWithPath("data.canContinue").type(JsonFieldType.BOOLEAN).description("추가 회고 이어가기 가능 여부"),
                     ),
                 ),
             )
@@ -201,6 +202,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath("data.assistantMessage").type(JsonFieldType.NULL).description("분석 중에는 null"),
                         fieldWithPath("data.readyToComplete").type(JsonFieldType.BOOLEAN).description("완료 준비도"),
                         fieldWithPath("data.action").type(JsonFieldType.NULL).description("비동기 처리 중에는 null"),
+                        fieldWithPath("data.canContinue").type(JsonFieldType.BOOLEAN).description("추가 회고 이어가기 가능 여부"),
                     ),
                 ),
             )
@@ -415,6 +417,7 @@ class RetrospectConversationV2ApiTest : AuthenticatedRestDocsSupport() {
                         fieldWithPath(
                             "data.readyToComplete",
                         ).type(JsonFieldType.BOOLEAN).description("결과 생성 가능 여부. 종료 액션에서 true이면 /finish, false이면 /exit 사용"),
+                        fieldWithPath("data.canContinue").type(JsonFieldType.BOOLEAN).description("추가 회고 이어가기 가능 여부"),
                     ),
                 ),
             )

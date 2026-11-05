@@ -47,6 +47,7 @@ import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.Retrospective
 import com.didit.domain.retrospect.RetrospectiveAnalysisEvidence
 import com.didit.domain.retrospect.RetrospectiveAnalysisItem
+import com.didit.domain.retrospect.RetrospectiveConversationMode
 import com.didit.domain.retrospect.RetrospectiveConversationTurn
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
@@ -88,6 +89,11 @@ class RetrospectiveConversationV2Service(
         private const val UNREADABLE_ATTACHMENT_GUIDE =
             "첨부하신 파일을 여는 데 문제가 있었어요. 다시 첨부해 주시거나, " +
                 "어떤 내용이었는지 간단히 말씀해 주셔도 괜찮아요."
+        private const val EXTENSION_STARTED_GUIDE = "좋아요. 이어서 말씀해주세요."
+        private const val EXTENSION_EMPTY_GUIDE = "알겠어요. 이어서 말씀해주시면 함께 정리해볼게요."
+        private const val EXTENSION_COMPLETION_GUIDE = "새로 이야기한 내용까지 포함해 회고를 마칠 수 있어요."
+        private const val FINAL_EXTENSION_COMPLETION_GUIDE =
+            "충분히 이야기 나눴어요. 지금까지 추가한 내용까지 포함해 회고를 정리할게요."
     }
 
     override fun start(userId: UUID): StartConversationV2Result =
@@ -136,6 +142,10 @@ class RetrospectiveConversationV2Service(
             return it
         }
 
+        if (preparation.continuationRequested) {
+            return saveContinuationTurn(preparation)
+        }
+
         if (preparation.attachmentIds.isNotEmpty()) {
             eventPublisher.publishEvent(
                 AttachmentConversationRequestedEvent(
@@ -152,6 +162,7 @@ class RetrospectiveConversationV2Service(
                 assistantMessage = null,
                 readyToComplete = false,
                 action = null,
+                canContinue = preparation.canContinue,
             )
         }
 
@@ -209,6 +220,7 @@ class RetrospectiveConversationV2Service(
                         )
                     },
                 readyToComplete = calculateReadyToComplete(items),
+                canContinue = retrospective.canContinueConversation(),
             )
         }!!
 
@@ -364,6 +376,7 @@ class RetrospectiveConversationV2Service(
                             existing.toSubmitResult(
                                 assistantMessage = existing.assistantMessageId?.let(chatMessageRepository::findById),
                                 readyToComplete = calculateReadyToComplete(findOrInitializeItems(retrospectiveId)),
+                                canContinue = retrospective.canContinueConversation(),
                             ),
                         )
                     ConversationTurnStatus.FAILED -> {
@@ -520,11 +533,7 @@ class RetrospectiveConversationV2Service(
                         recentQuestionTargets = conversationState.recentQuestionTargets,
                         completionRecommended =
                             !continuationRequested &&
-                                turnPolicy.shouldRecommendCompletion(
-                                    calculateReadyToComplete(items),
-                                    conversationState.completedQuestionCount,
-                                    conversationState.retrospectiveMessageCount,
-                                ),
+                                turnPolicy.shouldRecommendCompletion(itemSnapshots),
                         completionPreviouslyOffered = conversationState.completionPreviouslyOffered,
                         continuationRequested = continuationRequested,
                     )
@@ -543,6 +552,7 @@ class RetrospectiveConversationV2Service(
                     attachmentRepository
                         .findAllByChatMessageIdAndDeletedAtIsNullOrderByCreatedAtAsc(userMessage.id)
                         .any { it.analysisStatus == com.didit.domain.retrospect.AttachmentAnalysisStatus.UNREADABLE },
+            canContinue = retrospective.canContinueConversation(),
         )
     }
 
@@ -594,23 +604,23 @@ class RetrospectiveConversationV2Service(
                     standardQuestionTargets
                 }
             val decided =
-                turnPolicy.decideTurn(
-                    generated = normalizedGenerated,
-                    eligibleQuestionTargets = eligibleQuestionTargets,
-                    completionRecommended =
-                        !preparation.continuationRequested &&
-                            turnPolicy.shouldRecommendCompletion(
-                                ready,
-                                conversationState.completedQuestionCount,
-                                conversationState.retrospectiveMessageCount,
-                            ),
-                    completionPreviouslyOffered = conversationState.completionPreviouslyOffered,
-                    continuationRequested = preparation.continuationRequested,
-                    readyToComplete = ready,
-                    userMessageContent = userMessage.content,
-                    previousQuestionTarget = conversationState.currentQuestionTarget,
-                    insufficientGuidancePreviouslyShown = preparation.insufficientGuidancePreviouslyShown,
-                )
+                if (retrospective.conversationMode == RetrospectiveConversationMode.EXTENDING) {
+                    decideExtensionTurn(retrospective, normalizedGenerated, updatedItemTypes, userMessage.content, ready)
+                } else {
+                    turnPolicy.decideTurn(
+                        generated = normalizedGenerated,
+                        eligibleQuestionTargets = eligibleQuestionTargets,
+                        completionRecommended =
+                            !preparation.continuationRequested &&
+                                turnPolicy.shouldRecommendCompletion(items.map { it.toConversationSnapshot() }),
+                        completionPreviouslyOffered = conversationState.completionPreviouslyOffered,
+                        continuationRequested = preparation.continuationRequested,
+                        readyToComplete = ready,
+                        userMessageContent = userMessage.content,
+                        previousQuestionTarget = conversationState.currentQuestionTarget,
+                        insufficientGuidancePreviouslyShown = preparation.insufficientGuidancePreviouslyShown,
+                    )
+                }
             val answerGuide =
                 answerGuidePolicy.decide(
                     generated = normalizedGenerated,
@@ -670,8 +680,111 @@ class RetrospectiveConversationV2Service(
                 assistantMessage = assistantMessage?.toResult(answerGuide = answerGuide?.toResult()),
                 readyToComplete = ready,
                 action = decided.action,
+                canContinue = retrospective.canContinueConversation(),
             )
         }!!
+
+    private fun saveContinuationTurn(preparation: TurnPreparation): SubmitConversationMessageResult =
+        transactionTemplate.execute {
+            val retrospective =
+                retrospectiveRepository.findByIdAndUserIdForUpdate(preparation.retrospectiveId, preparation.userId)
+                    ?: throw RetrospectiveNotFoundException(preparation.retrospectiveId)
+            val turn = turnRepository.findById(preparation.turnId) ?: error("대화 턴을 찾을 수 없습니다.")
+            check(turn.status == ConversationTurnStatus.PROCESSING)
+            val userMessage = chatMessageRepository.findById(preparation.userMessageId) ?: error("사용자 메시지를 찾을 수 없습니다.")
+            userMessage.classify(MessageRelevance.BRIDGEABLE)
+            chatMessageRepository.save(userMessage)
+
+            val entered = retrospective.startExtensionRound()
+            val action = if (entered) ConversationTurnAction.REFLECT else ConversationTurnAction.OFFER_COMPLETION
+            val content = if (entered) EXTENSION_STARTED_GUIDE else FINAL_EXTENSION_COMPLETION_GUIDE
+            val assistantMessage =
+                chatMessageRepository.save(
+                    ChatMessage.v2AssistantMessage(
+                        retrospective = retrospective,
+                        content = content,
+                        messageType = ConversationMessageType.CONVERSATION,
+                    ),
+                )
+            turn.complete(
+                assistantMessageId = assistantMessage.id,
+                questionTarget = null,
+                inputTokens = 0,
+                outputTokens = 0,
+                action = action,
+            )
+            turnRepository.save(turn)
+            retrospectiveRepository.save(retrospective)
+            metrics.incrementConversationAction(action)
+            val items = findOrInitializeItems(preparation.retrospectiveId)
+            SubmitConversationMessageResult(
+                turnId = turn.id,
+                turnNumber = turn.turnNumber,
+                userMessageId = userMessage.id,
+                assistantMessage = assistantMessage.toResult(),
+                readyToComplete = calculateReadyToComplete(items),
+                action = action,
+                canContinue = retrospective.canContinueConversation(),
+            )
+        }!!
+
+    private fun decideExtensionTurn(
+        retrospective: Retrospective,
+        generated: GeneratedConversationTurn,
+        updatedItemTypes: Set<RetrospectiveItemType>,
+        userMessageContent: String,
+        readyToComplete: Boolean,
+    ): GeneratedConversationTurn {
+        turnPolicy.decideExplicitCompletion(generated, userMessageContent, readyToComplete)?.let { return it }
+        if (generated.relevance == MessageRelevance.OFF_TOPIC || generated.relevance == MessageRelevance.SERVICE_HELP) {
+            return generated.copy(
+                action = ConversationTurnAction.REFLECT,
+                question = null,
+                questionTarget = null,
+            )
+        }
+
+        if (updatedItemTypes.isNotEmpty()) {
+            retrospective.recordExtensionMeaningfulTurn()
+        } else {
+            retrospective.recordExtensionEmptyTurn()
+        }
+
+        if (retrospective.shouldOfferExtensionCompletion()) {
+            return generated.copy(
+                action = ConversationTurnAction.OFFER_COMPLETION,
+                acknowledgement =
+                    if (retrospective.canContinueConversation()) {
+                        EXTENSION_COMPLETION_GUIDE
+                    } else {
+                        FINAL_EXTENSION_COMPLETION_GUIDE
+                    },
+                interpretation = "",
+                question = null,
+                questionTarget = null,
+            )
+        }
+        if (updatedItemTypes.isEmpty()) {
+            return generated.copy(
+                action = ConversationTurnAction.REFLECT,
+                acknowledgement = EXTENSION_EMPTY_GUIDE,
+                interpretation = "",
+                question = null,
+                questionTarget = null,
+            )
+        }
+        val reflected =
+            generated.copy(
+                action = ConversationTurnAction.REFLECT,
+                question = null,
+                questionTarget = null,
+            )
+        return if (reflected.content().isBlank()) {
+            reflected.copy(acknowledgement = "말씀해주신 내용을 회고에 반영했어요.")
+        } else {
+            reflected
+        }
+    }
 
     private fun applyDeclinedItems(
         items: List<RetrospectiveAnalysisItem>,
@@ -683,7 +796,7 @@ class RetrospectiveConversationV2Service(
         items
             .first { it.itemType == lastQuestionTarget }
             .also {
-                it.declineQuestion()
+                it.markSkipped()
                 analysisItemRepository.save(it)
             }
     }
@@ -711,6 +824,12 @@ class RetrospectiveConversationV2Service(
                 val item = checkNotNull(items[decision.update.itemType])
                 val after = checkNotNull(decision.after)
                 item.update(after.status, after.summary.orEmpty())
+                if (
+                    decision.before != decision.after &&
+                    currentUserMessageId in decision.acceptedEvidenceMessageIds
+                ) {
+                    item.markAnswered()
+                }
                 analysisItemRepository.save(item)
                 val newEvidence =
                     decision.acceptedEvidenceMessageIds
@@ -854,6 +973,7 @@ class RetrospectiveConversationV2Service(
     private fun RetrospectiveConversationTurn.toSubmitResult(
         assistantMessage: ChatMessage?,
         readyToComplete: Boolean,
+        canContinue: Boolean,
     ): SubmitConversationMessageResult =
         SubmitConversationMessageResult(
             turnId = id,
@@ -862,6 +982,7 @@ class RetrospectiveConversationV2Service(
             assistantMessage = assistantMessage?.toResult(answerGuide = toAnswerGuideResult()),
             readyToComplete = readyToComplete,
             action = action,
+            canContinue = canContinue,
         )
 
     private fun ConversationAnswerGuide.toResult() = ConversationAnswerGuideResult(mode = mode, examples = examples)
@@ -882,6 +1003,7 @@ private data class TurnPreparation(
     val insufficientGuidancePreviouslyShown: Boolean = false,
     val sensitiveDataDetected: Boolean = false,
     val unreadableAttachmentDetected: Boolean = false,
+    val canContinue: Boolean = true,
     val cachedResult: SubmitConversationMessageResult? = null,
 ) {
     companion object {

@@ -59,6 +59,15 @@ class Retrospective(
     var resultGenerationStartedAt: LocalDateTime? = null,
     @Column(columnDefinition = "BINARY(16)")
     var resultGenerationAttemptId: UUID? = null,
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    var conversationMode: RetrospectiveConversationMode = RetrospectiveConversationMode.COLLECTING,
+    @Column(nullable = false)
+    var extensionRoundCount: Int = 0,
+    @Column(nullable = false)
+    var extensionMeaningfulTurnCount: Int = 0,
+    @Column(nullable = false)
+    var extensionConsecutiveEmptyCount: Int = 0,
 ) : BaseEntity() {
     fun isCompleted(): Boolean = status == RetroStatus.COMPLETED
 
@@ -103,6 +112,33 @@ class Retrospective(
     fun isV2(): Boolean = flowVersion == RetrospectiveFlowVersion.V2
 
     fun isConversationActive(): Boolean = conversationStatus == ConversationStatus.ACTIVE
+
+    fun startExtensionRound(): Boolean {
+        check(isV2()) { "V2 회고만 추가 회고를 시작할 수 있습니다." }
+        if (!canContinueConversation()) return false
+        conversationMode = RetrospectiveConversationMode.EXTENDING
+        extensionRoundCount += 1
+        extensionMeaningfulTurnCount = 0
+        extensionConsecutiveEmptyCount = 0
+        return true
+    }
+
+    fun recordExtensionMeaningfulTurn() {
+        check(conversationMode == RetrospectiveConversationMode.EXTENDING) { "추가 회고 중이 아닙니다." }
+        extensionMeaningfulTurnCount += 1
+        extensionConsecutiveEmptyCount = 0
+    }
+
+    fun recordExtensionEmptyTurn() {
+        check(conversationMode == RetrospectiveConversationMode.EXTENDING) { "추가 회고 중이 아닙니다." }
+        extensionConsecutiveEmptyCount += 1
+    }
+
+    fun shouldOfferExtensionCompletion(): Boolean =
+        extensionMeaningfulTurnCount >= EXTENSION_COMPLETION_TURN_THRESHOLD ||
+            extensionConsecutiveEmptyCount >= EXTENSION_COMPLETION_TURN_THRESHOLD
+
+    fun canContinueConversation(): Boolean = extensionRoundCount < MAX_EXTENSION_ROUNDS
 
     fun finishConversation() {
         check(isV2()) { "V2 회고만 대화를 종료할 수 있습니다." }
@@ -206,6 +242,9 @@ class Retrospective(
     private fun validUserAnswers(): List<ChatMessage> = chatMessages.filter { it.sender == Sender.USER && !it.isSkipped }
 
     companion object {
+        private const val MAX_EXTENSION_ROUNDS = 3
+        private const val EXTENSION_COMPLETION_TURN_THRESHOLD = 2
+
         fun create(userId: UUID): Retrospective = Retrospective(userId = userId)
 
         fun createV2(userId: UUID): Retrospective =

@@ -86,6 +86,90 @@ class RetrospectiveConversationV2Test {
     }
 
     @Test
+    fun `새 근거가 확인된 분석 항목은 답변 완료로 전환된다`() {
+        val item =
+            RetrospectiveAnalysisItem(
+                retrospectiveId = UUID.randomUUID(),
+                itemType = RetrospectiveItemType.FACT,
+            )
+
+        item.markAnswered()
+
+        assertThat(item.progressStatus).isEqualTo(RetrospectiveItemProgressStatus.ANSWERED)
+        assertThat(item.status).isEqualTo(RetrospectiveItemStatus.EMPTY)
+    }
+
+    @Test
+    fun `답변을 거절한 분석 항목은 스킵 완료로 전환된다`() {
+        val item =
+            RetrospectiveAnalysisItem(
+                retrospectiveId = UUID.randomUUID(),
+                itemType = RetrospectiveItemType.BLOCK,
+            )
+
+        item.markSkipped()
+
+        assertThat(item.progressStatus).isEqualTo(RetrospectiveItemProgressStatus.SKIPPED)
+        assertThat(item.questionAllowed).isFalse()
+    }
+
+    @Test
+    fun `추가 회고에 진입하면 회차를 올리고 턴 카운터를 초기화한다`() {
+        val retrospective = Retrospective.createV2(UUID.randomUUID())
+        retrospective.startExtensionRound()
+        retrospective.recordExtensionMeaningfulTurn()
+        retrospective.recordExtensionEmptyTurn()
+
+        val entered = retrospective.startExtensionRound()
+
+        assertThat(entered).isTrue()
+        assertThat(retrospective.conversationMode).isEqualTo(RetrospectiveConversationMode.EXTENDING)
+        assertThat(retrospective.extensionRoundCount).isEqualTo(2)
+        assertThat(retrospective.extensionMeaningfulTurnCount).isZero()
+        assertThat(retrospective.extensionConsecutiveEmptyCount).isZero()
+    }
+
+    @Test
+    fun `추가 회고의 새 근거는 무근거 연속 횟수를 초기화하고 무근거 응답은 의미 있는 턴을 유지한다`() {
+        val retrospective = Retrospective.createV2(UUID.randomUUID())
+        retrospective.startExtensionRound()
+        retrospective.recordExtensionEmptyTurn()
+
+        retrospective.recordExtensionMeaningfulTurn()
+        retrospective.recordExtensionEmptyTurn()
+
+        assertThat(retrospective.extensionMeaningfulTurnCount).isEqualTo(1)
+        assertThat(retrospective.extensionConsecutiveEmptyCount).isEqualTo(1)
+    }
+
+    @Test
+    fun `추가 회고는 새 근거 두 턴 또는 연속 무근거 두 턴이면 종료를 다시 제안한다`() {
+        val meaningful = Retrospective.createV2(UUID.randomUUID()).also { it.startExtensionRound() }
+        meaningful.recordExtensionMeaningfulTurn()
+        assertThat(meaningful.shouldOfferExtensionCompletion()).isFalse()
+        meaningful.recordExtensionMeaningfulTurn()
+
+        val empty = Retrospective.createV2(UUID.randomUUID()).also { it.startExtensionRound() }
+        empty.recordExtensionEmptyTurn()
+        assertThat(empty.shouldOfferExtensionCompletion()).isFalse()
+        empty.recordExtensionEmptyTurn()
+
+        assertThat(meaningful.shouldOfferExtensionCompletion()).isTrue()
+        assertThat(empty.shouldOfferExtensionCompletion()).isTrue()
+    }
+
+    @Test
+    fun `추가 회고는 세 회차까지만 진입할 수 있다`() {
+        val retrospective = Retrospective.createV2(UUID.randomUUID())
+
+        repeat(3) { assertThat(retrospective.startExtensionRound()).isTrue() }
+
+        assertThat(retrospective.canContinueConversation()).isFalse()
+        assertThat(retrospective.startExtensionRound()).isFalse()
+        assertThat(retrospective.extensionRoundCount).isEqualTo(3)
+    }
+
+    @Test
     fun `완료된 턴은 대화 액션과 질문 대상을 함께 보존한다`() {
         val turn =
             RetrospectiveConversationTurn(
