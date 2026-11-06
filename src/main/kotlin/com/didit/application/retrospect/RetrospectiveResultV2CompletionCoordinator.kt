@@ -103,7 +103,9 @@ class RetrospectiveResultV2CompletionCoordinator(
         if (!tonePolicy.requiresRegeneration(first)) return first
 
         val second = tonePolicy.normalize(generateResultWithRetry(request))
-        check(!tonePolicy.requiresRegeneration(second)) { "회고 결과가 문장 종결 규칙을 충족하지 않습니다." }
+        if (tonePolicy.requiresRegeneration(second)) {
+            logger.warn("V2 회고 결과 종결 규칙 보정 실패 - 재생성 결과를 그대로 저장합니다.")
+        }
         return second.copy(
             inputTokens = first.inputTokens + second.inputTokens,
             outputTokens = first.outputTokens + second.outputTokens,
