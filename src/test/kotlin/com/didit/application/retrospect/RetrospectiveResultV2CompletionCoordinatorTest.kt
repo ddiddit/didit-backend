@@ -34,6 +34,65 @@ import java.util.UUID
 
 class RetrospectiveResultV2CompletionCoordinatorTest {
     @Test
+    fun `complete - 두 번째 결과도 종결 규칙을 벗어나면 결과를 버리지 않고 저장한다`() {
+        val retrospectiveId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val retrospective =
+            Retrospective(
+                id = retrospectiveId,
+                userId = userId,
+                flowVersion = com.didit.domain.retrospect.RetrospectiveFlowVersion.V2,
+                conversationStatus = com.didit.domain.retrospect.ConversationStatus.ACTIVE,
+            )
+        val repository = mock<RetrospectiveRepository>()
+        val chatMessageRepository = mock<ChatMessageRepository>()
+        val analysisItemRepository = mock<RetrospectiveAnalysisItemRepository>()
+        val userFinder = mock<UserFinder>()
+        val aiClient = mock<RetrospectiveResultV2AIClient>()
+
+        whenever(repository.findByIdAndUserIdAndDeletedAtIsNullForUpdate(retrospectiveId, userId)).thenReturn(retrospective)
+        whenever(repository.save(any())).thenAnswer { it.arguments[0] }
+        whenever(chatMessageRepository.findAllResultEvidenceByRetrospectiveId(retrospectiveId)).thenReturn(emptyList())
+        whenever(analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)).thenReturn(
+            listOf(
+                analysisItem(retrospectiveId, RetrospectiveItemType.FACT),
+                analysisItem(retrospectiveId, RetrospectiveItemType.PROCESS),
+                analysisItem(retrospectiveId, RetrospectiveItemType.ACTION),
+            ),
+        )
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(mock<User>())
+        whenever(aiClient.generateResult(any())).thenReturn(
+            generatedResult().copy(summary = "좋다.", inputTokens = 10, outputTokens = 5),
+            generatedResult().copy(summary = "보람차다.", inputTokens = 20, outputTokens = 7),
+        )
+
+        val coordinator =
+            RetrospectiveResultV2CompletionCoordinator(
+                repository,
+                chatMessageRepository,
+                mock<RetrospectiveAttachmentRepository>(),
+                analysisItemRepository,
+                mock<RetrospectiveConversationTurnRepository>(),
+                userFinder,
+                aiClient,
+                RetrospectiveResultV2TonePolicy(),
+                ConversationV2TurnPolicy(),
+                TransactionTemplate(TestTransactionManager()),
+                RetrospectiveAiMetrics(SimpleMeterRegistry()),
+                mock<ApplicationEventPublisher>(),
+                600,
+                30_000,
+            )
+
+        coordinator.complete(retrospectiveId, userId)
+
+        verify(aiClient, times(2)).generateResult(any())
+        assertThat(retrospective.resultV2?.summary).isEqualTo("보람차다.")
+        assertThat(retrospective.inputTokens).isEqualTo(30)
+        assertThat(retrospective.outputTokens).isEqualTo(12)
+    }
+
+    @Test
     fun `complete - 보고서체 결과는 한 번 재생성하고 완료 이벤트는 저장 트랜잭션 안에서 발행한다`() {
         val retrospectiveId = UUID.randomUUID()
         val userId = UUID.randomUUID()
