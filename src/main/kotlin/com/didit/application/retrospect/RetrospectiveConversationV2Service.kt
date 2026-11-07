@@ -49,6 +49,8 @@ import com.didit.domain.retrospect.RetrospectiveAnalysisEvidence
 import com.didit.domain.retrospect.RetrospectiveAnalysisItem
 import com.didit.domain.retrospect.RetrospectiveConversationMode
 import com.didit.domain.retrospect.RetrospectiveConversationTurn
+import com.didit.domain.retrospect.RetrospectiveItemProgressStatus
+import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.shared.ServiceTime
@@ -588,7 +590,13 @@ class RetrospectiveConversationV2Service(
                     )
                 } else {
                     emptySet()
-                }
+                }.toMutableSet()
+            resolveDirectAnswer(
+                items = items,
+                currentQuestionTarget = conversationState.currentQuestionTarget,
+                generated = normalizedGenerated,
+                userMessage = userMessage,
+            )?.let(updatedItemTypes::add)
             applyDeclinedItems(items, conversationState.currentQuestionTarget, normalizedGenerated)
             val standardQuestionTargets =
                 turnPolicy.eligibleQuestionTargets(
@@ -799,6 +807,31 @@ class RetrospectiveConversationV2Service(
                 it.markSkipped()
                 analysisItemRepository.save(it)
             }
+    }
+
+    private fun resolveDirectAnswer(
+        items: List<RetrospectiveAnalysisItem>,
+        currentQuestionTarget: RetrospectiveItemType?,
+        generated: GeneratedConversationTurn,
+        userMessage: ChatMessage,
+    ): RetrospectiveItemType? {
+        if (currentQuestionTarget == null || generated.relevance != MessageRelevance.RETROSPECTIVE) return null
+        if (currentQuestionTarget in generated.declinedItemTypes) return null
+        if (generated.analysisUpdates.isNotEmpty()) return null
+
+        val item = items.first { it.itemType == currentQuestionTarget }
+        if (item.progressStatus != RetrospectiveItemProgressStatus.PENDING) return null
+        if (item.status == RetrospectiveItemStatus.EMPTY) {
+            item.update(RetrospectiveItemStatus.PARTIAL, userMessage.content)
+        }
+        item.markAnswered()
+        analysisItemRepository.save(item)
+        if (!evidenceRepository.existsByAnalysisItemIdAndMessageId(item.id, userMessage.id)) {
+            evidenceRepository.saveAll(
+                listOf(RetrospectiveAnalysisEvidence(analysisItemId = item.id, messageId = userMessage.id)),
+            )
+        }
+        return currentQuestionTarget
     }
 
     private fun applyAnalysisUpdates(
