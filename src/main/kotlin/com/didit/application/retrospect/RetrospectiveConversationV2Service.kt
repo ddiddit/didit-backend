@@ -818,6 +818,7 @@ class RetrospectiveConversationV2Service(
         if (currentQuestionTarget == null || generated.relevance != MessageRelevance.RETROSPECTIVE) return null
         if (currentQuestionTarget in generated.declinedItemTypes) return null
         if (generated.analysisUpdates.isNotEmpty()) return null
+        if (generated.action == ConversationTurnAction.ASK && generated.questionTarget == currentQuestionTarget) return null
 
         val item = items.first { it.itemType == currentQuestionTarget }
         if (item.progressStatus != RetrospectiveItemProgressStatus.PENDING) return null
@@ -826,11 +827,9 @@ class RetrospectiveConversationV2Service(
         }
         item.markAnswered()
         analysisItemRepository.save(item)
-        if (!evidenceRepository.existsByAnalysisItemIdAndMessageId(item.id, userMessage.id)) {
-            evidenceRepository.saveAll(
-                listOf(RetrospectiveAnalysisEvidence(analysisItemId = item.id, messageId = userMessage.id)),
-            )
-        }
+        evidenceRepository.saveAll(
+            listOf(RetrospectiveAnalysisEvidence(analysisItemId = item.id, messageId = userMessage.id)),
+        )
         return currentQuestionTarget
     }
 
@@ -858,7 +857,6 @@ class RetrospectiveConversationV2Service(
                 val after = checkNotNull(decision.after)
                 item.update(after.status, after.summary.orEmpty())
                 if (
-                    decision.before != decision.after &&
                     currentUserMessageId in decision.acceptedEvidenceMessageIds
                 ) {
                     item.markAnswered()

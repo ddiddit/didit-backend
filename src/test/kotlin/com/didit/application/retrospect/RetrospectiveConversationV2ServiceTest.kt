@@ -497,17 +497,27 @@ class RetrospectiveConversationV2ServiceTest {
                     inputTokens = 10,
                     outputTokens = 5,
                 ),
-            ).thenAnswer { invocation ->
-                val request = invocation.getArgument<ConversationTurnAIRequest>(0)
-                assertThat(request.eligibleQuestionTargets).contains(RetrospectiveItemType.PROCESS)
                 GeneratedConversationTurn(
                     action = ConversationTurnAction.ASK,
                     acknowledgement = "진행 방식을 확인했어요.",
                     interpretation = "",
+                    question = "다음에는 무엇을 다르게 해보고 싶나요?",
+                    questionTarget = RetrospectiveItemType.ACTION,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenAnswer { invocation ->
+                val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "다음 계획을 확인했어요.",
+                    interpretation = "",
                     question = "어떤 방식으로 진행했나요?",
                     questionTarget = RetrospectiveItemType.PROCESS,
                     relevance = MessageRelevance.RETROSPECTIVE,
-                    analysisUpdates = emptyList(),
+                    analysisUpdates = listOf(update(RetrospectiveItemType.ACTION, request.currentMessageId)),
                     inputTokens = 10,
                     outputTokens = 5,
                 )
@@ -523,7 +533,93 @@ class RetrospectiveConversationV2ServiceTest {
         assertThat(process.progressStatus).isEqualTo(RetrospectiveItemProgressStatus.ANSWERED)
         assertThat(process.status).isEqualTo(RetrospectiveItemStatus.PARTIAL)
         assertThat(process.summary).isEqualTo("자동화 도구를 사용했어요")
-        assertThat(result.assistantMessage!!.content).doesNotContain("어떤 방식으로 진행했나요?")
+        assertThat(result.assistantMessage!!.content).contains("다음에는 무엇을 다르게 해보고 싶나요?")
+
+        val repeated =
+            service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "다음에도 자동화 도구를 사용할게요")
+        assertThat(repeated.assistantMessage!!.content).doesNotContain("어떤 방식으로 진행했나요?")
+    }
+
+    @Test
+    fun `현재 답변의 분석 내용이 기존과 같아도 해당 질문은 완료 처리한다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any()))
+            .thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "확인했어요.",
+                    interpretation = "",
+                    question = "어떤 방식으로 진행했나요?",
+                    questionTarget = RetrospectiveItemType.PROCESS,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenAnswer { invocation ->
+                val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "진행 방식을 확인했어요.",
+                    interpretation = "",
+                    question = "어려웠던 점은 무엇이었나요?",
+                    questionTarget = RetrospectiveItemType.BLOCK,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates =
+                        listOf(
+                            update(RetrospectiveItemType.PROCESS, request.currentMessageId).copy(
+                                summary = "자동화 도구를 사용했어요",
+                            ),
+                        ),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                )
+            }
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어요")
+        analysisItemRepository
+            .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+            .single { it.itemType == RetrospectiveItemType.PROCESS }
+            .also {
+                it.update(RetrospectiveItemStatus.PARTIAL, "자동화 도구를 사용했어요")
+                analysisItemRepository.save(it)
+            }
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "자동화 도구를 사용했어요")
+
+        val process =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.PROCESS }
+        assertThat(process.progressStatus).isEqualTo(RetrospectiveItemProgressStatus.ANSWERED)
+    }
+
+    @Test
+    fun `AI가 같은 항목을 계속 묻는 응답은 분석 누락만으로 완료 처리하지 않는다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any())).thenReturn(
+            GeneratedConversationTurn(
+                action = ConversationTurnAction.ASK,
+                acknowledgement = "확인했어요.",
+                interpretation = "",
+                question = "어떤 방식으로 진행했나요?",
+                questionTarget = RetrospectiveItemType.PROCESS,
+                relevance = MessageRelevance.RETROSPECTIVE,
+                analysisUpdates = emptyList(),
+                inputTokens = 10,
+                outputTokens = 5,
+            ),
+        )
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어요")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "자동화 도구를 사용했어요")
+
+        val process =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.PROCESS }
+        assertThat(process.progressStatus).isEqualTo(RetrospectiveItemProgressStatus.PENDING)
+        assertThat(process.status).isEqualTo(RetrospectiveItemStatus.EMPTY)
     }
 
     @Test
