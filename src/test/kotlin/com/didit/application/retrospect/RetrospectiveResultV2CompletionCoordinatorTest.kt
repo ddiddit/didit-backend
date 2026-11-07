@@ -34,6 +34,59 @@ import java.util.UUID
 
 class RetrospectiveResultV2CompletionCoordinatorTest {
     @Test
+    fun `complete - 수집된 잘한 점을 AI가 누락하면 분석 요약으로 보완한다`() {
+        val retrospectiveId = UUID.randomUUID()
+        val userId = UUID.randomUUID()
+        val retrospective =
+            Retrospective(
+                id = retrospectiveId,
+                userId = userId,
+                flowVersion = com.didit.domain.retrospect.RetrospectiveFlowVersion.V2,
+                conversationStatus = com.didit.domain.retrospect.ConversationStatus.ACTIVE,
+            )
+        val repository = mock<RetrospectiveRepository>()
+        val chatMessageRepository = mock<ChatMessageRepository>()
+        val analysisItemRepository = mock<RetrospectiveAnalysisItemRepository>()
+        val userFinder = mock<UserFinder>()
+        val aiClient = mock<RetrospectiveResultV2AIClient>()
+
+        whenever(repository.findByIdAndUserIdAndDeletedAtIsNullForUpdate(retrospectiveId, userId)).thenReturn(retrospective)
+        whenever(repository.save(any())).thenAnswer { it.arguments[0] }
+        whenever(chatMessageRepository.findAllResultEvidenceByRetrospectiveId(retrospectiveId)).thenReturn(emptyList())
+        whenever(analysisItemRepository.findAllByRetrospectiveIdOrderByItemTypeAsc(retrospectiveId)).thenReturn(
+            listOf(
+                analysisItem(retrospectiveId, RetrospectiveItemType.FACT),
+                analysisItem(retrospectiveId, RetrospectiveItemType.STRENGTH, "기획을 잘한 점"),
+                analysisItem(retrospectiveId, RetrospectiveItemType.ACTION),
+            ),
+        )
+        whenever(userFinder.findByIdOrThrow(userId)).thenReturn(mock<User>())
+        whenever(aiClient.generateResult(any())).thenReturn(generatedResult().copy(strengths = null))
+
+        val coordinator =
+            RetrospectiveResultV2CompletionCoordinator(
+                repository,
+                chatMessageRepository,
+                mock<RetrospectiveAttachmentRepository>(),
+                analysisItemRepository,
+                mock<RetrospectiveConversationTurnRepository>(),
+                userFinder,
+                aiClient,
+                RetrospectiveResultV2TonePolicy(),
+                ConversationV2TurnPolicy(),
+                TransactionTemplate(TestTransactionManager()),
+                RetrospectiveAiMetrics(SimpleMeterRegistry()),
+                mock<ApplicationEventPublisher>(),
+                600,
+                30_000,
+            )
+
+        coordinator.complete(retrospectiveId, userId)
+
+        assertThat(retrospective.resultV2?.strengths).containsExactly("기획을 잘한 점")
+    }
+
+    @Test
     fun `complete - 두 번째 결과도 종결 규칙을 벗어나면 결과를 버리지 않고 저장한다`() {
         val retrospectiveId = UUID.randomUUID()
         val userId = UUID.randomUUID()
@@ -235,11 +288,12 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
     private fun analysisItem(
         retrospectiveId: UUID,
         itemType: RetrospectiveItemType,
+        summary: String = "수집된 내용",
     ) = RetrospectiveAnalysisItem(
         retrospectiveId = retrospectiveId,
         itemType = itemType,
         status = RetrospectiveItemStatus.ENOUGH,
-        summary = "수집된 내용",
+        summary = summary,
     )
 
     private class TestTransactionManager : AbstractPlatformTransactionManager() {
