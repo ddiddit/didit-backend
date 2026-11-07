@@ -9,6 +9,23 @@ class RetrospectiveResultV2TonePolicyTest {
     private val policy = RetrospectiveResultV2TonePolicy()
 
     @Test
+    fun `분석 항목의 해요체와 합니다체를 명사형으로 보정한다`() {
+        val normalized =
+            policy.normalize(
+                result(summary = "회고 흐름을 점검했어요.").copy(
+                    strengths = listOf("반복 질문을 더 빨리 확인할 수 있어요."),
+                    improvements = listOf("사전 공유가 필요합니다."),
+                    processes = listOf("질문 흐름을 먼저 점검했습니다."),
+                ),
+            )
+
+        assertThat(normalized.strengths).containsExactly("반복 질문을 더 빨리 확인할 수 있음")
+        assertThat(normalized.improvements).containsExactly("사전 공유가 필요함")
+        assertThat(normalized.processes).containsExactly("질문 흐름을 먼저 점검함")
+        assertThat(policy.requiresRegeneration(normalized)).isFalse()
+    }
+
+    @Test
     fun `서술형 결과만 해요체로 보정하고 분석 항목의 명사형은 유지한다`() {
         val normalized =
             policy.normalize(

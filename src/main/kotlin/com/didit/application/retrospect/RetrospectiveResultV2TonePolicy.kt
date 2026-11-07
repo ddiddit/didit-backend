@@ -9,10 +9,10 @@ class RetrospectiveResultV2TonePolicy {
     fun normalize(generated: GeneratedRetrospectiveResultV2): GeneratedRetrospectiveResultV2 =
         generated.copy(
             summary = generated.summary?.toPoliteStyle(),
-            strengths = generated.strengths,
-            improvements = generated.improvements,
-            processes = generated.processes,
-            learnings = generated.learnings,
+            strengths = generated.strengths?.map { it.toAnalysisNominalStyle() },
+            improvements = generated.improvements?.map { it.toAnalysisNominalStyle() },
+            processes = generated.processes?.map { it.toAnalysisNominalStyle() },
+            learnings = generated.learnings?.map { it.toAnalysisNominalStyle() },
             insight = generated.insight?.toPoliteStyle(),
             nextActions = generated.nextActions?.map { it.toPoliteStyle() },
         )
@@ -30,6 +30,11 @@ class RetrospectiveResultV2TonePolicy {
             .fold(this) { normalized, (ending, replacement) -> normalized.replace(ending, replacement) }
             .normalizePastNominalEnding()
             .normalizePastPlainEnding()
+
+    private fun String.toAnalysisNominalStyle(): String =
+        ANALYSIS_NOMINAL_ENDINGS.fold(trim()) { normalized, (ending, replacement) ->
+            normalized.replace(ending, replacement)
+        }
 
     private fun String.normalizePastNominalEnding(): String =
         PAST_NOMINAL_ENDING.replace(this) { match ->
@@ -100,6 +105,22 @@ class RetrospectiveResultV2TonePolicy {
                 Regex("있다$SENTENCE_END") to "있어요",
                 Regex("없다$SENTENCE_END") to "없어요",
                 Regex("이다$SENTENCE_END") to "이에요",
+            )
+        private val ANALYSIS_NOMINAL_ENDINGS =
+            listOf(
+                Regex("(?:했습니다|했어요)\\s*[.!?…]?\\s*$") to "함",
+                Regex("(?:합니다|해요)\\s*[.!?…]?\\s*$") to "함",
+                Regex("(?:됩니다|돼요)\\s*[.!?…]?\\s*$") to "됨",
+                Regex("(?:있습니다|있어요)\\s*[.!?…]?\\s*$") to "있음",
+                Regex("(?:없습니다|없어요)\\s*[.!?…]?\\s*$") to "없음",
+                Regex("(?:입니다|이에요|예요)\\s*[.!?…]?\\s*$") to "임",
+                Regex("([가-힣])(?:아요|어요|여요|았습니다|었습니다|였습니다)\\s*[.!?…]?\\s*$") to "\$1음",
+                Regex("(?:하였다|했다|한다|하다)\\s*[.!?…]?\\s*$") to "함",
+                Regex("된다\\s*[.!?…]?\\s*$") to "됨",
+                Regex("있다\\s*[.!?…]?\\s*$") to "있음",
+                Regex("없다\\s*[.!?…]?\\s*$") to "없음",
+                Regex("이다\\s*[.!?…]?\\s*$") to "임",
+                Regex("([가-힣])다\\s*[.!?…]?\\s*$") to "\$1음",
             )
     }
 }
