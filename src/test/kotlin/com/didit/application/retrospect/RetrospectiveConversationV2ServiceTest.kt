@@ -1386,6 +1386,68 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `파일만 전송한 빈 메시지는 직전 질문의 답변으로 처리하지 않는다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any()))
+            .thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "확인했어요.",
+                    interpretation = "",
+                    question = "무슨 일을 했나요?",
+                    questionTarget = RetrospectiveItemType.FACT,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "자료를 확인했어요.",
+                    interpretation = "",
+                    question = "무엇을 배웠나요?",
+                    questionTarget = RetrospectiveItemType.LEARN,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            )
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어")
+        val attachment = uploadedAttachment(started.retrospectiveId)
+        val submitted =
+            service.submitMessage(
+                started.retrospectiveId,
+                userId,
+                UUID.randomUUID(),
+                "",
+                InputType.TEXT,
+                listOf(attachment.id),
+            )
+        val boundAttachment = attachmentRepository.findByIdAndUserId(attachment.id, userId)!!
+        boundAttachment.startAnalysis()
+        boundAttachment.completeAnalysis("배포 체크리스트")
+        attachmentRepository.save(boundAttachment)
+
+        service.processAttachedTurn(
+            AttachmentConversationRequestedEvent(
+                started.retrospectiveId,
+                userId,
+                submitted.turnId,
+                submitted.userMessageId,
+            ),
+        )
+
+        val factItem =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.FACT }
+        assertThat(factItem.progressStatus).isEqualTo(RetrospectiveItemProgressStatus.PENDING)
+        assertThat(factItem.status).isEqualTo(RetrospectiveItemStatus.EMPTY)
+    }
+
+    @Test
     fun `메시지에는 파일을 최대 세 개까지 첨부할 수 있다`() {
         val started = service.start(userId)
         val attachments = (1..4).map { uploadedAttachment(started.retrospectiveId).id }
