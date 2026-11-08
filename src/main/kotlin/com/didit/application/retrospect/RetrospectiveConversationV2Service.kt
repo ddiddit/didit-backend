@@ -49,6 +49,8 @@ import com.didit.domain.retrospect.RetrospectiveAnalysisEvidence
 import com.didit.domain.retrospect.RetrospectiveAnalysisItem
 import com.didit.domain.retrospect.RetrospectiveConversationMode
 import com.didit.domain.retrospect.RetrospectiveConversationTurn
+import com.didit.domain.retrospect.RetrospectiveItemProgressStatus
+import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
 import com.didit.domain.shared.ServiceTime
@@ -588,7 +590,13 @@ class RetrospectiveConversationV2Service(
                     )
                 } else {
                     emptySet()
-                }
+                }.toMutableSet()
+            resolveDirectAnswer(
+                items = items,
+                currentQuestionTarget = conversationState.currentQuestionTarget,
+                generated = normalizedGenerated,
+                userMessage = userMessage,
+            )?.let(updatedItemTypes::add)
             applyDeclinedItems(items, conversationState.currentQuestionTarget, normalizedGenerated)
             val standardQuestionTargets =
                 turnPolicy.eligibleQuestionTargets(
@@ -801,6 +809,32 @@ class RetrospectiveConversationV2Service(
             }
     }
 
+    private fun resolveDirectAnswer(
+        items: List<RetrospectiveAnalysisItem>,
+        currentQuestionTarget: RetrospectiveItemType?,
+        generated: GeneratedConversationTurn,
+        userMessage: ChatMessage,
+    ): RetrospectiveItemType? {
+        if (currentQuestionTarget == null || generated.relevance != MessageRelevance.RETROSPECTIVE) return null
+        if (userMessage.content.isBlank()) return null
+        if (turnPolicy.requestsCompletion(userMessage.content)) return null
+        if (currentQuestionTarget in generated.declinedItemTypes) return null
+        if (generated.analysisUpdates.isNotEmpty()) return null
+        if (generated.action == ConversationTurnAction.ASK && generated.questionTarget == currentQuestionTarget) return null
+
+        val item = items.first { it.itemType == currentQuestionTarget }
+        if (item.progressStatus != RetrospectiveItemProgressStatus.PENDING) return null
+        if (item.status == RetrospectiveItemStatus.EMPTY) {
+            item.update(RetrospectiveItemStatus.PARTIAL, userMessage.content)
+        }
+        item.markAnswered()
+        analysisItemRepository.save(item)
+        evidenceRepository.saveAll(
+            listOf(RetrospectiveAnalysisEvidence(analysisItemId = item.id, messageId = userMessage.id)),
+        )
+        return currentQuestionTarget
+    }
+
     private fun applyAnalysisUpdates(
         currentItems: List<RetrospectiveAnalysisItem>,
         retrospectiveId: UUID,
@@ -825,7 +859,6 @@ class RetrospectiveConversationV2Service(
                 val after = checkNotNull(decision.after)
                 item.update(after.status, after.summary.orEmpty())
                 if (
-                    decision.before != decision.after &&
                     currentUserMessageId in decision.acceptedEvidenceMessageIds
                 ) {
                     item.markAnswered()

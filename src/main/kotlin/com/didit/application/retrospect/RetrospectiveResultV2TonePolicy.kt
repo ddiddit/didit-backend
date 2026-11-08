@@ -9,10 +9,10 @@ class RetrospectiveResultV2TonePolicy {
     fun normalize(generated: GeneratedRetrospectiveResultV2): GeneratedRetrospectiveResultV2 =
         generated.copy(
             summary = generated.summary?.toPoliteStyle(),
-            strengths = generated.strengths,
-            improvements = generated.improvements,
-            processes = generated.processes,
-            learnings = generated.learnings,
+            strengths = generated.strengths?.map { it.toAnalysisNominalStyle() },
+            improvements = generated.improvements?.map { it.toAnalysisNominalStyle() },
+            processes = generated.processes?.map { it.toAnalysisNominalStyle() },
+            learnings = generated.learnings?.map { it.toAnalysisNominalStyle() },
             insight = generated.insight?.toPoliteStyle(),
             nextActions = generated.nextActions?.map { it.toPoliteStyle() },
         )
@@ -30,6 +30,18 @@ class RetrospectiveResultV2TonePolicy {
             .fold(this) { normalized, (ending, replacement) -> normalized.replace(ending, replacement) }
             .normalizePastNominalEnding()
             .normalizePastPlainEnding()
+
+    private fun String.toAnalysisNominalStyle(): String {
+        val original = trim()
+        val normalized =
+            ANALYSIS_NOMINAL_ENDINGS.fold(original) { normalized, (ending, replacement) ->
+                normalized.replace(ending, replacement)
+            }
+        if (!ANALYSIS_SENTENCE_ENDING.containsMatchIn(normalized)) return normalized
+
+        val content = original.trimEnd().trimEnd('.', '!', '?', '…').trimEnd()
+        return "‘$content’라고 정리한 내용"
+    }
 
     private fun String.normalizePastNominalEnding(): String =
         PAST_NOMINAL_ENDING.replace(this) { match ->
@@ -79,7 +91,10 @@ class RetrospectiveResultV2TonePolicy {
         private val PAST_PLAIN_ENDING = Regex("([가-힣])다$SENTENCE_END")
         private val REPORT_STYLE_REMAINDER = Regex("(?:다|하였음|했음|함)$SENTENCE_END")
         private val ANALYSIS_SENTENCE_ENDING =
-            Regex("(?:해요|했어요|이에요|예요|돼요|있어요|없어요|아요|어요|여요|할게요|입니다|습니다|다)\\s*[.!?…]?\\s*$")
+            Regex(
+                "(?:해요|했어요|이에요|예요|돼요|있어요|없어요|아요|어요|여요|줘요|봐요|워요|라요|눠요|" +
+                    "할게요|입니다|습니다|다)\\s*[.!?…]?\\s*$",
+            )
         private const val HANGUL_SYLLABLE_START = 0xAC00
         private const val HANGUL_SYLLABLE_END = 0xD7A3
         private const val HANGUL_FINAL_COUNT = 28
@@ -100,6 +115,29 @@ class RetrospectiveResultV2TonePolicy {
                 Regex("있다$SENTENCE_END") to "있어요",
                 Regex("없다$SENTENCE_END") to "없어요",
                 Regex("이다$SENTENCE_END") to "이에요",
+            )
+        private val ANALYSIS_NOMINAL_ENDINGS =
+            listOf(
+                Regex("(?:했습니다|했어요)\\s*[.!?…]?\\s*$") to "함",
+                Regex("(?:합니다|해요)\\s*[.!?…]?\\s*$") to "함",
+                Regex("(?:됩니다|돼요)\\s*[.!?…]?\\s*$") to "됨",
+                Regex("(?:있습니다|있어요)\\s*[.!?…]?\\s*$") to "있음",
+                Regex("(?:없습니다|없어요)\\s*[.!?…]?\\s*$") to "없음",
+                Regex("(?:입니다|이에요|예요)\\s*[.!?…]?\\s*$") to "임",
+                Regex("알아요\\s*[.!?…]?\\s*$") to "앎",
+                Regex("나눠요\\s*[.!?…]?\\s*$") to "나눔",
+                Regex("빨라요\\s*[.!?…]?\\s*$") to "빠름",
+                Regex("할게요\\s*[.!?…]?\\s*$") to "할 계획",
+                Regex("받습니다\\s*[.!?…]?\\s*$") to "받음",
+                Regex("쌓는다\\s*[.!?…]?\\s*$") to "쌓음",
+                Regex("았습니다\\s*[.!?…]?\\s*$") to "았음",
+                Regex("었습니다\\s*[.!?…]?\\s*$") to "었음",
+                Regex("였습니다\\s*[.!?…]?\\s*$") to "였음",
+                Regex("(?:하였다|했다|한다|하다)\\s*[.!?…]?\\s*$") to "함",
+                Regex("된다\\s*[.!?…]?\\s*$") to "됨",
+                Regex("있다\\s*[.!?…]?\\s*$") to "있음",
+                Regex("없다\\s*[.!?…]?\\s*$") to "없음",
+                Regex("이다\\s*[.!?…]?\\s*$") to "임",
             )
     }
 }
