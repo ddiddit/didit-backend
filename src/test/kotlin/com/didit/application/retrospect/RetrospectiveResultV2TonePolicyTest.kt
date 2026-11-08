@@ -36,6 +36,8 @@ class RetrospectiveResultV2TonePolicyTest {
                 "대응 속도가 빨라요." to "대응 속도가 빠름",
                 "작업 전에 확인할게요." to "작업 전에 확인할 계획",
                 "먼저 도와줘요." to "‘먼저 도와줘요’라고 정리한 내용",
+                "동료를 돕습니다." to "‘동료를 돕습니다’라고 정리한 내용",
+                "의견을 듣는다." to "‘의견을 듣는다’라고 정리한 내용",
             )
 
         cases.forEach { (input, expected) ->
