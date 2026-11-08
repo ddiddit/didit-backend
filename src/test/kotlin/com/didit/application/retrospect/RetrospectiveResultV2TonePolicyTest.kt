@@ -26,6 +26,27 @@ class RetrospectiveResultV2TonePolicyTest {
     }
 
     @Test
+    fun `다양한 분석 항목 종결을 자연스러운 명사형으로 보정한다`() {
+        val cases =
+            mapOf(
+                "피드백을 받습니다." to "피드백을 받음",
+                "원인을 알아요." to "원인을 앎",
+                "경험을 쌓는다." to "경험을 쌓음",
+                "진행 상황을 나눠요." to "진행 상황을 나눔",
+                "대응 속도가 빨라요." to "대응 속도가 빠름",
+                "작업 전에 확인할게요." to "작업 전에 확인할 계획",
+                "먼저 도와줘요." to "‘먼저 도와줘요’라고 정리한 내용",
+            )
+
+        cases.forEach { (input, expected) ->
+            val normalized = policy.normalize(result(summary = "회고를 정리했어요.").copy(learnings = listOf(input)))
+
+            assertThat(normalized.learnings).containsExactly(expected)
+            assertThat(policy.requiresRegeneration(normalized)).isFalse()
+        }
+    }
+
+    @Test
     fun `서술형 결과만 해요체로 보정하고 분석 항목의 명사형은 유지한다`() {
         val normalized =
             policy.normalize(

@@ -623,6 +623,58 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
+    fun `종료 요청은 직전 질문의 답변으로 수집하지 않는다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any()))
+            .thenAnswer { invocation ->
+                val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "배포 작업을 확인했어요.",
+                    interpretation = "",
+                    question = "이번 일에서 스스로 잘했다고 생각하는 점은 무엇인가요?",
+                    questionTarget = RetrospectiveItemType.STRENGTH,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = listOf(update(RetrospectiveItemType.FACT, request.currentMessageId)),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                )
+            }.thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.REFLECT,
+                    acknowledgement = "",
+                    interpretation = "",
+                    question = null,
+                    questionTarget = null,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            )
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어요")
+        analysisItemRepository
+            .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+            .single { it.itemType == RetrospectiveItemType.PROCESS }
+            .also {
+                it.update(RetrospectiveItemStatus.ENOUGH, "자동화 도구를 사용함")
+                analysisItemRepository.save(it)
+            }
+
+        val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "끝내자")
+
+        val strength =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.STRENGTH }
+        assertThat(result.action).isEqualTo(ConversationTurnAction.CONFIRM_EXIT)
+        assertThat(strength.progressStatus).isEqualTo(RetrospectiveItemProgressStatus.PENDING)
+        assertThat(strength.status).isEqualTo(RetrospectiveItemStatus.EMPTY)
+        assertThat(strength.summary).isNull()
+    }
+
+    @Test
     fun `과거에 이미 질문한 항목을 모델이 다시 선택해도 다른 항목으로 보정한다`() {
         val started = service.start(userId)
         val targets =

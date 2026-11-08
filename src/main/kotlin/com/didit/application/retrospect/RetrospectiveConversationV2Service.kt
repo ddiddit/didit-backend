@@ -816,6 +816,7 @@ class RetrospectiveConversationV2Service(
         userMessage: ChatMessage,
     ): RetrospectiveItemType? {
         if (currentQuestionTarget == null || generated.relevance != MessageRelevance.RETROSPECTIVE) return null
+        if (turnPolicy.requestsCompletion(userMessage.content)) return null
         if (currentQuestionTarget in generated.declinedItemTypes) return null
         if (generated.analysisUpdates.isNotEmpty()) return null
         if (generated.action == ConversationTurnAction.ASK && generated.questionTarget == currentQuestionTarget) return null

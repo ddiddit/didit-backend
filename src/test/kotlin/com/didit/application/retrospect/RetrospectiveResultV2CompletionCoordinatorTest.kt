@@ -110,13 +110,24 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
             listOf(
                 analysisItem(retrospectiveId, RetrospectiveItemType.FACT),
                 analysisItem(retrospectiveId, RetrospectiveItemType.PROCESS),
+                analysisItem(retrospectiveId, RetrospectiveItemType.LEARN),
                 analysisItem(retrospectiveId, RetrospectiveItemType.ACTION),
             ),
         )
         whenever(userFinder.findByIdOrThrow(userId)).thenReturn(mock<User>())
         whenever(aiClient.generateResult(any())).thenReturn(
-            generatedResult().copy(summary = "좋다.", inputTokens = 10, outputTokens = 5),
-            generatedResult().copy(summary = "보람차다.", inputTokens = 20, outputTokens = 7),
+            generatedResult().copy(
+                summary = "좋다.",
+                learnings = listOf("작업 전에 확인할게요."),
+                inputTokens = 10,
+                outputTokens = 5,
+            ),
+            generatedResult().copy(
+                summary = "보람차다.",
+                learnings = listOf("작업 전에 확인할게요."),
+                inputTokens = 20,
+                outputTokens = 7,
+            ),
         )
 
         val coordinator =
@@ -141,6 +152,7 @@ class RetrospectiveResultV2CompletionCoordinatorTest {
 
         verify(aiClient, times(2)).generateResult(any())
         assertThat(retrospective.resultV2?.summary).isEqualTo("보람차다.")
+        assertThat(retrospective.resultV2?.learnings).containsExactly("작업 전에 확인할 계획")
         assertThat(retrospective.inputTokens).isEqualTo(30)
         assertThat(retrospective.outputTokens).isEqualTo(12)
     }

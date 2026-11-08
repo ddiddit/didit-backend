@@ -169,6 +169,8 @@ class ConversationV2TurnPolicy {
         return completionDecision(generated, readyToComplete)
     }
 
+    fun requestsCompletion(userMessageContent: String?): Boolean = userMessageContent.requestsCompletionConfirmation()
+
     private fun completionDecision(
         generated: GeneratedConversationTurn,
         readyToComplete: Boolean,
