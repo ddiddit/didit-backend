@@ -157,7 +157,8 @@ class ConversationV2TurnPolicy {
             readyToComplete = readyToComplete,
             completionConfirmationRequested = userMessageContent.requestsCompletionConfirmation(),
             insufficientGuidancePreviouslyShown = insufficientGuidancePreviouslyShown,
-        ).withTopicTransition(previousQuestionTarget)
+        ).avoidImmediateRepeatedQuestion(previousQuestionTarget, eligibleQuestionTargets, userMessageContent)
+            .withTopicTransition(previousQuestionTarget)
             .ensureVisibleContent()
 
     fun decideExplicitCompletion(
@@ -170,6 +171,19 @@ class ConversationV2TurnPolicy {
     }
 
     fun requestsCompletion(userMessageContent: String?): Boolean = userMessageContent.requestsCompletionConfirmation()
+
+    fun hasNewRetrospectiveEvidence(userMessageContent: String?): Boolean =
+        userMessageContent
+            ?.trim()
+            ?.takeIf(String::isNotEmpty)
+            ?.let { content ->
+                !content.requestsCompletionConfirmation() &&
+                    !content.declinesCurrentQuestion() &&
+                    !isNoNewRetrospectiveEvidenceResponse(content)
+            } ?: false
+
+    fun isNoNewRetrospectiveEvidenceResponse(userMessageContent: String?): Boolean =
+        userMessageContent?.trim()?.let(NO_NEW_EVIDENCE_RESPONSE_PATTERN::matches) == true
 
     private fun completionDecision(
         generated: GeneratedConversationTurn,
@@ -310,6 +324,31 @@ class ConversationV2TurnPolicy {
     private fun GeneratedConversationTurn.withoutDuplicatedQuestion(): GeneratedConversationTurn {
         val currentQuestion = question?.takeIf(String::isNotBlank) ?: return this
         return copy(interpretation = interpretation.replace(currentQuestion, "").trim())
+    }
+
+    private fun GeneratedConversationTurn.avoidImmediateRepeatedQuestion(
+        previousQuestionTarget: RetrospectiveItemType?,
+        eligibleQuestionTargets: List<RetrospectiveItemType>,
+        userMessageContent: String?,
+    ): GeneratedConversationTurn {
+        if (
+            action != ConversationTurnAction.ASK ||
+            previousQuestionTarget == null ||
+            questionTarget != previousQuestionTarget ||
+            userMessageContent == null ||
+            hasNewRetrospectiveEvidence(userMessageContent)
+        ) {
+            return this
+        }
+        val alternativeTarget = eligibleQuestionTargets.firstOrNull { it != previousQuestionTarget }
+        return if (alternativeTarget == null) {
+            asReflect()
+        } else {
+            copy(
+                question = fallbackQuestion(alternativeTarget),
+                questionTarget = alternativeTarget,
+            )
+        }
     }
 
     private fun GeneratedConversationTurn.withTopicTransition(previousQuestionTarget: RetrospectiveItemType?): GeneratedConversationTurn {
@@ -492,13 +531,19 @@ private val CURRENT_QUESTION_DECLINE_PATTERN =
         "(?:(?:(?:이|그)\\s*(?:질문|이야기|주제)(?:은|는|를)?\\s*)?(?:" +
             "(?:더\\s*|딱히\\s*|특별한\\s*(?:건|것은)\\s*)?(?:없어(?:요)?|없습니다|없다|없음|없는\\s*것\\s*같아(?:요)?)|" +
             "모르겠어(?:요)?|모르겠습니다|생각나지\\s*않아(?:요)?|생각나지\\s*않습니다|" +
-            "(?:앞에서|이미)\\s*(?:다\\s*)?(?:말|이야기)(?:했어(?:요)?|했습니다)|더\\s*이상\\s*없어(?:요)?|" +
+            "더\\s*이상\\s*없어(?:요)?|" +
             "넘어갈게(?:요)?|넘어가고\\s*싶어(?:요)?|건너뛸게(?:요)?|" +
             "말하고\\s*싶지\\s*않아(?:요)?|말하고\\s*싶지\\s*않습니다|" +
-            "다음으로\\s*(?:가요|가자)|네|그냥(?:요)?|그랬죠))[\\s.!?…]*",
+            "다음으로\\s*(?:가요|가자)|그냥(?:요)?|그랬죠))[\\s.!?…]*",
     )
 
 private val QUESTION_TRANSITION_PATTERN = Regex("^(?:그럼|그렇다면|그러면|이번에는|이어서)(?:\\s|,)")
+
+private val NO_NEW_EVIDENCE_RESPONSE_PATTERN =
+    Regex(
+        "(?:(?:네|예|응|맞아(?:요)?|그래(?:요)?|그렇(?:죠|습니다)|알겠(?:어(?:요)?|습니다)|좋아(?:요)?|오케이)|" +
+            "(?:아까|방금|앞에서|이미)\\s*(?:다\\s*)?(?:말|이야기)(?:했잖아(?:요)?|했어(?:요)?|했습니다))[\\s.!?~…]*",
+    )
 
 data class ConversationV2MessageSnapshot(
     val content: String,
