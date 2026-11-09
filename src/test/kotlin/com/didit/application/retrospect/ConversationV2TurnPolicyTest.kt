@@ -734,6 +734,11 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
+    fun `좋아요는 감정 질문의 실제 답변이 될 수 있어 새 근거로 유지한다`() {
+        assertThat(policy.hasNewRetrospectiveEvidence("좋아요")).isTrue()
+    }
+
+    @Test
     fun `사용자의 없음 응답만으로는 종료 확인으로 전환하지 않는다`() {
         val decided =
             policy.decideTurn(

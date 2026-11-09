@@ -822,6 +822,7 @@ class RetrospectiveConversationV2Service(
         if (!turnPolicy.hasNewRetrospectiveEvidence(userMessage.content)) return null
         if (currentQuestionTarget in generated.declinedItemTypes) return null
         if (generated.analysisUpdates.isNotEmpty()) return null
+        if (generated.answeredQuestionTarget != currentQuestionTarget) return null
 
         val item = items.first { it.itemType == currentQuestionTarget }
         if (item.progressStatus != RetrospectiveItemProgressStatus.PENDING) return null
