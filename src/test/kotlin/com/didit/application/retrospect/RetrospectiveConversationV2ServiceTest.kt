@@ -503,6 +503,7 @@ class RetrospectiveConversationV2ServiceTest {
                     interpretation = "",
                     question = "다음에는 무엇을 다르게 해보고 싶나요?",
                     questionTarget = RetrospectiveItemType.ACTION,
+                    answeredQuestionTarget = RetrospectiveItemType.PROCESS,
                     relevance = MessageRelevance.RETROSPECTIVE,
                     analysisUpdates = emptyList(),
                     inputTokens = 10,
@@ -595,8 +596,69 @@ class RetrospectiveConversationV2ServiceTest {
     }
 
     @Test
-    fun `AI가 같은 항목을 계속 묻는 응답은 분석 누락만으로 완료 처리하지 않는다`() {
+    fun `AI가 같은 항목을 다시 물어도 구체적인 현재 답변은 완료 처리한다`() {
         val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any())).thenReturn(
+            GeneratedConversationTurn(
+                action = ConversationTurnAction.ASK,
+                acknowledgement = "확인했어요.",
+                interpretation = "",
+                question = "어떤 방식으로 진행했나요?",
+                questionTarget = RetrospectiveItemType.PROCESS,
+                answeredQuestionTarget = RetrospectiveItemType.PROCESS,
+                relevance = MessageRelevance.RETROSPECTIVE,
+                analysisUpdates = emptyList(),
+                inputTokens = 10,
+                outputTokens = 5,
+            ),
+        )
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어요")
+        val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "자동화 도구를 사용했어요")
+
+        val process =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.PROCESS }
+        assertThat(process.progressStatus).isEqualTo(RetrospectiveItemProgressStatus.ANSWERED)
+        assertThat(process.status).isEqualTo(RetrospectiveItemStatus.PARTIAL)
+        assertThat(process.summary).isEqualTo("자동화 도구를 사용했어요")
+        assertThat(
+            turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
+        ).isNotEqualTo(RetrospectiveItemType.PROCESS)
+        assertThat(result.assistantMessage!!.content).doesNotContain("어떤 방식으로 진행했나요?")
+    }
+
+    @Test
+    fun `AI가 현재 질문의 답변으로 판정하지 않은 메시지는 해당 항목에 저장하지 않는다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any())).thenReturn(
+            GeneratedConversationTurn(
+                action = ConversationTurnAction.ASK,
+                acknowledgement = "확인했어요.",
+                interpretation = "",
+                question = "이번 경험을 통해 새롭게 알게 된 점은 무엇인가요?",
+                questionTarget = RetrospectiveItemType.LEARN,
+                relevance = MessageRelevance.RETROSPECTIVE,
+                analysisUpdates = emptyList(),
+                inputTokens = 10,
+                outputTokens = 5,
+            ),
+        )
+
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어요")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 시간이 길었어요")
+
+        val learn =
+            analysisItemRepository
+                .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                .single { it.itemType == RetrospectiveItemType.LEARN }
+        assertThat(learn.progressStatus).isEqualTo(RetrospectiveItemProgressStatus.PENDING)
+        assertThat(learn.status).isEqualTo(RetrospectiveItemStatus.EMPTY)
+    }
+
+    @Test
+    fun `새 근거 없는 반응에는 직전 항목을 완료하거나 다시 질문하지 않는다`() {
         whenever(aiClient.generateConversationTurn(any())).thenReturn(
             GeneratedConversationTurn(
                 action = ConversationTurnAction.ASK,
@@ -611,8 +673,57 @@ class RetrospectiveConversationV2ServiceTest {
             ),
         )
 
+        listOf("아까 말했잖아", "이미 말했어요", "네", "맞아요", "알겠어요").forEach { response ->
+            val started = service.start(userId)
+            service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어요")
+            val result = service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), response)
+
+            val process =
+                analysisItemRepository
+                    .findAllByRetrospectiveIdOrderByItemTypeAsc(started.retrospectiveId)
+                    .single { it.itemType == RetrospectiveItemType.PROCESS }
+            assertThat(process.progressStatus).describedAs(response).isEqualTo(RetrospectiveItemProgressStatus.PENDING)
+            assertThat(process.status).describedAs(response).isEqualTo(RetrospectiveItemStatus.EMPTY)
+            assertThat(
+                turnRepository.findAllByRetrospectiveIdOrderByTurnNumberAsc(started.retrospectiveId).last().questionTarget,
+            ).describedAs(response).isNotEqualTo(RetrospectiveItemType.PROCESS)
+            assertThat(result.assistantMessage!!.content).describedAs(response).doesNotContain("어떤 방식으로 진행했나요?")
+        }
+    }
+
+    @Test
+    fun `새 근거 없는 반응을 AI가 분석해도 현재 메시지는 근거로 저장하지 않는다`() {
+        val started = service.start(userId)
+        whenever(aiClient.generateConversationTurn(any()))
+            .thenReturn(
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "확인했어요.",
+                    interpretation = "",
+                    question = "어떤 방식으로 진행했나요?",
+                    questionTarget = RetrospectiveItemType.PROCESS,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = emptyList(),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                ),
+            ).thenAnswer { invocation ->
+                val request = invocation.getArgument<ConversationTurnAIRequest>(0)
+                GeneratedConversationTurn(
+                    action = ConversationTurnAction.ASK,
+                    acknowledgement = "확인했어요.",
+                    interpretation = "",
+                    question = "어떤 방식으로 진행했나요?",
+                    questionTarget = RetrospectiveItemType.PROCESS,
+                    relevance = MessageRelevance.RETROSPECTIVE,
+                    analysisUpdates = listOf(update(RetrospectiveItemType.PROCESS, request.currentMessageId)),
+                    inputTokens = 10,
+                    outputTokens = 5,
+                )
+            }
+
         service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "배포 작업을 했어요")
-        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "자동화 도구를 사용했어요")
+        service.submitMessage(started.retrospectiveId, userId, UUID.randomUUID(), "네")
 
         val process =
             analysisItemRepository

@@ -709,17 +709,33 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `이미 답했다고 하거나 더 이상 없다고 하면 현재 항목을 다시 묻지 않도록 거절로 정규화한다`() {
-        listOf("앞에서 다 말했어요", "더 이상 없어요").forEach { content ->
-            val normalized =
-                policy.normalizeItemDecline(
-                    generated = generated(MessageRelevance.RETROSPECTIVE),
-                    lastQuestionTarget = RetrospectiveItemType.FEEL,
-                    userMessageContent = content,
-                )
+    fun `더 이상 없다고 하면 현재 항목을 다시 묻지 않도록 거절로 정규화한다`() {
+        val normalized =
+            policy.normalizeItemDecline(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                lastQuestionTarget = RetrospectiveItemType.FEEL,
+                userMessageContent = "더 이상 없어요",
+            )
 
-            assertThat(normalized.declinedItemTypes).describedAs(content).containsExactly(RetrospectiveItemType.FEEL)
-        }
+        assertThat(normalized.declinedItemTypes).containsExactly(RetrospectiveItemType.FEEL)
+    }
+
+    @Test
+    fun `이미 답했다는 반응은 항목을 건너뛰거나 새 근거로 처리하지 않는다`() {
+        val normalized =
+            policy.normalizeItemDecline(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                lastQuestionTarget = RetrospectiveItemType.FEEL,
+                userMessageContent = "앞에서 다 말했어요",
+            )
+
+        assertThat(normalized.declinedItemTypes).isEmpty()
+        assertThat(policy.hasNewRetrospectiveEvidence("앞에서 다 말했어요")).isFalse()
+    }
+
+    @Test
+    fun `좋아요는 감정 질문의 실제 답변이 될 수 있어 새 근거로 유지한다`() {
+        assertThat(policy.hasNewRetrospectiveEvidence("좋아요")).isTrue()
     }
 
     @Test

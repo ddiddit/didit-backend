@@ -55,6 +55,7 @@ data class GeneratedConversationTurn(
     val interpretation: String,
     val question: String?,
     val questionTarget: RetrospectiveItemType?,
+    val answeredQuestionTarget: RetrospectiveItemType? = null,
     val relevance: MessageRelevance,
     val declinedItemTypes: List<RetrospectiveItemType> = emptyList(),
     val analysisUpdates: List<ConversationAnalysisUpdate>,

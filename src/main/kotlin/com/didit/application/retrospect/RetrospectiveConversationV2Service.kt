@@ -587,6 +587,9 @@ class RetrospectiveConversationV2Service(
                         retrospectiveId = preparation.retrospectiveId,
                         generated = normalizedGenerated,
                         currentUserMessageId = userMessage.id,
+                        acceptCurrentMessageEvidence =
+                            preparation.attachmentIds.isNotEmpty() ||
+                                turnPolicy.hasNewRetrospectiveEvidence(userMessage.content),
                     )
                 } else {
                     emptySet()
@@ -816,11 +819,10 @@ class RetrospectiveConversationV2Service(
         userMessage: ChatMessage,
     ): RetrospectiveItemType? {
         if (currentQuestionTarget == null || generated.relevance != MessageRelevance.RETROSPECTIVE) return null
-        if (userMessage.content.isBlank()) return null
-        if (turnPolicy.requestsCompletion(userMessage.content)) return null
+        if (!turnPolicy.hasNewRetrospectiveEvidence(userMessage.content)) return null
         if (currentQuestionTarget in generated.declinedItemTypes) return null
         if (generated.analysisUpdates.isNotEmpty()) return null
-        if (generated.action == ConversationTurnAction.ASK && generated.questionTarget == currentQuestionTarget) return null
+        if (generated.answeredQuestionTarget != currentQuestionTarget) return null
 
         val item = items.first { it.itemType == currentQuestionTarget }
         if (item.progressStatus != RetrospectiveItemProgressStatus.PENDING) return null
@@ -840,12 +842,14 @@ class RetrospectiveConversationV2Service(
         retrospectiveId: UUID,
         generated: GeneratedConversationTurn,
         currentUserMessageId: UUID,
+        acceptCurrentMessageEvidence: Boolean,
     ): Set<RetrospectiveItemType> {
         val items = currentItems.associateBy { it.itemType }
         val messages =
             chatMessageRepository
                 .findAllByRetrospectiveIdOrderByCreatedAtAsc(retrospectiveId)
                 .map { ConversationV2ConversationMessageSnapshot(it.id, it.sender, it.relevance, it.content) }
+                .filter { it.id != currentUserMessageId || acceptCurrentMessageEvidence }
         val decisions =
             turnPolicy.applyAnalysisUpdates(
                 items.values.map { it.toConversationSnapshot() },
