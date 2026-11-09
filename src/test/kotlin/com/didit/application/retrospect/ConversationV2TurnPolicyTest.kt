@@ -6,6 +6,7 @@ import com.didit.application.retrospect.required.GeneratedConversationTurn
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.MessageRelevance
+import com.didit.domain.retrospect.RetrospectiveItemProgressStatus
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
@@ -73,7 +74,14 @@ class ConversationV2TurnPolicyTest {
         val decision = policy.applyAnalysisUpdates(listOf(item), listOf(update), listOf(evidence)).single()
 
         assertThat(decision.after)
-            .isEqualTo(ConversationV2AnalysisItemSnapshot(item.itemType, RetrospectiveItemStatus.ENOUGH, "새 요약"))
+            .isEqualTo(
+                ConversationV2AnalysisItemSnapshot(
+                    item.itemType,
+                    RetrospectiveItemStatus.ENOUGH,
+                    "새 요약",
+                    progressStatus = RetrospectiveItemProgressStatus.ANSWERED,
+                ),
+            )
     }
 
     @Test
@@ -315,38 +323,56 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `준비도가 충족되고 회고 메시지가 두 번이면 완료를 권장한다`() {
+    fun `결과 생성 준비가 되어도 미완료 항목이 있으면 종료를 권장하지 않는다`() {
+        val items =
+            RetrospectiveItemType.entries.map { type ->
+                analysisItem(
+                    type,
+                    if (type in setOf(RetrospectiveItemType.FACT, RetrospectiveItemType.PROCESS, RetrospectiveItemType.LEARN)) {
+                        RetrospectiveItemStatus.PARTIAL
+                    } else {
+                        RetrospectiveItemStatus.EMPTY
+                    },
+                    summary =
+                        if (type in
+                            setOf(RetrospectiveItemType.FACT, RetrospectiveItemType.PROCESS, RetrospectiveItemType.LEARN)
+                        ) {
+                            "근거"
+                        } else {
+                            null
+                        },
+                    progressStatus =
+                        if (type == RetrospectiveItemType.ACTION) {
+                            RetrospectiveItemProgressStatus.PENDING
+                        } else {
+                            RetrospectiveItemProgressStatus.ANSWERED
+                        },
+                )
+            }
+
         assertThat(
-            policy.shouldRecommendCompletion(
-                readyToComplete = true,
-                retrospectiveMessageCount = 1,
-                completedQuestionCount = 2,
-            ),
-        ).isFalse()
-        assertThat(
-            policy.shouldRecommendCompletion(
-                readyToComplete = true,
-                retrospectiveMessageCount = 2,
-                completedQuestionCount = 2,
-            ),
+            policy.readyToComplete(items),
         ).isTrue()
+        assertThat(
+            policy.shouldRecommendCompletion(items),
+        ).isFalse()
     }
 
     @Test
-    fun `질문 턴이 다섯 번 누적되면 완료를 권장한다`() {
+    fun `모든 항목이 답변 또는 스킵되면 종료를 권장한다`() {
+        val items =
+            RetrospectiveItemType.entries.mapIndexed { index, type ->
+                analysisItem(
+                    type,
+                    RetrospectiveItemStatus.EMPTY,
+                    null,
+                    progressStatus =
+                        if (index == 0) RetrospectiveItemProgressStatus.SKIPPED else RetrospectiveItemProgressStatus.ANSWERED,
+                )
+            }
+
         assertThat(
-            policy.shouldRecommendCompletion(
-                readyToComplete = false,
-                retrospectiveMessageCount = 1,
-                completedQuestionCount = 4,
-            ),
-        ).isFalse()
-        assertThat(
-            policy.shouldRecommendCompletion(
-                readyToComplete = false,
-                retrospectiveMessageCount = 1,
-                completedQuestionCount = 5,
-            ),
+            policy.shouldRecommendCompletion(items),
         ).isTrue()
     }
 
@@ -683,17 +709,33 @@ class ConversationV2TurnPolicyTest {
     }
 
     @Test
-    fun `이미 답했다고 하거나 더 이상 없다고 하면 현재 항목을 다시 묻지 않도록 거절로 정규화한다`() {
-        listOf("앞에서 다 말했어요", "더 이상 없어요").forEach { content ->
-            val normalized =
-                policy.normalizeItemDecline(
-                    generated = generated(MessageRelevance.RETROSPECTIVE),
-                    lastQuestionTarget = RetrospectiveItemType.FEEL,
-                    userMessageContent = content,
-                )
+    fun `더 이상 없다고 하면 현재 항목을 다시 묻지 않도록 거절로 정규화한다`() {
+        val normalized =
+            policy.normalizeItemDecline(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                lastQuestionTarget = RetrospectiveItemType.FEEL,
+                userMessageContent = "더 이상 없어요",
+            )
 
-            assertThat(normalized.declinedItemTypes).describedAs(content).containsExactly(RetrospectiveItemType.FEEL)
-        }
+        assertThat(normalized.declinedItemTypes).containsExactly(RetrospectiveItemType.FEEL)
+    }
+
+    @Test
+    fun `이미 답했다는 반응은 항목을 건너뛰거나 새 근거로 처리하지 않는다`() {
+        val normalized =
+            policy.normalizeItemDecline(
+                generated = generated(MessageRelevance.RETROSPECTIVE),
+                lastQuestionTarget = RetrospectiveItemType.FEEL,
+                userMessageContent = "앞에서 다 말했어요",
+            )
+
+        assertThat(normalized.declinedItemTypes).isEmpty()
+        assertThat(policy.hasNewRetrospectiveEvidence("앞에서 다 말했어요")).isFalse()
+    }
+
+    @Test
+    fun `좋아요는 감정 질문의 실제 답변이 될 수 있어 새 근거로 유지한다`() {
+        assertThat(policy.hasNewRetrospectiveEvidence("좋아요")).isTrue()
     }
 
     @Test
@@ -1067,7 +1109,13 @@ class ConversationV2TurnPolicyTest {
         status: RetrospectiveItemStatus,
         summary: String?,
         questionAllowed: Boolean = true,
-    ) = ConversationV2AnalysisItemSnapshot(itemType, status, summary, questionAllowed)
+        progressStatus: RetrospectiveItemProgressStatus =
+            when {
+                !questionAllowed -> RetrospectiveItemProgressStatus.SKIPPED
+                status != RetrospectiveItemStatus.EMPTY -> RetrospectiveItemProgressStatus.ANSWERED
+                else -> RetrospectiveItemProgressStatus.PENDING
+            },
+    ) = ConversationV2AnalysisItemSnapshot(itemType, status, summary, questionAllowed, progressStatus)
 
     private fun update(
         itemType: RetrospectiveItemType,

@@ -28,6 +28,7 @@ data class SubmitConversationMessageResult(
     val assistantMessage: ConversationMessageResult?,
     val readyToComplete: Boolean,
     val action: ConversationTurnAction?,
+    val canContinue: Boolean = true,
 )
 
 data class ConversationV2Result(
@@ -36,6 +37,7 @@ data class ConversationV2Result(
     val messages: List<ConversationMessageResult>,
     val turns: List<ConversationTurnResult>,
     val readyToComplete: Boolean,
+    val canContinue: Boolean = true,
 )
 
 data class ConversationMessageResult(

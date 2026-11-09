@@ -5,6 +5,8 @@ import com.didit.domain.auth.UserExperience
 import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationUserIntent
 import com.didit.domain.retrospect.MessageRelevance
+import com.didit.domain.retrospect.RetrospectiveConversationMode
+import com.didit.domain.retrospect.RetrospectiveItemProgressStatus
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
@@ -40,6 +42,10 @@ data class AdminPromptPreviewState(
     val completedQuestionCount: Int = 0,
     val consecutiveAskCount: Int = 0,
     val completionPreviouslyOffered: Boolean = false,
+    val conversationMode: RetrospectiveConversationMode = RetrospectiveConversationMode.COLLECTING,
+    val extensionRoundCount: Int = 0,
+    val extensionMeaningfulTurnCount: Int = 0,
+    val extensionConsecutiveEmptyCount: Int = 0,
 )
 
 data class AdminPromptPreviewMessage(
@@ -57,6 +63,12 @@ data class AdminPromptPreviewAnalysisItem(
     val status: RetrospectiveItemStatus,
     val summary: String?,
     val questionAllowed: Boolean = true,
+    val progressStatus: RetrospectiveItemProgressStatus =
+        when {
+            !questionAllowed -> RetrospectiveItemProgressStatus.SKIPPED
+            status != RetrospectiveItemStatus.EMPTY -> RetrospectiveItemProgressStatus.ANSWERED
+            else -> RetrospectiveItemProgressStatus.PENDING
+        },
 )
 
 data class AdminPromptPreviewProgress(
@@ -68,4 +80,5 @@ data class AdminPromptPreviewResult(
     val assistantMessage: AdminPromptPreviewMessage?,
     val progress: AdminPromptPreviewProgress,
     val nextState: AdminPromptPreviewState,
+    val canContinue: Boolean = true,
 )

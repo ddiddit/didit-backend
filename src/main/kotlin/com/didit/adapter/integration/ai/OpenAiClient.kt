@@ -59,12 +59,13 @@ ASK가 아니면 question과 questionTarget을 null로 반환하세요.
 REFLECT에서는 사용자의 말을 반복 요약하거나 '더 남기고 싶은 내용', '자유롭게 이어서' 같은 자유 입력 안내를 작성하지 마세요.
 recentQuestionTargets의 직전 대상을 반복해서 묻지 마세요.
 대화 기록에서 사용자가 이미 답한 내용과 의미가 같은 질문을 표현만 바꿔 다시 묻지 마세요. 필요한 경우 다른 후보를 질문하거나 REFLECT로 반응하세요.
+answeredQuestionTarget은 현재 사용자 메시지가 직전 질문에 실제로 답한 경우에만 그 직전 항목으로 반환하고, 다른 내용을 말했거나 단순 반응만 한 경우에는 null로 반환하세요. analysisUpdates가 비어 있어도 이 판정은 반드시 수행하세요.
 질문 주제가 바뀌면 '그렇다면', '그럼' 같은 짧은 연결어로 자연스럽게 이어가세요. 같은 주제의 후속 질문에는 주제 전환 연결어를 붙이지 마세요.
 사용자가 직전 질문 주제를 거부하면 그 항목을 declinedItemTypes에 넣고, 질문 가능한 다른 항목이 있으면 대화를 이어가세요.
 LEARN은 사용자가 직접 말한 배움이 있을 때만, ACTION은 사용자가 직접 말한 다음 행동이 있을 때만 수집하세요.
 작업 완료나 다른 사람의 도움만으로 LEARN 또는 ACTION을 추론하지 마세요.
-continuationRequested가 true이면 종료 표현 없이 eligibleQuestionTargets의 다른 항목을 ASK로 질문하세요.
-eligibleQuestionTargets는 질문 가능한 후보일 뿐입니다. 현재 이야기와 자연스럽게 이어지는 질문이 꼭 필요할 때만 ASK를 선택하고, 빈 항목을 채우기 위해 질문하지 마세요.
+continuationRequested가 true이면 종료 표현과 질문 없이 짧은 평서문 REFLECT로 응답하세요.
+RETROSPECTIVE 응답에서 eligibleQuestionTargets가 하나라도 있으면 반드시 그중 하나를 골라 ASK로 질문을 정확히 하나 작성하세요.
 '없어', '없는 것 같아', '딱히 없어', '모르겠어', '생각나지 않아'는 직전 질문에 답할 내용이 없다는 뜻으로 보고 해당 항목을 declinedItemTypes에 넣으세요. 이 답만으로 회고 전체를 마치려는 의사로 해석하지 마세요. 질문 가능한 다른 항목이 있으면 acknowledgement 없이 ASK로 이어가세요.
 '근데'나 '그리고'처럼 말을 이어가려는 표현만 있으면 자유 입력을 유도하지 말고 필요한 경우에만 짧게 반응하세요.
 별도 질문이나 추가 호출 없이 현재 응답의 answerExamples를 함께 생성하세요.
@@ -312,6 +313,7 @@ nextActions.title은 사용자가 바로 이해할 수 있는 '~하기' 형태�
             interpretation = parsed.interpretation,
             question = parsed.question,
             questionTarget = parsed.questionTarget,
+            answeredQuestionTarget = parsed.answeredQuestionTarget,
             relevance = parsed.relevance,
             declinedItemTypes = parsed.declinedItemTypes,
             analysisUpdates = parsed.analysisUpdates,
@@ -394,6 +396,11 @@ nextActions.title은 사용자가 바로 이해할 수 있는 '~하기' 형태�
                             "type" to listOf("string", "null"),
                             "enum" to RetrospectiveItemType.entries.map { it.name } + null,
                         ),
+                    "answeredQuestionTarget" to
+                        mapOf(
+                            "type" to listOf("string", "null"),
+                            "enum" to RetrospectiveItemType.entries.map { it.name } + null,
+                        ),
                     "relevance" to mapOf("type" to "string", "enum" to MessageRelevance.entries.map { it.name }),
                     "declinedItemTypes" to
                         mapOf(
@@ -443,6 +450,7 @@ nextActions.title은 사용자가 바로 이해할 수 있는 '~하기' 형태�
                     "interpretation",
                     "question",
                     "questionTarget",
+                    "answeredQuestionTarget",
                     "relevance",
                     "declinedItemTypes",
                     "analysisUpdates",
@@ -535,6 +543,7 @@ private data class ConversationTurnDto(
     val interpretation: String,
     val question: String?,
     val questionTarget: RetrospectiveItemType?,
+    val answeredQuestionTarget: RetrospectiveItemType? = null,
     val relevance: MessageRelevance,
     val declinedItemTypes: List<RetrospectiveItemType>,
     val analysisUpdates: List<ConversationAnalysisUpdate>,

@@ -99,14 +99,36 @@ class RetrospectiveResultV2CompletionCoordinator(
         }
 
     private fun generatePoliteResult(request: RetrospectiveResultV2AIRequest): GeneratedRetrospectiveResultV2 {
-        val first = tonePolicy.normalize(generateResultWithRetry(request))
+        val first = tonePolicy.normalize(generateResultWithRetry(request).withCollectedItemFallbacks(request.analysisItems))
         if (!tonePolicy.requiresRegeneration(first)) return first
 
-        val second = tonePolicy.normalize(generateResultWithRetry(request))
-        check(!tonePolicy.requiresRegeneration(second)) { "회고 결과가 문장 종결 규칙을 충족하지 않습니다." }
+        val second = tonePolicy.normalize(generateResultWithRetry(request).withCollectedItemFallbacks(request.analysisItems))
+        if (tonePolicy.requiresRegeneration(second)) {
+            logger.warn("V2 회고 결과 종결 규칙 보정 실패 - 재생성 결과를 그대로 저장합니다.")
+        }
         return second.copy(
             inputTokens = first.inputTokens + second.inputTokens,
             outputTokens = first.outputTokens + second.outputTokens,
+        )
+    }
+
+    private fun GeneratedRetrospectiveResultV2.withCollectedItemFallbacks(
+        analysisItems: List<ConversationAnalysisItem>,
+    ): GeneratedRetrospectiveResultV2 {
+        val summaries =
+            analysisItems
+                .filter { it.status != RetrospectiveItemStatus.EMPTY }
+                .mapNotNull { item -> item.summary?.takeIf(String::isNotBlank)?.let { item.itemType to it } }
+                .toMap()
+
+        fun List<String>?.orSummary(type: RetrospectiveItemType): List<String>? =
+            this?.takeIf { it.any(String::isNotBlank) } ?: summaries[type]?.let(::listOf)
+
+        return copy(
+            strengths = strengths.orSummary(RetrospectiveItemType.STRENGTH),
+            improvements = improvements.orSummary(RetrospectiveItemType.BLOCK),
+            processes = processes.orSummary(RetrospectiveItemType.PROCESS),
+            learnings = learnings.orSummary(RetrospectiveItemType.LEARN),
         )
     }
 

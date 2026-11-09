@@ -7,6 +7,7 @@ import com.didit.domain.retrospect.ConversationMessageType
 import com.didit.domain.retrospect.ConversationTurnAction
 import com.didit.domain.retrospect.MessageRelevance
 import com.didit.domain.retrospect.RetrospectiveAnalysisItem
+import com.didit.domain.retrospect.RetrospectiveItemProgressStatus
 import com.didit.domain.retrospect.RetrospectiveItemStatus
 import com.didit.domain.retrospect.RetrospectiveItemType
 import com.didit.domain.retrospect.Sender
@@ -16,8 +17,6 @@ import java.util.UUID
 @Component
 class ConversationV2TurnPolicy {
     companion object {
-        private const val MIN_RETROSPECTIVE_MESSAGES_FOR_READY_COMPLETION = 2
-        private const val MAX_QUESTION_TURNS = 5
         private const val DEFAULT_REFLECT_ACKNOWLEDGEMENT = "알겠어요."
         private const val READY_COMPLETION_GUIDE = "지금까지 나눈 내용으로 회고를 마칠 수 있어요."
         private const val INSUFFICIENT_COMPLETION_GUIDE =
@@ -89,11 +88,9 @@ class ConversationV2TurnPolicy {
     ): List<RetrospectiveItemType> {
         val candidates =
             items
-                .filter { it.questionAllowed && it.status != RetrospectiveItemStatus.ENOUGH }
+                .filter { it.progressStatus == RetrospectiveItemProgressStatus.PENDING }
                 .map { it.itemType }
-        val observedCounts = recentQuestionTargets.groupingBy { it }.eachCount().toMutableMap()
-        questionTargetCounts.forEach { (target, count) -> observedCounts[target] = maxOf(observedCounts[target] ?: 0, count) }
-        return candidates.filter { target -> (observedCounts[target] ?: 0) == 0 }
+        return candidates
     }
 
     fun minimumCompletionQuestionTargets(items: List<ConversationV2AnalysisItemSnapshot>): List<RetrospectiveItemType> {
@@ -120,13 +117,11 @@ class ConversationV2TurnPolicy {
         return emptyList()
     }
 
-    fun shouldRecommendCompletion(
-        readyToComplete: Boolean,
-        completedQuestionCount: Int,
-        retrospectiveMessageCount: Int = 0,
-    ): Boolean =
-        (readyToComplete && retrospectiveMessageCount >= MIN_RETROSPECTIVE_MESSAGES_FOR_READY_COMPLETION) ||
-            completedQuestionCount >= MAX_QUESTION_TURNS
+    fun shouldRecommendCompletion(items: List<ConversationV2AnalysisItemSnapshot>): Boolean = allItemsResolved(items)
+
+    fun allItemsResolved(items: List<ConversationV2AnalysisItemSnapshot>): Boolean =
+        items.size == RetrospectiveItemType.entries.size &&
+            items.none { it.progressStatus == RetrospectiveItemProgressStatus.PENDING }
 
     fun readyToComplete(items: List<ConversationV2AnalysisItemSnapshot>): Boolean {
         val statuses = items.associate { it.itemType to it.status }
@@ -162,8 +157,50 @@ class ConversationV2TurnPolicy {
             readyToComplete = readyToComplete,
             completionConfirmationRequested = userMessageContent.requestsCompletionConfirmation(),
             insufficientGuidancePreviouslyShown = insufficientGuidancePreviouslyShown,
-        ).withTopicTransition(previousQuestionTarget)
+        ).avoidImmediateRepeatedQuestion(previousQuestionTarget, eligibleQuestionTargets, userMessageContent)
+            .withTopicTransition(previousQuestionTarget)
             .ensureVisibleContent()
+
+    fun decideExplicitCompletion(
+        generated: GeneratedConversationTurn,
+        userMessageContent: String?,
+        readyToComplete: Boolean,
+    ): GeneratedConversationTurn? {
+        if (!userMessageContent.requestsCompletionConfirmation()) return null
+        return completionDecision(generated, readyToComplete)
+    }
+
+    fun requestsCompletion(userMessageContent: String?): Boolean = userMessageContent.requestsCompletionConfirmation()
+
+    fun hasNewRetrospectiveEvidence(userMessageContent: String?): Boolean =
+        userMessageContent
+            ?.trim()
+            ?.takeIf(String::isNotEmpty)
+            ?.let { content ->
+                !content.requestsCompletionConfirmation() &&
+                    !content.declinesCurrentQuestion() &&
+                    !isNoNewRetrospectiveEvidenceResponse(content)
+            } ?: false
+
+    fun isNoNewRetrospectiveEvidenceResponse(userMessageContent: String?): Boolean =
+        userMessageContent?.trim()?.let(NO_NEW_EVIDENCE_RESPONSE_PATTERN::matches) == true
+
+    private fun completionDecision(
+        generated: GeneratedConversationTurn,
+        readyToComplete: Boolean,
+    ): GeneratedConversationTurn =
+        generated.copy(
+            action =
+                if (readyToComplete) {
+                    ConversationTurnAction.CONFIRM_COMPLETION
+                } else {
+                    ConversationTurnAction.CONFIRM_EXIT
+                },
+            acknowledgement = completionGuide(readyToComplete).takeUnless { readyToComplete }.orEmpty(),
+            interpretation = "",
+            question = null,
+            questionTarget = null,
+        )
 
     private fun decideSanitizedTurn(
         generated: GeneratedConversationTurn,
@@ -205,14 +242,16 @@ class ConversationV2TurnPolicy {
             }
         }
         if (completionConfirmationRequested) {
+            return completionDecision(generated, readyToComplete)
+        }
+        if (
+            generated.relevance == MessageRelevance.RETROSPECTIVE &&
+            completionRecommended &&
+            !completionPreviouslyOffered
+        ) {
             return generated.copy(
-                action =
-                    if (readyToComplete) {
-                        ConversationTurnAction.CONFIRM_COMPLETION
-                    } else {
-                        ConversationTurnAction.CONFIRM_EXIT
-                    },
-                acknowledgement = completionGuide(readyToComplete).takeUnless { readyToComplete }.orEmpty(),
+                action = ConversationTurnAction.OFFER_COMPLETION,
+                acknowledgement = completionGuide(readyToComplete),
                 interpretation = "",
                 question = null,
                 questionTarget = null,
@@ -252,20 +291,6 @@ class ConversationV2TurnPolicy {
                 )
             }
         }
-        if (
-            generated.relevance == MessageRelevance.RETROSPECTIVE &&
-            completionRecommended &&
-            readyToComplete &&
-            !completionPreviouslyOffered
-        ) {
-            return generated.copy(
-                action = ConversationTurnAction.OFFER_COMPLETION,
-                acknowledgement = completionGuide(readyToComplete),
-                interpretation = "",
-                question = null,
-                questionTarget = null,
-            )
-        }
         val fallbackTarget = eligibleQuestionTargets.firstOrNull()
         val shouldContinueWithQuestion =
             fallbackTarget != null &&
@@ -299,6 +324,31 @@ class ConversationV2TurnPolicy {
     private fun GeneratedConversationTurn.withoutDuplicatedQuestion(): GeneratedConversationTurn {
         val currentQuestion = question?.takeIf(String::isNotBlank) ?: return this
         return copy(interpretation = interpretation.replace(currentQuestion, "").trim())
+    }
+
+    private fun GeneratedConversationTurn.avoidImmediateRepeatedQuestion(
+        previousQuestionTarget: RetrospectiveItemType?,
+        eligibleQuestionTargets: List<RetrospectiveItemType>,
+        userMessageContent: String?,
+    ): GeneratedConversationTurn {
+        if (
+            action != ConversationTurnAction.ASK ||
+            previousQuestionTarget == null ||
+            questionTarget != previousQuestionTarget ||
+            userMessageContent == null ||
+            hasNewRetrospectiveEvidence(userMessageContent)
+        ) {
+            return this
+        }
+        val alternativeTarget = eligibleQuestionTargets.firstOrNull { it != previousQuestionTarget }
+        return if (alternativeTarget == null) {
+            asReflect()
+        } else {
+            copy(
+                question = fallbackQuestion(alternativeTarget),
+                questionTarget = alternativeTarget,
+            )
+        }
     }
 
     private fun GeneratedConversationTurn.withTopicTransition(previousQuestionTarget: RetrospectiveItemType?): GeneratedConversationTurn {
@@ -481,13 +531,19 @@ private val CURRENT_QUESTION_DECLINE_PATTERN =
         "(?:(?:(?:이|그)\\s*(?:질문|이야기|주제)(?:은|는|를)?\\s*)?(?:" +
             "(?:더\\s*|딱히\\s*|특별한\\s*(?:건|것은)\\s*)?(?:없어(?:요)?|없습니다|없다|없음|없는\\s*것\\s*같아(?:요)?)|" +
             "모르겠어(?:요)?|모르겠습니다|생각나지\\s*않아(?:요)?|생각나지\\s*않습니다|" +
-            "(?:앞에서|이미)\\s*(?:다\\s*)?(?:말|이야기)(?:했어(?:요)?|했습니다)|더\\s*이상\\s*없어(?:요)?|" +
+            "더\\s*이상\\s*없어(?:요)?|" +
             "넘어갈게(?:요)?|넘어가고\\s*싶어(?:요)?|건너뛸게(?:요)?|" +
             "말하고\\s*싶지\\s*않아(?:요)?|말하고\\s*싶지\\s*않습니다|" +
-            "다음으로\\s*(?:가요|가자)|네|그냥(?:요)?|그랬죠))[\\s.!?…]*",
+            "다음으로\\s*(?:가요|가자)|그냥(?:요)?|그랬죠))[\\s.!?…]*",
     )
 
 private val QUESTION_TRANSITION_PATTERN = Regex("^(?:그럼|그렇다면|그러면|이번에는|이어서)(?:\\s|,)")
+
+private val NO_NEW_EVIDENCE_RESPONSE_PATTERN =
+    Regex(
+        "(?:(?:네|예|응|맞아(?:요)?|그래(?:요)?|그렇(?:죠|습니다)|알겠(?:어(?:요)?|습니다)|오케이)|" +
+            "(?:아까|방금|앞에서|이미)\\s*(?:다\\s*)?(?:말|이야기)(?:했잖아(?:요)?|했어(?:요)?|했습니다))[\\s.!?~…]*",
+    )
 
 data class ConversationV2MessageSnapshot(
     val content: String,
@@ -507,6 +563,7 @@ data class ConversationV2AnalysisItemSnapshot(
     val status: RetrospectiveItemStatus,
     val summary: String?,
     val questionAllowed: Boolean = true,
+    val progressStatus: RetrospectiveItemProgressStatus = RetrospectiveItemProgressStatus.PENDING,
 )
 
 internal fun RetrospectiveAnalysisItem.toConversationSnapshot(): ConversationV2AnalysisItemSnapshot =
@@ -515,6 +572,7 @@ internal fun RetrospectiveAnalysisItem.toConversationSnapshot(): ConversationV2A
         status = status,
         summary = summary,
         questionAllowed = questionAllowed,
+        progressStatus = progressStatus,
     )
 
 data class ConversationV2EvidenceDecision(

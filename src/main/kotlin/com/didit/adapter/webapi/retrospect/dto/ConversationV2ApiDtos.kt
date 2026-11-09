@@ -69,6 +69,7 @@ data class SubmitConversationMessageV2Response(
     val assistantMessage: ConversationMessageV2Response?,
     val readyToComplete: Boolean,
     val action: ConversationTurnAction?,
+    val canContinue: Boolean,
 ) {
     companion object {
         fun from(result: SubmitConversationMessageResult) =
@@ -79,6 +80,7 @@ data class SubmitConversationMessageV2Response(
                 assistantMessage = result.assistantMessage?.let(ConversationMessageV2Response::from),
                 readyToComplete = result.readyToComplete,
                 action = result.action,
+                canContinue = result.canContinue,
             )
     }
 }
@@ -89,6 +91,7 @@ data class ConversationV2Response(
     val messages: List<ConversationMessageV2Response>,
     val turns: List<ConversationTurnV2Response>,
     val readyToComplete: Boolean,
+    val canContinue: Boolean,
 ) {
     companion object {
         fun from(result: ConversationV2Result) =
@@ -98,6 +101,7 @@ data class ConversationV2Response(
                 messages = result.messages.map(ConversationMessageV2Response::from),
                 turns = result.turns.map(ConversationTurnV2Response::from),
                 readyToComplete = result.readyToComplete,
+                canContinue = result.canContinue,
             )
     }
 }

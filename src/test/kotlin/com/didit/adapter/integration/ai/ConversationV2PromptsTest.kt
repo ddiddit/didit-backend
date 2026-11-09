@@ -113,13 +113,12 @@ class ConversationV2PromptsTest {
     }
 
     @Test
-    fun `build - default prompt treats empty items as candidates instead of mandatory questions`() {
+    fun `build - default prompt requires one question while collection candidates remain`() {
         val rendered = prompts.build(request())
 
         assertThat(rendered)
-            .contains("현재 이야기와 자연스럽게 이어지는 질문")
-            .contains("빈 항목을 채우기 위해 질문하지 마세요")
-            .doesNotContain("REFLECT보다 ASK를 우선하세요")
+            .contains("eligibleQuestionTargets가 하나라도 있으면 반드시")
+            .contains("ASK로 질문을 정확히 하나")
     }
 
     @Test
@@ -139,6 +138,7 @@ class ConversationV2PromptsTest {
         assertThat(rendered)
             .contains("이미 답한 내용과 의미가 같은 질문을 표현만 바꿔 다시 묻지 마세요")
             .contains("다른 후보를 질문하거나 REFLECT")
+            .contains("answeredQuestionTarget")
     }
 
     @Test
