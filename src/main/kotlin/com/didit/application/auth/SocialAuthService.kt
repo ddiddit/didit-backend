@@ -1,6 +1,7 @@
 package com.didit.application.auth
 
 import com.didit.application.auth.dto.EmailVerificationStartResult
+import com.didit.application.auth.dto.SocialLoginCommand
 import com.didit.application.auth.dto.SocialLoginResult
 import com.didit.application.auth.dto.SocialLoginStatus
 import com.didit.application.auth.exception.EmailVerificationAttemptsExceededException
@@ -10,6 +11,8 @@ import com.didit.application.auth.exception.InvalidEmailVerificationException
 import com.didit.application.auth.exception.InvalidSocialLoginSessionException
 import com.didit.application.auth.exception.UnsupportedOAuthProviderException
 import com.didit.application.auth.provided.SocialAuth
+import com.didit.application.auth.required.AppleTokenClient
+import com.didit.application.auth.required.AppleTokenProtector
 import com.didit.application.auth.required.EmailVerificationChallengeRepository
 import com.didit.application.auth.required.OAuthClientFactory
 import com.didit.application.auth.required.SocialIdentityRepository
@@ -45,22 +48,37 @@ class SocialAuthService(
     @param:Value("\${social-login.session-expiry-minutes:15}") private val sessionExpiryMinutes: Long,
     @param:Value("\${social-login.email-verification.max-attempts:5}") private val maxAttempts: Int,
     @param:Value("\${social-login.apple-enabled:false}") private val appleEnabled: Boolean,
+    private val appleTokenClient: AppleTokenClient,
+    private val appleTokenProtector: AppleTokenProtector,
 ) : SocialAuth {
     private val loginTransaction = TransactionTemplate(transactionManager)
 
-    override fun login(
-        provider: Provider,
-        credentialType: SocialCredentialType,
-        credential: String,
-        redirectUri: String?,
-        nonce: String?,
-    ): SocialLoginResult {
+    override fun login(command: SocialLoginCommand): SocialLoginResult {
+        val (provider, credentialType, credential, redirectUri, nonce, authorizationCode) = command
         if (provider == Provider.APPLE && !appleEnabled) throw UnsupportedOAuthProviderException()
 
-        val userInfo = oAuthClientFactory.getClient(provider).getUserInfo(credentialType, credential, redirectUri, nonce)
+        val appleExchange =
+            when {
+                provider == Provider.APPLE && credentialType == SocialCredentialType.ID_TOKEN && !authorizationCode.isNullOrBlank() ->
+                    appleTokenClient.exchangeNativeAuthorizationCode(credential, authorizationCode)
+                provider == Provider.APPLE && credentialType == SocialCredentialType.AUTHORIZATION_CODE ->
+                    appleTokenClient.exchangeWebAuthorizationCode(credential, redirectUri, nonce)
+                else -> null
+            }
+        val userInfo =
+            appleExchange?.userInfo
+                ?: oAuthClientFactory.getClient(provider).getUserInfo(credentialType, credential, redirectUri, nonce)
+        val appleToken =
+            appleExchange?.let {
+                ProtectedAppleToken(
+                    refreshToken = appleTokenProtector.protect(it.refreshToken),
+                    clientId = it.clientId,
+                )
+            }
 
         return loginTransaction.execute {
             findActiveUser(provider, userInfo.providerId)?.let { user ->
+                saveAppleToken(provider, userInfo.providerId, appleToken)
                 return@execute authenticated(user, provider, false)
             }
 
@@ -72,6 +90,8 @@ class SocialAuthService(
                     providerId = userInfo.providerId,
                     providerEmail = userInfo.email?.trim()?.lowercase(),
                     expiresAt = LocalDateTime.now().plusMinutes(sessionExpiryMinutes),
+                    appleRefreshToken = appleToken?.refreshToken,
+                    appleTokenClientId = appleToken?.clientId,
                 ),
             )
 
@@ -170,7 +190,7 @@ class SocialAuthService(
         if (user != null && user.provider != session.provider) return supportRequired()
 
         if (user != null) {
-            identityRepository.save(SocialIdentity.create(user.id, session.provider, session.providerId))
+            identityRepository.save(identityFromSession(user.id, session))
             return authenticated(user, session.provider, false)
         }
 
@@ -184,9 +204,32 @@ class SocialAuthService(
                     ),
                 ),
             )
-        identityRepository.save(SocialIdentity.create(newUser.id, session.provider, session.providerId))
+        identityRepository.save(identityFromSession(newUser.id, session))
         return authenticated(newUser, session.provider, true)
     }
+
+    private fun saveAppleToken(
+        provider: Provider,
+        providerId: String,
+        token: ProtectedAppleToken?,
+    ) {
+        if (provider != Provider.APPLE || token == null) return
+        identityRepository.findByProviderAndProviderId(provider, providerId)?.let {
+            it.updateAppleToken(token.refreshToken, token.clientId)
+            identityRepository.save(it)
+        }
+    }
+
+    private fun identityFromSession(
+        userId: java.util.UUID,
+        session: SocialLoginSession,
+    ) = SocialIdentity.create(
+        userId = userId,
+        provider = session.provider,
+        providerId = session.providerId,
+        appleRefreshToken = session.appleRefreshToken,
+        appleTokenClientId = session.appleTokenClientId,
+    )
 
     private fun authenticated(
         user: User,
@@ -216,4 +259,9 @@ class SocialAuthService(
           <p>인증번호는 10분 동안 유효합니다. 본인이 요청하지 않았다면 이 메일을 무시해주세요.</p>
         </div>
         """.trimIndent()
+
+    private data class ProtectedAppleToken(
+        val refreshToken: String,
+        val clientId: String,
+    )
 }

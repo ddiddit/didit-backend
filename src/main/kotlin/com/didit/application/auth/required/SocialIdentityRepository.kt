@@ -12,6 +12,8 @@ interface SocialIdentityRepository : Repository<SocialIdentity, UUID> {
 
     fun deleteAllByUserId(userId: UUID)
 
+    fun findAllByUserId(userId: UUID): List<SocialIdentity>
+
     fun findByProviderAndProviderId(
         provider: Provider,
         providerId: String,

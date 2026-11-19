@@ -29,6 +29,10 @@ class SocialLoginSession(
     val expiresAt: LocalDateTime,
     @Column(name = "consumed_at")
     var consumedAt: LocalDateTime? = null,
+    @Column(name = "apple_refresh_token", columnDefinition = "TEXT")
+    val appleRefreshToken: String? = null,
+    @Column(name = "apple_token_client_id")
+    val appleTokenClientId: String? = null,
 ) : BaseEntity() {
     val isConsumed: Boolean get() = consumedAt != null
 

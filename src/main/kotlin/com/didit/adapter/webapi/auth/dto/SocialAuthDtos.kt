@@ -1,5 +1,6 @@
 package com.didit.adapter.webapi.auth.dto
 
+import com.didit.application.auth.dto.SocialLoginCommand
 import com.didit.application.auth.dto.SocialLoginResult
 import com.didit.application.auth.dto.SocialLoginStatus
 import com.didit.domain.auth.Provider
@@ -13,7 +14,18 @@ data class SocialLoginRequest(
     @field:NotBlank val credential: String,
     val redirectUri: String? = null,
     val nonce: String? = null,
-)
+    val authorizationCode: String? = null,
+) {
+    fun toCommand() =
+        SocialLoginCommand(
+            provider = provider,
+            credentialType = credentialType,
+            credential = credential,
+            redirectUri = redirectUri,
+            nonce = nonce,
+            authorizationCode = authorizationCode,
+        )
+}
 
 data class EmailVerificationStartRequest(
     @field:NotBlank val loginSessionToken: String,
