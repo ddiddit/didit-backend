@@ -31,6 +31,7 @@ class AppleOAuthClient(
     private val objectMapper: ObjectMapper,
     @param:Value("\${oauth.apple.jwks-url}") private val jwksUrl: String,
     @Value("\${oauth.apple.allowed-client-ids:}") allowedClientIdsConfig: String,
+    @Value("\${oauth.apple.native-client-ids:}") nativeClientIdsConfig: String,
     @Value("\${oauth.apple.token-url}") private val tokenUrl: String = "https://appleid.apple.com/auth/token",
     @Value("\${oauth.apple.client-id:}") private val clientId: String = "",
     @Value("\${oauth.apple.team-id:}") private val teamId: String = "",
@@ -38,20 +39,11 @@ class AppleOAuthClient(
     @Value("\${oauth.apple.private-key-pem-base64:}") private val privateKeyPemBase64: String = "",
     @Value("\${oauth.apple.allowed-redirect-uris:}") allowedRedirectUrisConfig: String = "",
 ) : OAuthClient {
-    private val allowedClientIds =
-        allowedClientIdsConfig
-            .split(",")
-            .map(String::trim)
-            .filter(String::isNotEmpty)
-            .toSet()
-    private val allowedRedirectUris =
-        allowedRedirectUrisConfig
-            .split(",")
-            .map(String::trim)
-            .filter(String::isNotEmpty)
-            .toSet()
+    private val allowedClientIds = parseAllowList(allowedClientIdsConfig)
+    private val nativeClientIds = parseAllowList(nativeClientIdsConfig)
+    private val allowedRedirectUris = parseAllowList(allowedRedirectUrisConfig)
 
-    override fun getUserInfo(oauthToken: String): UserInfo = verifyIdToken(oauthToken, allowedClientIds - clientId)
+    override fun getUserInfo(oauthToken: String): UserInfo = verifyIdToken(oauthToken, nativeClientIds)
 
     override fun getUserInfo(
         credentialType: SocialCredentialType,
@@ -211,5 +203,12 @@ class AppleOAuthClient(
 
     private companion object {
         const val APPLE_ISSUER = "https://appleid.apple.com"
+
+        fun parseAllowList(config: String): Set<String> =
+            config
+                .split(",")
+                .map(String::trim)
+                .filter(String::isNotEmpty)
+                .toSet()
     }
 }

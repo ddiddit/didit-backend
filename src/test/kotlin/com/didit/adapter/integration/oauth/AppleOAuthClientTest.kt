@@ -88,6 +88,21 @@ class AppleOAuthClientTest {
     }
 
     @Test
+    fun `Apple client ID와 같은 iOS Bundle ID 대상 토큰도 검증한다`() {
+        val (client, server) =
+            clientWithAppleKey(
+                allowedClientIdsConfig = "com.swyp.didit",
+                nativeClientIdsConfig = "com.swyp.didit",
+                clientId = "com.swyp.didit",
+            )
+
+        val result = client.getUserInfo(SocialCredentialType.ID_TOKEN, token(audience = "com.swyp.didit"))
+
+        assertThat(result.providerId).isEqualTo("existing-apple-user")
+        server.verify()
+    }
+
+    @Test
     fun `웹 Services ID 토큰을 코드 교환 없이 보내면 거절한다`() {
         val (client, server) = clientWithAppleKey()
 
@@ -117,7 +132,12 @@ class AppleOAuthClientTest {
         server.verify()
     }
 
-    private fun clientWithAppleKey(codeExchangeToken: String? = null): Pair<AppleOAuthClient, MockRestServiceServer> {
+    private fun clientWithAppleKey(
+        codeExchangeToken: String? = null,
+        allowedClientIdsConfig: String = "web-client-id,ios-bundle-id",
+        nativeClientIdsConfig: String = "ios-bundle-id",
+        clientId: String = "web-client-id",
+    ): Pair<AppleOAuthClient, MockRestServiceServer> {
         val builder = RestClient.builder()
         val server = MockRestServiceServer.bindTo(builder).build()
         if (codeExchangeToken != null) {
@@ -140,9 +160,10 @@ class AppleOAuthClientTest {
             restClient = builder.build(),
             objectMapper = ObjectMapper(),
             jwksUrl = JWKS_URL,
-            allowedClientIdsConfig = "web-client-id,ios-bundle-id",
+            allowedClientIdsConfig = allowedClientIdsConfig,
+            nativeClientIdsConfig = nativeClientIdsConfig,
             tokenUrl = TOKEN_URL,
-            clientId = "web-client-id",
+            clientId = clientId,
             teamId = "TEAM123",
             keyId = "KEY123",
             privateKeyPemBase64 = privateKeyPemBase64(),

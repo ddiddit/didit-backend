@@ -52,6 +52,7 @@ oauth:
     private-key-pem-base64: ${OAUTH_APPLE_PRIVATE_KEY_PEM_BASE64:}
     allowed-redirect-uris: ${OAUTH_APPLE_ALLOWED_REDIRECT_URIS:}
     allowed-client-ids: ${OAUTH_APPLE_ALLOWED_CLIENT_IDS:}
+    native-client-ids: ${OAUTH_APPLE_NATIVE_CLIENT_IDS:com.swyp.didit}
 
 jwt:
   access-token-expiry-ms: 3600000
