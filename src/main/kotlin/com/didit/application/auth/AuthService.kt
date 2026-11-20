@@ -11,6 +11,8 @@ import com.didit.application.auth.exception.InvalidRefreshTokenException
 import com.didit.application.auth.exception.UnsupportedOAuthProviderException
 import com.didit.application.auth.provided.Auth
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.auth.required.AppleTokenClient
+import com.didit.application.auth.required.AppleTokenProtector
 import com.didit.application.auth.required.OAuthClientFactory
 import com.didit.application.auth.required.RefreshTokenRepository
 import com.didit.application.auth.required.SocialIdentityRepository
@@ -47,8 +49,11 @@ class AuthService(
     private val loginCompletionService: LoginCompletionService,
     @param:Value("\${social-login.apple-enabled:false}") private val appleEnabled: Boolean,
     transactionManager: PlatformTransactionManager,
+    private val appleTokenClient: AppleTokenClient,
+    private val appleTokenProtector: AppleTokenProtector,
 ) : Auth {
     private val loginTransaction = TransactionTemplate(transactionManager)
+    private val withdrawalTransaction = TransactionTemplate(transactionManager)
 
     companion object {
         private val logger = LoggerFactory.getLogger(AuthService::class.java)
@@ -77,7 +82,7 @@ class AuthService(
         logger.info("로그아웃 - userId: $userId")
     }
 
-    @Transactional
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
     override fun withdraw(
         userId: UUID,
         reason: WithdrawalReason,
@@ -87,32 +92,45 @@ class AuthService(
 
         val user = userFinder.findByIdOrThrow(userId)
 
-        user.withdraw()
-        userRepository.save(user)
-        socialIdentityRepository.deleteAllByUserId(user.id)
+        socialIdentityRepository
+            .findAllByUserId(user.id)
+            .filter { it.provider == Provider.APPLE }
+            .forEach(::revokeAppleToken)
 
-        deviceTokenRepository.deleteByUserId(user.id)
-
-        refreshTokenRepository.deleteByUserId(userId)
-
-        withdrawalRecordRepository.save(
-            WithdrawalRecord.create(
-                userId = userId,
-                reason = reason,
-                reasonDetail = reasonDetail,
-            ),
-        )
-
-        auditLogger.log(
-            actorId = userId,
-            actorType = ActorType.USER,
-            action = AuditAction.USER_WITHDREW,
-            payload =
-                mapOf(
-                    "reason" to reason.name,
-                    "reasonDetail" to (reasonDetail ?: ""),
+        withdrawalTransaction.executeWithoutResult {
+            user.withdraw()
+            userRepository.save(user)
+            socialIdentityRepository.deleteAllByUserId(user.id)
+            deviceTokenRepository.deleteByUserId(user.id)
+            refreshTokenRepository.deleteByUserId(userId)
+            withdrawalRecordRepository.save(
+                WithdrawalRecord.create(
+                    userId = userId,
+                    reason = reason,
+                    reasonDetail = reasonDetail,
                 ),
-        )
+            )
+            auditLogger.log(
+                actorId = userId,
+                actorType = ActorType.USER,
+                action = AuditAction.USER_WITHDREW,
+                payload =
+                    mapOf(
+                        "reason" to reason.name,
+                        "reasonDetail" to (reasonDetail ?: ""),
+                    ),
+            )
+        }
+    }
+
+    private fun revokeAppleToken(identity: SocialIdentity) {
+        val protectedToken = identity.appleRefreshToken ?: return
+        val tokenClientId = identity.appleTokenClientId ?: return
+        runCatching {
+            appleTokenClient.revoke(tokenClientId, appleTokenProtector.unprotect(protectedToken))
+        }.onFailure {
+            logger.error("Apple 토큰 해제 실패 - userId: ${identity.userId}", it)
+        }
     }
 
     @Transactional

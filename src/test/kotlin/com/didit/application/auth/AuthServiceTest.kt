@@ -6,6 +6,8 @@ import com.didit.application.auth.dto.UserInfo
 import com.didit.application.auth.exception.AccountVerificationRequiredException
 import com.didit.application.auth.exception.UnsupportedOAuthProviderException
 import com.didit.application.auth.provided.UserFinder
+import com.didit.application.auth.required.AppleTokenClient
+import com.didit.application.auth.required.AppleTokenProtector
 import com.didit.application.auth.required.OAuthClient
 import com.didit.application.auth.required.OAuthClientFactory
 import com.didit.application.auth.required.RefreshTokenRepository
@@ -25,6 +27,7 @@ import org.mockito.Mock
 import org.mockito.junit.jupiter.MockitoExtension
 import org.mockito.kotlin.any
 import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
@@ -63,6 +66,12 @@ class AuthServiceTest {
     @Mock(lenient = true)
     lateinit var transactionManager: PlatformTransactionManager
 
+    @Mock
+    lateinit var appleTokenClient: AppleTokenClient
+
+    @Mock
+    lateinit var appleTokenProtector: AppleTokenProtector
+
     private val loginEvents = mutableListOf<String>()
     private lateinit var service: AuthService
 
@@ -93,6 +102,8 @@ class AuthServiceTest {
                 loginCompletionService = loginCompletionService,
                 appleEnabled = false,
                 transactionManager = transactionManager,
+                appleTokenClient = appleTokenClient,
+                appleTokenProtector = appleTokenProtector,
             )
     }
 
@@ -132,5 +143,46 @@ class AuthServiceTest {
     fun `v1 Apple 로그인은 기능 게이트가 꺼져 있으면 거절한다`() {
         assertThatThrownBy { service.login(Provider.APPLE, "id-token") }
             .isInstanceOf(UnsupportedOAuthProviderException::class.java)
+    }
+
+    @Test
+    fun `Apple 회원 탈퇴는 저장된 refresh token을 Apple에 해제한다`() {
+        val user = UserFixture.create(provider = Provider.APPLE)
+        val identity = SocialIdentity.create(user.id, Provider.APPLE, "apple-user-id")
+        identity.updateAppleToken("encrypted-refresh-token", "com.swyp.didit")
+        whenever(userFinder.findByIdOrThrow(user.id)).thenReturn(user)
+        whenever(identityRepository.findAllByUserId(user.id)).thenReturn(listOf(identity))
+        whenever(appleTokenProtector.unprotect("encrypted-refresh-token")).thenReturn("apple-refresh-token")
+        whenever(appleTokenClient.revoke("com.swyp.didit", "apple-refresh-token")).thenAnswer {
+            loginEvents += "revoke"
+            Unit
+        }
+
+        service.withdraw(user.id, com.didit.domain.auth.WithdrawalReason.NO_LONGER_NEEDED, null)
+
+        org.assertj.core.api.Assertions
+            .assertThat(loginEvents)
+            .containsExactly("revoke", "transaction")
+        verify(appleTokenClient).revoke("com.swyp.didit", "apple-refresh-token")
+        verify(identityRepository).deleteAllByUserId(user.id)
+    }
+
+    @Test
+    fun `Apple 토큰 해제가 실패해도 로컬 회원 탈퇴는 완료한다`() {
+        val user = UserFixture.create(provider = Provider.APPLE)
+        val identity = SocialIdentity.create(user.id, Provider.APPLE, "apple-user-id")
+        identity.updateAppleToken("encrypted-refresh-token", "com.swyp.didit")
+        whenever(userFinder.findByIdOrThrow(user.id)).thenReturn(user)
+        whenever(identityRepository.findAllByUserId(user.id)).thenReturn(listOf(identity))
+        whenever(appleTokenProtector.unprotect("encrypted-refresh-token")).thenReturn("apple-refresh-token")
+        doThrow(IllegalStateException("Apple unavailable"))
+            .whenever(appleTokenClient)
+            .revoke("com.swyp.didit", "apple-refresh-token")
+
+        service.withdraw(user.id, com.didit.domain.auth.WithdrawalReason.NO_LONGER_NEEDED, null)
+
+        verify(userRepository).save(user)
+        verify(identityRepository).deleteAllByUserId(user.id)
+        verify(refreshTokenRepository).deleteByUserId(user.id)
     }
 }

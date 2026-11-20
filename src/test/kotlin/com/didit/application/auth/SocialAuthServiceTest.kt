@@ -1,8 +1,12 @@
 package com.didit.application.auth
 
+import com.didit.application.auth.dto.AppleTokenExchange
+import com.didit.application.auth.dto.SocialLoginCommand
 import com.didit.application.auth.dto.SocialLoginStatus
 import com.didit.application.auth.dto.TokenResponse
 import com.didit.application.auth.dto.UserInfo
+import com.didit.application.auth.required.AppleTokenClient
+import com.didit.application.auth.required.AppleTokenProtector
 import com.didit.application.auth.required.EmailVerificationChallengeRepository
 import com.didit.application.auth.required.OAuthClient
 import com.didit.application.auth.required.OAuthClientFactory
@@ -62,6 +66,12 @@ class SocialAuthServiceTest {
     @Mock(lenient = true)
     lateinit var transactionManager: PlatformTransactionManager
 
+    @Mock
+    lateinit var appleTokenClient: AppleTokenClient
+
+    @Mock
+    lateinit var appleTokenProtector: AppleTokenProtector
+
     private val loginEvents = mutableListOf<String>()
     private lateinit var service: SocialAuthService
 
@@ -109,6 +119,8 @@ class SocialAuthServiceTest {
                 sessionExpiryMinutes = 15,
                 maxAttempts = 5,
                 appleEnabled = true,
+                appleTokenClient = appleTokenClient,
+                appleTokenProtector = appleTokenProtector,
             )
     }
 
@@ -120,13 +132,85 @@ class SocialAuthServiceTest {
         whenever(userRepository.findById(user.id)).thenReturn(user)
         whenever(loginCompletionService.complete(user, Provider.APPLE, false)).thenReturn(tokenResponse(isNewUser = false))
 
-        val result = service.login(Provider.APPLE, SocialCredentialType.ID_TOKEN, "id-token", null, null)
+        whenever(appleTokenClient.exchangeNativeAuthorizationCode("id-token", "authorization-code"))
+            .thenReturn(
+                AppleTokenExchange(
+                    UserInfo("existing-apple-sub", "relay@privaterelay.appleid.com"),
+                    "com.swyp.didit",
+                    "apple-refresh-token",
+                ),
+            )
+        whenever(appleTokenProtector.protect("apple-refresh-token")).thenReturn("encrypted-refresh-token")
 
-        assertThat(loginEvents).containsExactly("oauth", "transaction")
+        val result = service.login(loginCommand(Provider.APPLE, SocialCredentialType.ID_TOKEN, "id-token", "authorization-code"))
+
+        assertThat(loginEvents).containsExactly("transaction")
 
         assertThat(result.status).isEqualTo(SocialLoginStatus.AUTHENTICATED)
         assertThat(result.token?.isNewUser).isFalse()
+        assertThat(identity.appleTokenClientId).isEqualTo("com.swyp.didit")
+        assertThat(identity.appleRefreshToken).isEqualTo("encrypted-refresh-token")
         verify(sessionRepository, never()).save(any())
+    }
+
+    @Test
+    fun `신규 Apple 로그인은 이메일 인증 세션에 탈퇴용 토큰을 보관한다`() {
+        whenever(identityRepository.findByProviderAndProviderId(Provider.APPLE, "existing-apple-sub")).thenReturn(null)
+        whenever(userRepository.findByProviderAndProviderId(Provider.APPLE, "existing-apple-sub")).thenReturn(null)
+        whenever(appleTokenClient.exchangeNativeAuthorizationCode("id-token", "authorization-code"))
+            .thenReturn(
+                AppleTokenExchange(
+                    UserInfo("existing-apple-sub", "relay@privaterelay.appleid.com"),
+                    "com.swyp.didit",
+                    "apple-refresh-token",
+                ),
+            )
+        whenever(appleTokenProtector.protect("apple-refresh-token")).thenReturn("encrypted-refresh-token")
+        whenever(sessionRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        service.login(loginCommand(Provider.APPLE, SocialCredentialType.ID_TOKEN, "id-token", "authorization-code"))
+
+        val sessionCaptor = argumentCaptor<SocialLoginSession>()
+        verify(sessionRepository).save(sessionCaptor.capture())
+        assertThat(sessionCaptor.firstValue.appleTokenClientId).isEqualTo("com.swyp.didit")
+        assertThat(sessionCaptor.firstValue.appleRefreshToken).isEqualTo("encrypted-refresh-token")
+    }
+
+    @Test
+    fun `Apple 웹 로그인도 이메일 인증 세션에 탈퇴용 토큰을 보관한다`() {
+        whenever(identityRepository.findByProviderAndProviderId(Provider.APPLE, "existing-apple-sub")).thenReturn(null)
+        whenever(userRepository.findByProviderAndProviderId(Provider.APPLE, "existing-apple-sub")).thenReturn(null)
+        whenever(
+            appleTokenClient.exchangeWebAuthorizationCode(
+                "authorization-code",
+                "https://app.didit.io.kr/auth/apple/callback",
+                "expected-nonce",
+            ),
+        ).thenReturn(
+            AppleTokenExchange(
+                UserInfo("existing-apple-sub", "relay@privaterelay.appleid.com"),
+                "web-client-id",
+                "apple-web-refresh-token",
+            ),
+        )
+        whenever(appleTokenProtector.protect("apple-web-refresh-token")).thenReturn("encrypted-web-refresh-token")
+        whenever(sessionRepository.save(any())).thenAnswer { it.arguments[0] }
+
+        service.login(
+            SocialLoginCommand(
+                provider = Provider.APPLE,
+                credentialType = SocialCredentialType.AUTHORIZATION_CODE,
+                credential = "authorization-code",
+                redirectUri = "https://app.didit.io.kr/auth/apple/callback",
+                nonce = "expected-nonce",
+            ),
+        )
+
+        assertThat(loginEvents).containsExactly("transaction")
+        val sessionCaptor = argumentCaptor<SocialLoginSession>()
+        verify(sessionRepository).save(sessionCaptor.capture())
+        assertThat(sessionCaptor.firstValue.appleTokenClientId).isEqualTo("web-client-id")
+        assertThat(sessionCaptor.firstValue.appleRefreshToken).isEqualTo("encrypted-web-refresh-token")
     }
 
     @Test
@@ -137,7 +221,7 @@ class SocialAuthServiceTest {
         whenever(userRepository.findById(user.id)).thenReturn(user)
         whenever(loginCompletionService.complete(user, Provider.KAKAO, false)).thenReturn(tokenResponse(isNewUser = false))
 
-        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code", null, null)
+        val result = service.login(loginCommand(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code"))
 
         assertThat(result.status).isEqualTo(SocialLoginStatus.AUTHENTICATED)
         assertThat(result.token?.isNewUser).isFalse()
@@ -150,7 +234,7 @@ class SocialAuthServiceTest {
         whenever(userRepository.findByProviderAndProviderId(Provider.KAKAO, "new-kakao-id")).thenReturn(null)
         whenever(sessionRepository.save(any())).thenAnswer { it.arguments[0] }
 
-        val result = service.login(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code", null, null)
+        val result = service.login(loginCommand(Provider.KAKAO, SocialCredentialType.AUTHORIZATION_CODE, "authorization-code"))
 
         assertThat(result.status).isEqualTo(SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED)
         assertThat(result.loginSessionToken).isNotBlank()
@@ -247,4 +331,16 @@ class SocialAuthServiceTest {
             isNewUser = isNewUser,
             isOnboardingCompleted = false,
         )
+
+    private fun loginCommand(
+        provider: Provider,
+        credentialType: SocialCredentialType,
+        credential: String,
+        authorizationCode: String? = null,
+    ) = SocialLoginCommand(
+        provider = provider,
+        credentialType = credentialType,
+        credential = credential,
+        authorizationCode = authorizationCode,
+    )
 }
