@@ -78,6 +78,27 @@ class AppleOAuthClientTest {
     }
 
     @Test
+    fun `Apple 웹 인가 코드를 교환해 탈퇴용 refresh token을 반환한다`() {
+        val (client, server) =
+            clientWithAppleKey(
+                codeExchangeToken = token(nonce = "expected-nonce"),
+                codeExchangeRefreshToken = "apple-web-refresh-token",
+            )
+
+        val result =
+            client.exchangeWebAuthorizationCode(
+                "one-time-code",
+                "https://app.didit.io.kr",
+                "expected-nonce",
+            )
+
+        assertThat(result.userInfo.providerId).isEqualTo("existing-apple-user")
+        assertThat(result.clientId).isEqualTo("web-client-id")
+        assertThat(result.refreshToken).isEqualTo("apple-web-refresh-token")
+        server.verify()
+    }
+
+    @Test
     fun `iOS Bundle ID 대상 Apple 토큰도 검증한다`() {
         val (client, server) = clientWithAppleKey()
 
@@ -132,9 +153,59 @@ class AppleOAuthClientTest {
         server.verify()
     }
 
+    @Test
+    fun `iOS 인가 코드를 Bundle ID로 교환해 탈퇴용 refresh token을 반환한다`() {
+        val builder = RestClient.builder()
+        val server = MockRestServiceServer.bindTo(builder).build()
+        expectAppleKey(server)
+        server
+            .expect(requestTo(TOKEN_URL))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(content().string(containsString("client_id=ios-bundle-id")))
+            .andExpect(content().string(containsString("code=one-time-code")))
+            .andExpect(content().string(org.hamcrest.Matchers.not(containsString("redirect_uri="))))
+            .andRespond(
+                withSuccess(
+                    """{"id_token":"${token(audience = "ios-bundle-id")}","refresh_token":"apple-refresh-token"}""",
+                    MediaType.APPLICATION_JSON,
+                ),
+            )
+        expectAppleKey(server)
+        val client = client(builder)
+
+        val result =
+            client.exchangeNativeAuthorizationCode(
+                token(audience = "ios-bundle-id"),
+                "one-time-code",
+            )
+
+        assertThat(result.clientId).isEqualTo("ios-bundle-id")
+        assertThat(result.refreshToken).isEqualTo("apple-refresh-token")
+        server.verify()
+    }
+
+    @Test
+    fun `Apple refresh token을 발급받은 client ID로 해제한다`() {
+        val builder = RestClient.builder()
+        val server = MockRestServiceServer.bindTo(builder).build()
+        server
+            .expect(requestTo(REVOKE_URL))
+            .andExpect(method(HttpMethod.POST))
+            .andExpect(content().string(containsString("client_id=ios-bundle-id")))
+            .andExpect(content().string(containsString("token=apple-refresh-token")))
+            .andExpect(content().string(containsString("token_type_hint=refresh_token")))
+            .andRespond(withSuccess())
+        val client = client(builder)
+
+        client.revoke("ios-bundle-id", "apple-refresh-token")
+
+        server.verify()
+    }
+
     private fun clientWithAppleKey(
         codeExchangeToken: String? = null,
-        allowedClientIdsConfig: String = "web-client-id,ios-bundle-id",
+        codeExchangeRefreshToken: String? = null,
+        allowedClientIdsConfig: String = "web-client-id",
         nativeClientIdsConfig: String = "ios-bundle-id",
         clientId: String = "web-client-id",
     ): Pair<AppleOAuthClient, MockRestServiceServer> {
@@ -147,8 +218,43 @@ class AppleOAuthClientTest {
                 .andExpect(content().string(containsString("client_id=web-client-id")))
                 .andExpect(content().string(containsString("code=one-time-code")))
                 .andExpect(content().string(containsString("client_secret=")))
-                .andRespond(withSuccess("""{"id_token":"$codeExchangeToken"}""", MediaType.APPLICATION_JSON))
+                .andRespond(
+                    withSuccess(
+                        """{"id_token":"$codeExchangeToken"${codeExchangeRefreshToken?.let { ",\"refresh_token\":\"$it\"" } ?: ""}}""",
+                        MediaType.APPLICATION_JSON,
+                    ),
+                )
         }
+        expectAppleKey(server)
+        return client(
+            builder = builder,
+            allowedClientIdsConfig = allowedClientIdsConfig,
+            nativeClientIdsConfig = nativeClientIdsConfig,
+            clientId = clientId,
+        ) to server
+    }
+
+    private fun client(
+        builder: RestClient.Builder,
+        allowedClientIdsConfig: String = "web-client-id",
+        nativeClientIdsConfig: String = "ios-bundle-id",
+        clientId: String = "web-client-id",
+    ) = AppleOAuthClient(
+        restClient = builder.build(),
+        objectMapper = ObjectMapper(),
+        jwksUrl = JWKS_URL,
+        allowedClientIdsConfig = allowedClientIdsConfig,
+        nativeClientIdsConfig = nativeClientIdsConfig,
+        tokenUrl = TOKEN_URL,
+        clientId = clientId,
+        teamId = "TEAM123",
+        keyId = "KEY123",
+        privateKeyPemBase64 = privateKeyPemBase64(),
+        allowedRedirectUrisConfig = "https://app.didit.io.kr",
+        revokeUrl = REVOKE_URL,
+    )
+
+    private fun expectAppleKey(server: MockRestServiceServer) {
         val publicKey = keyPair.public as RSAPublicKey
         val jwks =
             """
@@ -156,19 +262,6 @@ class AppleOAuthClientTest {
               "n":"${encode(publicKey.modulus)}","e":"${encode(publicKey.publicExponent)}"}]}
             """.trimIndent()
         server.expect(requestTo(JWKS_URL)).andRespond(withSuccess(jwks, MediaType.APPLICATION_JSON))
-        return AppleOAuthClient(
-            restClient = builder.build(),
-            objectMapper = ObjectMapper(),
-            jwksUrl = JWKS_URL,
-            allowedClientIdsConfig = allowedClientIdsConfig,
-            nativeClientIdsConfig = nativeClientIdsConfig,
-            tokenUrl = TOKEN_URL,
-            clientId = clientId,
-            teamId = "TEAM123",
-            keyId = "KEY123",
-            privateKeyPemBase64 = privateKeyPemBase64(),
-            allowedRedirectUrisConfig = "https://app.didit.io.kr",
-        ) to server
     }
 
     private fun token(
@@ -207,5 +300,6 @@ class AppleOAuthClientTest {
     companion object {
         private const val JWKS_URL = "https://appleid.apple.com/auth/keys"
         private const val TOKEN_URL = "https://appleid.apple.com/auth/token"
+        private const val REVOKE_URL = "https://appleid.apple.com/auth/revoke"
     }
 }

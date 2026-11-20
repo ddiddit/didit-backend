@@ -1,18 +1,11 @@
 package com.didit.application.auth.provided
 
 import com.didit.application.auth.dto.EmailVerificationStartResult
+import com.didit.application.auth.dto.SocialLoginCommand
 import com.didit.application.auth.dto.SocialLoginResult
-import com.didit.domain.auth.Provider
-import com.didit.domain.auth.SocialCredentialType
 
 interface SocialAuth {
-    fun login(
-        provider: Provider,
-        credentialType: SocialCredentialType,
-        credential: String,
-        redirectUri: String?,
-        nonce: String?,
-    ): SocialLoginResult
+    fun login(command: SocialLoginCommand): SocialLoginResult
 
     fun startEmailVerification(
         loginSessionToken: String,

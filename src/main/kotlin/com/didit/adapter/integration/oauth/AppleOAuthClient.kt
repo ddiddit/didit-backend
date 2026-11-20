@@ -1,9 +1,11 @@
 package com.didit.adapter.integration.oauth
 
+import com.didit.application.auth.dto.AppleTokenExchange
 import com.didit.application.auth.dto.UserInfo
 import com.didit.application.auth.exception.InvalidSocialCredentialTypeException
 import com.didit.application.auth.exception.InvalidSocialRedirectUriException
 import com.didit.application.auth.exception.OAuthUserInfoFailedException
+import com.didit.application.auth.required.AppleTokenClient
 import com.didit.application.auth.required.OAuthClient
 import com.didit.domain.auth.SocialCredentialType
 import com.fasterxml.jackson.annotation.JsonProperty
@@ -18,6 +20,7 @@ import org.springframework.web.client.body
 import java.math.BigInteger
 import java.nio.charset.StandardCharsets
 import java.security.KeyFactory
+import java.security.PrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.security.spec.PKCS8EncodedKeySpec
 import java.security.spec.RSAPublicKeySpec
@@ -33,17 +36,72 @@ class AppleOAuthClient(
     @Value("\${oauth.apple.allowed-client-ids:}") allowedClientIdsConfig: String,
     @Value("\${oauth.apple.native-client-ids:}") nativeClientIdsConfig: String,
     @Value("\${oauth.apple.token-url}") private val tokenUrl: String = "https://appleid.apple.com/auth/token",
+    @Value("\${oauth.apple.revoke-url:https://appleid.apple.com/auth/revoke}") private val revokeUrl: String =
+        "https://appleid.apple.com/auth/revoke",
     @Value("\${oauth.apple.client-id:}") private val clientId: String = "",
     @Value("\${oauth.apple.team-id:}") private val teamId: String = "",
     @Value("\${oauth.apple.key-id:}") private val keyId: String = "",
     @Value("\${oauth.apple.private-key-pem-base64:}") private val privateKeyPemBase64: String = "",
     @Value("\${oauth.apple.allowed-redirect-uris:}") allowedRedirectUrisConfig: String = "",
-) : OAuthClient {
+) : OAuthClient,
+    AppleTokenClient {
     private val allowedClientIds = parseAllowList(allowedClientIdsConfig)
     private val nativeClientIds = parseAllowList(nativeClientIdsConfig)
     private val allowedRedirectUris = parseAllowList(allowedRedirectUrisConfig)
+    private val clientSecretPrivateKey: PrivateKey by lazy(::parseClientSecretPrivateKey)
 
     override fun getUserInfo(oauthToken: String): UserInfo = verifyIdToken(oauthToken, nativeClientIds)
+
+    override fun exchangeNativeAuthorizationCode(
+        idToken: String,
+        authorizationCode: String,
+    ): AppleTokenExchange {
+        val originalIdentity = verifyAppleIdentity(idToken, nativeClientIds)
+        val response = exchangeAuthorizationCode(authorizationCode, originalIdentity.audience, null)
+        val exchangedIdentity = verifyAppleIdentity(response.idToken, setOf(originalIdentity.audience))
+        if (exchangedIdentity.userInfo.providerId != originalIdentity.userInfo.providerId) {
+            throw OAuthUserInfoFailedException()
+        }
+        val refreshToken = response.refreshToken?.takeIf(String::isNotBlank) ?: throw OAuthUserInfoFailedException()
+        return AppleTokenExchange(originalIdentity.userInfo, originalIdentity.audience, refreshToken)
+    }
+
+    override fun exchangeWebAuthorizationCode(
+        authorizationCode: String,
+        redirectUri: String?,
+        expectedNonce: String?,
+    ): AppleTokenExchange {
+        if (expectedNonce.isNullOrBlank()) throw OAuthUserInfoFailedException()
+        if (clientId.isBlank() || clientId !in allowedClientIds) throw OAuthUserInfoFailedException()
+        val validatedRedirectUri = redirectUri?.takeIf { it in allowedRedirectUris } ?: throw InvalidSocialRedirectUriException()
+        val response = exchangeAuthorizationCode(authorizationCode, clientId, validatedRedirectUri)
+        val identity = verifyAppleIdentity(response.idToken, setOf(clientId), expectedNonce)
+        val refreshToken = response.refreshToken?.takeIf(String::isNotBlank) ?: throw OAuthUserInfoFailedException()
+        return AppleTokenExchange(identity.userInfo, clientId, refreshToken)
+    }
+
+    override fun revoke(
+        tokenClientId: String,
+        refreshToken: String,
+    ) {
+        if (tokenClientId !in allowedClientIds + nativeClientIds || refreshToken.isBlank()) throw OAuthUserInfoFailedException()
+        runCatching {
+            val form =
+                LinkedMultiValueMap<String, String>().apply {
+                    add("client_id", tokenClientId)
+                    add("client_secret", createClientSecret(tokenClientId))
+                    add("token", refreshToken)
+                    add("token_type_hint", "refresh_token")
+                }
+            restClient
+                .post()
+                .uri(revokeUrl)
+                .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                .body(form)
+                .retrieve()
+                .toBodilessEntity()
+        }.getOrElse { throw OAuthUserInfoFailedException() }
+    }
 
     override fun getUserInfo(
         credentialType: SocialCredentialType,
@@ -72,7 +130,13 @@ class AppleOAuthClient(
         idToken: String,
         acceptedAudiences: Set<String>,
         expectedNonce: String? = null,
-    ): UserInfo {
+    ): UserInfo = verifyAppleIdentity(idToken, acceptedAudiences, expectedNonce).userInfo
+
+    private fun verifyAppleIdentity(
+        idToken: String,
+        acceptedAudiences: Set<String>,
+        expectedNonce: String? = null,
+    ): VerifiedAppleIdentity {
         if (acceptedAudiences.isEmpty() || acceptedAudiences.any(String::isBlank)) throw OAuthUserInfoFailedException()
 
         val claims =
@@ -95,9 +159,14 @@ class AppleOAuthClient(
             throw OAuthUserInfoFailedException()
         }
 
-        return UserInfo(
-            providerId = claims.subject,
-            email = claims["email"] as? String,
+        val audience = claims.audience?.singleOrNull { it in acceptedAudiences } ?: throw OAuthUserInfoFailedException()
+        return VerifiedAppleIdentity(
+            userInfo =
+                UserInfo(
+                    providerId = claims.subject,
+                    email = claims["email"] as? String,
+                ),
+            audience = audience,
         )
     }
 
@@ -107,14 +176,23 @@ class AppleOAuthClient(
     ): String {
         if (code.isBlank() || clientId.isBlank() || clientId !in allowedClientIds) throw OAuthUserInfoFailedException()
         val validatedRedirectUri = redirectUri?.takeIf { it in allowedRedirectUris } ?: throw InvalidSocialRedirectUriException()
+        return exchangeAuthorizationCode(code, clientId, validatedRedirectUri).idToken.takeIf(String::isNotBlank)
+            ?: throw OAuthUserInfoFailedException()
+    }
 
+    private fun exchangeAuthorizationCode(
+        code: String,
+        tokenClientId: String,
+        redirectUri: String?,
+    ): AppleTokenResponse {
+        if (code.isBlank() || tokenClientId !in allowedClientIds + nativeClientIds) throw OAuthUserInfoFailedException()
         return runCatching {
             val form =
                 LinkedMultiValueMap<String, String>().apply {
                     add("grant_type", "authorization_code")
-                    add("client_id", clientId)
-                    add("client_secret", createClientSecret())
-                    add("redirect_uri", validatedRedirectUri)
+                    add("client_id", tokenClientId)
+                    add("client_secret", createClientSecret(tokenClientId))
+                    redirectUri?.let { add("redirect_uri", it) }
                     add("code", code)
                 }
             restClient
@@ -124,21 +202,12 @@ class AppleOAuthClient(
                 .body(form)
                 .retrieve()
                 .body<AppleTokenResponse>()
-                ?.idToken
-                ?.takeIf(String::isNotBlank)
         }.getOrElse { throw OAuthUserInfoFailedException() }
             ?: throw OAuthUserInfoFailedException()
     }
 
-    private fun createClientSecret(): String {
+    private fun createClientSecret(tokenClientId: String): String {
         require(teamId.isNotBlank() && keyId.isNotBlank() && privateKeyPemBase64.isNotBlank())
-        val pem = String(Base64.getDecoder().decode(privateKeyPemBase64), StandardCharsets.UTF_8)
-        val encodedKey =
-            pem
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .filterNot(Char::isWhitespace)
-        val privateKey = KeyFactory.getInstance("EC").generatePrivate(PKCS8EncodedKeySpec(Base64.getDecoder().decode(encodedKey)))
         val now = Instant.now()
         return Jwts
             .builder()
@@ -149,11 +218,21 @@ class AppleOAuthClient(
             .audience()
             .add(APPLE_ISSUER)
             .and()
-            .subject(clientId)
+            .subject(tokenClientId)
             .issuedAt(Date.from(now))
             .expiration(Date.from(now.plusSeconds(300)))
-            .signWith(privateKey, Jwts.SIG.ES256)
+            .signWith(clientSecretPrivateKey, Jwts.SIG.ES256)
             .compact()
+    }
+
+    private fun parseClientSecretPrivateKey(): PrivateKey {
+        val pem = String(Base64.getDecoder().decode(privateKeyPemBase64), StandardCharsets.UTF_8)
+        val encodedKey =
+            pem
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .filterNot(Char::isWhitespace)
+        return KeyFactory.getInstance("EC").generatePrivate(PKCS8EncodedKeySpec(Base64.getDecoder().decode(encodedKey)))
     }
 
     private fun fetchApplePublicKey(idToken: String): RSAPublicKey {
@@ -186,6 +265,12 @@ class AppleOAuthClient(
 
     private data class AppleTokenResponse(
         @param:JsonProperty("id_token") val idToken: String,
+        @param:JsonProperty("refresh_token") val refreshToken: String? = null,
+    )
+
+    private data class VerifiedAppleIdentity(
+        val userInfo: UserInfo,
+        val audience: String,
     )
 
     private data class AppleJwks(

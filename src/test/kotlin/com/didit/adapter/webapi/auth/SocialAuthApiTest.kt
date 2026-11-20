@@ -1,6 +1,7 @@
 package com.didit.adapter.webapi.auth
 
 import com.didit.application.auth.dto.EmailVerificationStartResult
+import com.didit.application.auth.dto.SocialLoginCommand
 import com.didit.application.auth.dto.SocialLoginResult
 import com.didit.application.auth.dto.SocialLoginStatus
 import com.didit.application.auth.dto.TokenResponse
@@ -13,8 +14,6 @@ import org.hamcrest.Matchers.nullValue
 import org.junit.jupiter.api.Test
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
-import org.mockito.kotlin.anyOrNull
-import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.springframework.http.MediaType
@@ -32,7 +31,7 @@ class SocialAuthApiTest : RestDocsSupport() {
 
     @Test
     fun `소셜 로그인 v2`() {
-        whenever(socialAuth.login(any(), any(), any(), anyOrNull(), anyOrNull())).thenReturn(
+        whenever(socialAuth.login(any())).thenReturn(
             SocialLoginResult(
                 status = SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED,
                 loginSessionToken = "login-session-token",
@@ -74,6 +73,10 @@ class SocialAuthApiTest : RestDocsSupport() {
                                 "redirectUri",
                             ).type(JsonFieldType.STRING).description("인가 코드 교환에 사용할 callback URI (필요한 제공자에 한함)").optional(),
                             fieldWithPath("nonce").type(JsonFieldType.STRING).description("Apple 인가 코드와 함께 검증할 일회용 nonce").optional(),
+                            fieldWithPath("authorizationCode")
+                                .type(JsonFieldType.STRING)
+                                .description("iOS Apple 로그인 토큰 해제를 위해 함께 전달하는 일회용 인가 코드")
+                                .optional(),
                         ),
                         responseFields(
                             fieldWithPath(
@@ -92,12 +95,12 @@ class SocialAuthApiTest : RestDocsSupport() {
                 )
             }
 
-        verify(socialAuth).login(Provider.GOOGLE, SocialCredentialType.ID_TOKEN, "id-token", null, null)
+        verify(socialAuth).login(SocialLoginCommand(Provider.GOOGLE, SocialCredentialType.ID_TOKEN, "id-token"))
     }
 
     @Test
     fun `Apple 인가 코드 로그인은 nonce를 전달한다`() {
-        whenever(socialAuth.login(any(), any(), any(), anyOrNull(), anyOrNull())).thenReturn(
+        whenever(socialAuth.login(any())).thenReturn(
             SocialLoginResult(status = SocialLoginStatus.EMAIL_VERIFICATION_REQUIRED, loginSessionToken = "login-session-token"),
         )
 
@@ -119,11 +122,43 @@ class SocialAuthApiTest : RestDocsSupport() {
             }
 
         verify(socialAuth).login(
-            eq(Provider.APPLE),
-            eq(SocialCredentialType.AUTHORIZATION_CODE),
-            eq("authorization-code"),
-            eq("https://dev-app.didit.io.kr/auth/apple/callback"),
-            eq("apple-nonce"),
+            SocialLoginCommand(
+                provider = Provider.APPLE,
+                credentialType = SocialCredentialType.AUTHORIZATION_CODE,
+                credential = "authorization-code",
+                redirectUri = "https://dev-app.didit.io.kr/auth/apple/callback",
+                nonce = "apple-nonce",
+            ),
+        )
+    }
+
+    @Test
+    fun `iOS Apple 로그인은 ID 토큰과 인가 코드를 함께 전달한다`() {
+        whenever(socialAuth.login(any())).thenReturn(
+            SocialLoginResult(status = SocialLoginStatus.AUTHENTICATED, token = TokenResponse("access", "refresh", false, true)),
+        )
+
+        mockMvc
+            .post("/api/v2/auth/social/login") {
+                contentType = MediaType.APPLICATION_JSON
+                content =
+                    objectMapper.writeValueAsString(
+                        mapOf(
+                            "provider" to Provider.APPLE,
+                            "credentialType" to SocialCredentialType.ID_TOKEN,
+                            "credential" to "id-token",
+                            "authorizationCode" to "native-authorization-code",
+                        ),
+                    )
+            }.andExpect { status { isOk() } }
+
+        verify(socialAuth).login(
+            SocialLoginCommand(
+                provider = Provider.APPLE,
+                credentialType = SocialCredentialType.ID_TOKEN,
+                credential = "id-token",
+                authorizationCode = "native-authorization-code",
+            ),
         )
     }
 

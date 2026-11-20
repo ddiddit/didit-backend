@@ -46,6 +46,7 @@ oauth:
   apple:
     jwks-url: https://appleid.apple.com/auth/keys
     token-url: https://appleid.apple.com/auth/token
+    revoke-url: https://appleid.apple.com/auth/revoke
     client-id: ${OAUTH_APPLE_CLIENT_ID:}
     team-id: ${OAUTH_APPLE_TEAM_ID:}
     key-id: ${OAUTH_APPLE_KEY_ID:}
